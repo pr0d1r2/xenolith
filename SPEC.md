@@ -25,7 +25,7 @@ self|.|-
 - C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
 - C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`), `sherd` (`github:pr0d1r2/sherd`). `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
-- C8: consumers take `lydite` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit.
+- C8: consumers take `lydite` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
 - C9: guardrails = `hk` (from `nix-hk`), `hk.pkl`. ∀ hk step = one plain command a human can paste (`cargo fmt --check`, `lyd check {{files}}`); ⊥ inline shell logic (dogfood V3).
 - C10: `nix develop` shellHook runs `scripts/dev/shell-hook.sh` → `hk install` idempotent ∴ hooks current ∀ shell enter. shellHook wired via `builtins.readFile`, ⊥ inline.
 - C11: TDD. RED commit (`test:` failing `#[test]` | fixture | bats) → GREEN commit (`feat:`|`fix:`) → REFACTOR commit (`refactor:`) ?. test commit ! precede impl commit.
@@ -53,6 +53,7 @@ self|.|-
 - json: violation = `{rule, file, line, col, host, embedded, sink, why, directions[]}`; each direction `Mechanical`|`Judgment` (mirror microlith shape).
 - lib: `lydite::check(&Path, &Config) -> Vec<Violation>`, `lydite::extract(...) -> Edit`, `lydite::graph(...) -> Graph`.
 - nix: `packages.<sys>.default` = lydite; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
+- nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
 - hk: consumer step `lyd check {{files}}`, `lyd graph`, `lyd lint`.
 - file (this repo): `.context-limits` (itok ceilings), `.coverage` (floor), `.lint-debt` (sherd debt baseline).
 
@@ -99,6 +100,7 @@ V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check
 V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files hit V13 exit 2, message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
+V31: nix `languages` subset exact: `lyd hosts` of subset build lists exactly subset; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 
 ## §T TASKS
 id|status|task|cites
@@ -142,6 +144,7 @@ T37|.|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt
 T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt lydite|C20
 T40|.|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
+T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `lyd hosts`; README consumer snippet w/ subset|V31,C8
 
 ## §B BUGS
 id|date|cause|fix
