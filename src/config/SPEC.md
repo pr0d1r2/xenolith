@@ -8,13 +8,11 @@
 
 rel|path|lens
 up|.|-
-up|src|lib + `lyd` bin: core model, CLI, verbs, host/shell/extract/graph/lint/config nodes
+up|src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config
 self|src/config|`lydite.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff | `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
-sib|src/hosts|host parsers & host × sink matrix, embed detection
 sib|src/lint|per-language linter map & invocation
-sib|src/shell|single-command classifier on bash AST
 
 ## §V INVARIANTS
 

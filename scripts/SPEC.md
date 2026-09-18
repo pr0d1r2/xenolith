@@ -14,7 +14,8 @@ guard|repo guardrail scripts hk calls|product rules (`src`), bats (`tests`)|-
 rel|path|lens
 up|.|-
 self|scripts|∀ shell in repo: dev shell hook, guardrail scripts
-sib|src|lib + `lyd` bin: core model, CLI, verbs, host/shell/extract/graph/lint/config nodes
+sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
+sib|src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
 ## §V INVARIANTS

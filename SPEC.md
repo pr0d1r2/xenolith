@@ -6,7 +6,8 @@ purity of implementation: ∀ file holds ONE language. `lydite` detects embeds o
 ## §F FEDERATION
 
 dir|owns|⊥owns|tokens
-src|lib + `lyd` bin: core model, CLI, verbs, host/shell/extract/graph/lint/config nodes|repo tooling (`scripts`), fixtures (`tests`)|-
+languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter|engines (`src`)|-
+src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config|language specifics (`languages`), repo tooling (`scripts`), fixtures (`tests`)|-
 scripts|∀ shell in repo: dev shell hook, guardrail scripts|product rules (`src`), bats (`tests`)|-
 tests|fixtures per host & case, integration tests, bats mirroring `scripts/`|implementation (`src`, `scripts`)|-
 
