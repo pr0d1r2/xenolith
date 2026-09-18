@@ -3,6 +3,19 @@
 ## §G GOAL
 purity of implementation: ∀ file holds ONE language. `lydite` detects embeds of other language inside host file, extracts them to own file, rewrites host to cross-load extract, verifies ∀ load resolves & ∀ extract linted by its own linter. named for Lydian touchstone (lydite) — ancient test of gold purity.
 
+## §F FEDERATION
+
+dir|owns|⊥owns|tokens
+src|lib + `lyd` bin: core model, CLI, verbs, host/shell/extract/graph/lint/config nodes|repo tooling (`scripts`), fixtures (`tests`)|-
+scripts|∀ shell in repo: dev shell hook, guardrail scripts|product rules (`src`), bats (`tests`)|-
+tests|fixtures per host & case, integration tests, bats mirroring `scripts/`|implementation (`src`, `scripts`)|-
+
+## §N NAV
+
+rel|path|lens
+up|-|-
+self|.|-
+
 ## §C CONSTRAINTS
 - C1: Rust. crate & repo = `lydite`; bin = `lyd` ? (short invocation, `ripgrep`/`rg` shape); lib exposed for consumers. MIT.
 - C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
