@@ -16,10 +16,12 @@ sib|src/lint|per-language linter map & invocation
 
 ## §V INVARIANTS
 
+V7: `graph`: ∀ load in host resolves to existing file (dangling = violation); ∀ file under configured extract dirs loaded by ≥1 host (orphan = violation).
 
 ## §T TASKS
 
 id|status|task|cites
+T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
 
 ## §B BUGS
 

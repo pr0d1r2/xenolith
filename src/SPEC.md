@@ -23,10 +23,16 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
 ## §V INVARIANTS
 
+V1: ∀ violation carries `rule`, `file:line:col`, host lang, embedded lang, sink, `why`, ≥1 direction. ⊥ bare "bad".
+V11: deterministic: output order sorted (file, line, col); json byte-stable across runs & platforms.
+V13: unsupported host file ⊥ silently passed when named explicitly — `lyd check x.foo` → exit 2 "host unsupported".
+V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).
 
 ## §T TASKS
 
 id|status|task|cites
+T8|.|core model: `Host`, `Sink`, `Embed`, `Violation`, `Direction`; json schema v1; sorted output|V1,V11,V24
+T9|.|CLI skeleton `lyd` (check, extract, graph, lint, hosts; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
 
 ## §B BUGS
 

@@ -19,6 +19,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 ## §T TASKS
 
 id|status|task|cites
+T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

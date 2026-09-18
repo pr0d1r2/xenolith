@@ -16,10 +16,12 @@ sib|src/graph|host → extract load edges, dangling & orphan
 
 ## §V INVARIANTS
 
+V8: `lint`: ∀ extract linted by linter for its language from config | built-in default; linter absent from PATH = exit 2, ⊥ silent skip.
 
 ## §T TASKS
 
 id|status|task|cites
+T24|.|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
 
 ## §B BUGS
 

@@ -15,10 +15,13 @@ sib|languages/pkl|pkl parser, hk step sinks, load idiom
 
 ## §V INVARIANTS
 
+V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation. classification via shell AST (tree-sitter-bash), ⊥ substring grep.
 
 ## §T TASKS
 
 id|status|task|cites
+T11|.|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,`languages:V2`
+T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

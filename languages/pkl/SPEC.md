@@ -6,9 +6,11 @@ crate `lydite-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bash 
 
 ## §V INVARIANTS
 
+
 ## §T TASKS
 
 id|status|task|cites
+T13|.|host pkl (tree-sitter-pkl ?): hk step sinks, fixtures|`languages:V2`,`languages/shell:V3`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

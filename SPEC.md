@@ -26,7 +26,7 @@ self|.|-
 - C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`), `sherd` (`github:pr0d1r2/sherd`). `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
 - C8: consumers take `lydite` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
-- C9: guardrails = `hk` (from `nix-hk`), `hk.pkl`. ∀ hk step = one plain command a human can paste (`cargo fmt --check`, `lyd check {{files}}`); ⊥ inline shell logic (dogfood V3).
+- C9: guardrails = `hk` (from `nix-hk`), `hk.pkl`. ∀ hk step = one plain command a human can paste (`cargo fmt --check`, `lyd check {{files}}`); ⊥ inline shell logic (dogfood `languages/shell:V3`).
 - C10: `nix develop` shellHook runs `scripts/dev/shell-hook.sh` → `hk install` idempotent ∴ hooks current ∀ shell enter. shellHook wired via `builtins.readFile`, ⊥ inline.
 - C11: TDD. RED commit (`test:` failing `#[test]` | fixture | bats) → GREEN commit (`feat:`|`fix:`) → REFACTOR commit (`refactor:`) ?. test commit ! precede impl commit.
 - C12: atomic commits. 1 logical change / commit. Conventional Commits. body ! carry agent reasoning (`Why:` + cite `§V.n`|`§T.n`) → audit trail.
@@ -70,69 +70,28 @@ ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ cont
 html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<script src>`, `<link rel=stylesheet>`
 
 ## §V INVARIANTS
-V1: ∀ violation carries `rule`, `file:line:col`, host lang, embedded lang, sink, `why`, ≥1 direction. ⊥ bare "bad".
-V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
-V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation. classification via shell AST (tree-sitter-bash), ⊥ substring grep.
-V4: `extract` LOSSLESS: extracted file bytes + host rewrite ! round-trip — inlining extract back into host reproduces original semantics (normalized whitespace equal); asserted before write.
-V5: `extract` IDEMPOTENT: `extract(extract(x)) == extract(x)`; rerun on clean host = no-op.
-V6: `extract --write` ⊥ overwrite existing file ≠ same bytes; collision → exit 2 w/ message.
-V7: `graph`: ∀ load in host resolves to existing file (dangling = violation); ∀ file under configured extract dirs loaded by ≥1 host (orphan = violation).
-V8: `lint`: ∀ extract linted by linter for its language from config | built-in default; linter absent from PATH = exit 2, ⊥ silent skip.
-V9: `[[allow]]` entry ! carry non-empty `reason`; entry matching nothing (stale) = violation. ⊥ wildcard path allow.
-V10: allow keyed by content hash | span, ⊥ line number alone ∴ edits above embed ⊥ break allow; edits to embed itself ! invalidate allow.
-V11: deterministic: output order sorted (file, line, col); json byte-stable across runs & platforms.
 V12: CPU only, offline: test runs w/ network disabled; ⊥ `reqwest`/`ureq`/`hyper` in dep tree (cargo-deny ban).
-V13: unsupported host file ⊥ silently passed when named explicitly — `lyd check x.foo` → exit 2 "host unsupported".
-V14: ∀ host in §I matrix ∃ fixture dir `tests/fixtures/<host>/<case>/` w/ `input.*`, `expected.json`, & for extract `expected.host`, `expected.extract.*`.
-V15: ∀ rule ∃ ≥1 positive (flagged) & ≥1 negative (clean) fixture.
 V16: rule & its checker & its fixtures land in ONE commit; RED test commit precedes (C11).
 V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sherd` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
 V18: `rust-version` ≡ pinned rustc minor; CI asserts.
 V19: lydite repo passes own `lyd check`, `lyd graph`, `lyd lint` (dogfood, C19).
-V20: ∀ commit msg Conventional Commits & body contains `Why:`; hk `commit-msg` enforces (via `lyd`-free script ∵ bootstrap).
-V21: ∀ `scripts/**/*.sh` ∃ bats at mirrored path & vice versa (⊥ orphan test).
 V22: `cargo fmt --check`, `clippy -D warnings`, `cargo deny check`, `cargo test` green before push; hk `pre-push` enforces.
-V23: ⊥ private repo name in tracked files | commit msgs (C17); hk check against denylist in gitignored file ?.
-V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).
 V25: ∀ `SPEC.md` (root & nodes) pass `mth fmt --check` & `mth check`.
 V26: ∀ path ∈ `.context-limits` ≤ ceiling via `itok check`; ceiling raise only in own commit w/ `Why:`.
 V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget` green; §N ⊥ hand-edited.
 V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
-V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files hit V13 exit 2, message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
+V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files hit `src:V13` exit 2, message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
 V31: nix `languages` subset exact: `lyd hosts` of subset build lists exactly subset; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 
 ## §T TASKS
 id|status|task|cites
 T1|.|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
-T2|.|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,V21
 T3|.|`Cargo.toml` (edition 2024, rust-version 1.95, MIT, lints), `clippy.toml`, `rustfmt.toml`, `deny.toml` w/ network crate bans|C2,C5,V12,V18
 T4|.|`hk.pkl`: fmt, clippy, deny, test, shellcheck, shfmt, nixfmt, statix, deadnix; commit-msg & pre-push hooks|C9,V22
-T5|.|`scripts/guard/commit-msg.sh` + bats: Conventional Commits + `Why:`|V20,C12
-T6|.|`scripts/guard/bats-mirror.sh` + bats: 1-to-1 `.sh` ↔ `.bats`|V21,C13
-T7|.|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs`, `.sh`)|V16,C11
-T8|.|core model: `Host`, `Sink`, `Embed`, `Violation`, `Direction`; json schema v1; sorted output|V1,V11,V24
-T9|.|CLI skeleton `lyd` (check, extract, graph, lint, hosts; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
-T10|.|`lydite.toml` parser: extract dirs, allow (reason required, hash/span keyed), lint map, hosts toggle|C16,V9,V10
-T11|.|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,V2
-T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|V2,V14,V15
-T13|.|host pkl (tree-sitter-pkl ?): hk step sinks, fixtures|V2,V3,V14,V15
-T14|.|host yaml GH Actions `run:` + fixtures|V3,V14,V15
-T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|V2,V14,V15
-T16|.|host just (tree-sitter-just ?) + fixtures|V3,V14,V15
-T17|.|host Dockerfile `RUN` + fixtures|V3,V14,V15
-T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,V14,V15
-T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,V14,V15
-T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,V14,V15
-T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
-T22|.|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
-T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6
-T24|.|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
-T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
 T26|.|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,V19
 T27|.|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
 T28|.|dogfood: `lyd check`/`graph`/`lint` on own repo green|V19,C19
-T29|.|private-name denylist guard (gitignored list) + bats|V23,C17
 T30|.|README: purpose, name origin, host matrix, `lydite.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix|I.file,C8
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `lydite.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ?|C1

@@ -24,6 +24,7 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 ## §T TASKS
 
 id|status|task|cites
+T2|.|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
 
 ## §B BUGS
 

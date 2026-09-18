@@ -22,10 +22,17 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
 ## §V INVARIANTS
 
+V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
 
 ## §T TASKS
 
 id|status|task|cites
+T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
+T16|.|host just (tree-sitter-just ?) + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
+T17|.|host Dockerfile `RUN` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
+T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,`tests:V14`,`tests:V15`
+T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,`tests:V14`,`tests:V15`
+T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
