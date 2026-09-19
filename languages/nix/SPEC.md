@@ -23,12 +23,14 @@ sib|languages/awk|awk grammar, guest rules
 
 V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty.
 V54: nix `hole_advice`: `${…}` holes → propose `replaceVars ./<file> { var = …; }` w/ `@var@` placeholders, else pass as argv | env. advice only, ⊥ auto-applied.
+V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshold.exec]`; over → extract to shell script w/ simple interface (fixed argv, `"$@"` forwarded) & `ExecStart = "${pkgs.writeShellScript "<name>" (nix-shebang.lib.readWithoutStrict ./…)}"` ∴ logic unit-testable (bats).
 
 ## §T TASKS
 
 id|status|task|cites
 T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 T55|.|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
+T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
 
 ## §B BUGS
 
