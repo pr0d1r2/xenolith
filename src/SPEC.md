@@ -22,6 +22,10 @@ sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
+## §C CONSTRAINTS
+
+- C1: Rust cargo workspace; repo & root crate = `xenolith` (lib + bin `xnl` = `xenolith` consonant skeleton, `rg` shape; `xnl` free as crate, nixpkgs & brew binary — checked 2026-09-19); lib exposed for consumers. root crate depends on ∀ language crate, `default` = ∀ `lang-*` ∴ `xnl` works out of box, trim via `default-features = false`; feature = compile-time (grammar ∉ binary), `xenolith.toml` `[langs]` = runtime toggle over compiled-in set. ∀ workspace crate (api, ∀ `xenolith-lang-*`, root) published to crates.io, lockstep version. MIT.
+
 ## §V INVARIANTS
 
 V1: ∀ violation carries `rule`, `file:line:col`, host lang, guest lang, sink, site delimiter kind, `why`, ≥1 direction. ⊥ bare "bad".

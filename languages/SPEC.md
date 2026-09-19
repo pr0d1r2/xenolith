@@ -27,6 +27,10 @@ sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
+## §C CONSTRAINTS
+
+- C24: ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: grammar dep, parser, sinks as host, load idiom, checks as guest; OPTIONAL behind feature `lang-<lang>`. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ root crate, ⊥ other language crate ∴ host names guest by `LangId`, ⊥ by type.
+
 ## §I INTERFACES
 
 - placement prototypes ? (for evaluation, ⊥ binding): just → `scripts/just/<recipe>.<ext>`, load `bash scripts/just/<recipe>.sh {{args}}` (recipe params → `languages/api:V40` params); Dockerfile → `<dockerfile_dir>/docker/<stage>-<n>.sh`, load `COPY` + `RUN bash /tmp/<name>.sh` (2-line rewrite: inline must remove both); bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (⚠ `$(` breaks `languages/shell:V3` for the load itself); rust → `<src_dir>/sql/<name>.sql`, `include_str!` (host-relative natively); ruby → `File.read(File.join(__dir__, "sql", "<name>.sql"))`; html → `<page_dir>/assets/<page>/<name>.js`, `<script src>`.
