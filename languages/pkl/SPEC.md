@@ -4,6 +4,10 @@
 
 crate `xenolith-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bash scripts/hk/x.sh {{files}}` load idiom.
 
+## §I INTERFACES
+
+- sinks (host|sink detected|embedded|load idiom after extract): `pkl` · hk step `check`, `fix`, `shell`, `check_diff`, `check_list_files` · shell · `bash scripts/hk/x.sh {{files}}`
+
 ## §V INVARIANTS
 
 V52: pkl host placement: hk step site → name = step key, dir = `scripts/hk`, load = `bash scripts/hk/<name>.sh {{files}}` (hk passes files through).

@@ -19,6 +19,10 @@ sib|languages/sql|sql grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 
+## §I INTERFACES
+
+- sinks (host|sink detected|embedded|load idiom after extract): `just` · recipe body > single simple command, shebang recipe · shell \| python \| … · `bash scripts/x.sh`
+
 ## §V INVARIANTS
 
 V58: `claims`: filename `justfile` (case-insensitive), `.justfile`, extension `.just`.

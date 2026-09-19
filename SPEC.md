@@ -25,17 +25,6 @@ self|.|-
 
 ## §I INTERFACES
 
-### host × sink matrix (initial)
-host|sink detected|embedded|load idiom after extract
-nix|`script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase`|shell|per `languages/nix:V53`
-pkl|hk step `check`, `fix`, `shell`, `check_diff`, `check_list_files`|shell|`bash scripts/hk/x.sh {{files}}`
-just|recipe body > single simple command, shebang recipe|shell \| python \| …|`bash scripts/x.sh`
-yaml (GH Actions)|`run:` block|shell|per `languages:V75`
-Dockerfile|`RUN` > single simple command|shell|`COPY` + `RUN bash /x.sh`
-bash|heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ?|python \| ruby \| sql \| js \| perl \| awk \| jq|`python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`
-rust|`Command::new("sh"\|"bash").arg("-c")`, SQL string literal passed to query fn ?|shell \| sql|`include_str!("x.sql")`
-ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax|sql \| shell \| js|`File.read(…)` / `Rails.root.join` ?
-html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<script src>`, `<link rel=stylesheet>`
 
 ## §V INVARIANTS
 V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).

@@ -19,6 +19,10 @@ sib|languages/sql|sql grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 
+## §I INTERFACES
+
+- sinks (host|sink detected|embedded|load idiom after extract): `nix` · `script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase` · shell · per `languages/nix:V53`
+
 ## §V INVARIANTS
 
 V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty.

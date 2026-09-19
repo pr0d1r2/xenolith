@@ -36,6 +36,14 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ## §I INTERFACES
 
+### host × sink matrix (hosts w/o own node yet)
+host|sink detected|embedded|load idiom after extract
+yaml (GH Actions)|`run:` block|shell|per `languages:V75`
+Dockerfile|`RUN` > single simple command|shell|`COPY` + `RUN bash /x.sh`
+rust|`Command::new("sh"\|"bash").arg("-c")`, SQL string literal passed to query fn ?|shell \| sql|`include_str!("x.sql")`
+ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax|sql \| shell \| js|`File.read(…)` / `Rails.root.join` ?
+html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<script src>`, `<link rel=stylesheet>`
+
 - placement prototypes ? (for evaluation, ⊥ binding): just → `scripts/just/<recipe>.<ext>`, load `bash scripts/just/<recipe>.sh {{args}}` (recipe params → `languages/api:V40` params); Dockerfile → `<dockerfile_dir>/docker/<stage>-<n>.sh`, load `COPY` + `RUN bash /tmp/<name>.sh` (2-line rewrite: inline must remove both); bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (⚠ `$(` breaks `languages/shell:V3` for the load itself); rust → `<src_dir>/sql/<name>.sql`, `include_str!` (host-relative natively); ruby → `File.read(File.join(__dir__, "sql", "<name>.sql"))`; html → `<page_dir>/assets/<page>/<name>.js`, `<script src>`.
 
 ## §V INVARIANTS

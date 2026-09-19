@@ -19,6 +19,10 @@ sib|languages/sql|sql grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 
+## §I INTERFACES
+
+- sinks (host|sink detected|embedded|load idiom after extract): `bash` · heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? · python \| ruby \| sql \| js \| perl \| awk \| jq · `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`
+
 ## §V INVARIANTS
 
 V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation, unless construct ∈ `[threshold.shell] allow` (`src/config` §I). classification via shell AST (tree-sitter-bash), ⊥ substring grep.
