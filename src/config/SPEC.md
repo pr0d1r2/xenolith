@@ -30,6 +30,7 @@ V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \|
 id|status|task|cites
 T10|.|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
 T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
+T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
 
 ## §B BUGS
 
