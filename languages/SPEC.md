@@ -39,7 +39,6 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ### host × sink matrix (hosts w/o own node yet)
 host|sink detected|embedded|load idiom after extract
-yaml (GH Actions)|`run:` block|shell|per `languages:V75`
 Dockerfile|`RUN` > single simple command|shell|`COPY` + `RUN bash /x.sh`
 rust|`Command::new("sh"\|"bash").arg("-c")`, SQL string literal passed to query fn ?|shell \| sql|`include_str!("x.sql")`
 ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax|sql \| shell \| js|`File.read(…)` / `Rails.root.join` ?
@@ -52,7 +51,6 @@ html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<s
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
 V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → per `src:V13` (default ignored). engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
 V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = workspace); Dockerfile → `HostDir` (build context = Dockerfile dir, override via rule `base`); others → `HostDir`.
-V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, V74).
 V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unparseable <guest>`) & extractable; parse errors then surface as lint findings on extract (`src/lint:V8`), fixers may auto-correct.
 V78: site inside host `ERROR` node ⊥ reported & ⊥ extracted (spans unreliable); file w/ `ERROR` → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).
 V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors in fixed order only REMOVE — (1) `[[detect]]` (forces one), (2) explicit context (interpreter cmd, GH `shell:`, nix `writers.*`), (3) shebang in body (`shebang::resolves_to`), (4) heredoc tag, (5) `Guest::rejects`; 1 left → guest; >1 → first by host order, `--verbose` notes ambiguity; 0 → guest `unknown`, violation w/ `Judgment`. deterministic.
@@ -60,17 +58,15 @@ V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors i
 ## §T TASKS
 
 id|status|task|cites
-T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T17|.|host Dockerfile `RUN` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,`tests:V14`,`tests:V15`
 T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,`tests:V14`,`tests:V15`
 T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,`tests:V14`,`tests:V15`
 T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
-T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|V74,V75
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
-T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,V75
+T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/yaml:V75`
 
 ## §B BUGS
 

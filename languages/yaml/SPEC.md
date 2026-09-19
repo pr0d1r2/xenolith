@@ -20,13 +20,20 @@ sib|languages/sql|sql grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 
+## §I INTERFACES
+
+- sinks: `run:` block → guest shell (dialect per `shell:`, default `bash -e`); load after extract: per V75.
+
 ## §V INVARIANTS
 
 V86: `claims`: `.github/workflows/*.y*ml` & `.github/actions/**/action.y*ml` (GH dialect: `run:` sinks); other `*.yml`/`*.yaml` claimed w/o sinks ? (future dialects).
+V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, `languages:V74`).
 
 ## §T TASKS
 
 id|status|task|cites
+T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
+T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|`languages:V74`,V75
 
 ## §B BUGS
 
