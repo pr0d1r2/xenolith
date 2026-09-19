@@ -15,7 +15,7 @@ rel|path|lens
 up|.|-
 self|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-sib|src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config
+sib|src|root crate: lib + `ldt` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
 ## §V INVARIANTS

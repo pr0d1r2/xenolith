@@ -8,7 +8,7 @@ per-language linter map & invocation over extracts; missing linter binary = erro
 
 rel|path|lens
 up|.|-
-up|src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config
+up|src|root crate: lib + `ldt` bin, core model, CLI, cross-language engines extract/graph/lint/config
 self|src/lint|per-language linter map & invocation
 sib|src/config|`lydite.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff | `--write`

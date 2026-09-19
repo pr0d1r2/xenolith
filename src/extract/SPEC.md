@@ -8,7 +8,7 @@ move embed → own file & rewrite host to load it: diff default, `--write`, loss
 
 rel|path|lens
 up|.|-
-up|src|root crate: lib + `lyd` bin, core model, CLI, cross-language engines extract/graph/lint/config
+up|src|root crate: lib + `ldt` bin, core model, CLI, cross-language engines extract/graph/lint/config
 self|src/extract|embed → own file, host rewrite, diff | `--write`
 sib|src/config|`lydite.toml` parse & validation
 sib|src/graph|host → extract load edges, dangling & orphan
