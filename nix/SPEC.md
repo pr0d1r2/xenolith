@@ -14,6 +14,13 @@ sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines ext
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 
+## §C CONSTRAINTS
+
+- C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`), `sherd` (`github:pr0d1r2/sherd`). `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
+- C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
+- C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
+- C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
+
 ## §V INVARIANTS
 
 V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sherd` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
