@@ -50,6 +50,7 @@ V70: `version` missing \| unknown → exit 2 naming supported versions.
 V73: ∀ default value (number, policy, path) ∃ config key & entry in defaults table; engines ⊥ literal defaults — read resolved config only. `--verbose` prints ∀ effective value w/ source (`default` \| `xenolith.toml`).
 V79: ∀ exclude entry (`[[exclude]]` & per-verb) ! carry non-empty `reason`; glob matching ⊥ tracked file = `stale-exclude` violation; excluded file ⊥ read.
 V85: config reference `docs/config.md` generated from defaults table & §I schema by a test (`UPDATE=1` rewrites); gate: generated ≡ committed, ⊥ hand-edited.
+V88: independently buildable: ∀ crate \| sherd node dir checkable standalone (`xnl check` inside it w/o ancestors, e.g. from crates.io package) → own `xenolith.toml` + defaults; ⊥ correctness depends on ancestor config.
 
 ## §T TASKS
 
