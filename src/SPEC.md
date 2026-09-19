@@ -45,6 +45,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - json envelope: `{"schema": 1, "violations": [...], "warnings": [{"code", "file"?, "message"}]}`; keys sorted, arrays sorted per `src:V11`.
 - lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 - hk: consumer step `check = "xnl check {{files}}"`, `check_diff = "xnl extract {{files}}"` (hk shows proposed extraction), `fix = "xnl extract --write {{files}}"` (explicit `hk fix` only, C15); `xnl graph`, `xnl lint` as own steps.
+- flag: `--trust-config`: permit commands defined in any `xenolith.toml` (`[lint.<guest>]` checks/fixers, `[lint] all`); ⊥ config key can grant it.
 
 ## §V INVARIANTS
 

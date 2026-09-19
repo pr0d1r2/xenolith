@@ -21,12 +21,14 @@ sib|src/graph|host → extract load edges, dangling & orphan
 ## §V INVARIANTS
 
 V8: `lint`: ∀ extract run ∀ check of its guest (defaults ∪ | replaced by `[lint.<guest>]`), each reported separately, ⊥ stop at first; binary absent from PATH = exit 2, ⊥ silent skip; `--fix` runs fixers then re-checks, touches extracts only.
+V91: config-defined commands run only w/ `--trust-config`; untrusted → skipped w/ warning `untrusted-command` naming each, built-in defaults still run.
 
 ## §T TASKS
 
 id|status|task|cites
 T24|.|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
 T87|.|multi-check runner, per-check results, `--fix`; defaults table; fixture w/ 2 checks both failing|V8
+T92|.|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
 
 ## §B BUGS
 
