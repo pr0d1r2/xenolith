@@ -48,6 +48,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - flag: `--trust-config`: permit commands defined in any `xenolith.toml` (`[lint.<guest>]` checks/fixers, `[lint] all`); ⊥ config key can grant it.
 - cmd: `xnl lint` gains `--format human|json` (see `src/lint` §I).
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
+- cmd: `xnl migrate [--write]` → read `.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist` (& siblings) → `[[allow]]` entries keyed per `src/config:V10`, `reason` = original comment \| `migrated from <file>`; default prints diff.
 
 ## §V INVARIANTS
 
@@ -74,6 +75,7 @@ T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
 T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
+T97|.|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 
 ## §B BUGS
 
