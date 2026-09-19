@@ -24,6 +24,7 @@ V7: `graph`: ∀ load in host resolves to existing file (dangling = violation); 
 V50: extract roots = static prefix (before first `{`) of ∀ rule `path` + layout `root` + ∀ `Host::placement` dir; orphan scan (V7) walks exactly these, ⊥ whole repo.
 V72: orphan scan & load resolution ⊥ follow symlinks; load resolving through symlink → `dangling-load`.
 V98: extract whose path ≠ path current placement config would give (layout change, renamed sink) → warning `misplaced-extract` naming expected path.
+V100: extract whose body is trivial for its guest (incl. threshold) → warning `inlineable-extract`.
 
 ## §T TASKS
 

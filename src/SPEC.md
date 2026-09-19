@@ -49,6 +49,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - cmd: `xnl lint` gains `--format human|json` (see `src/lint` §I).
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
 - cmd: `xnl migrate [--write]` → read `.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist` (& siblings) → `[[allow]]` entries keyed per `src/config:V10`, `reason` = original comment \| `migrated from <file>`; default prints diff.
+- cmd: `xnl inline [--write] <extract>…` → put extract body back into host via lens inverse (`languages/api:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
 
 ## §V INVARIANTS
 
