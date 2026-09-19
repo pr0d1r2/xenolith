@@ -51,7 +51,7 @@ self|.|-
 - flag: `--strict-hosts` ∀ verb: unclaimed file → exit 2 (≡ `[langs] unclaimed = "error"`).
 - warnings: human → stderr, json → `warnings[]`; ⊥ change exit code.
 - exit: 0 ok · 1 violation | drift · 2 usage | config error | refused. several apply → highest wins (2 > 1 > 0).
-- file: `xenolith.toml` — `[extract]` layout & `[[extract.rule]]` (`src/config` §I), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[langs] enable/disable`, `[threshold]` single-command rule toggles.
+- file: `xenolith.toml` — schema & defaults in `src/config` §I: `version`, `[extract]`, `[[extract.rule]]`, `[extract.shell]`, `[[allow]] path, sink, hash, reason`, `[[exclude]]` & per-verb `exclude`, `[[detect]]`, `[lint.<guest>]`, `[langs]`, `[parse]`, `[threshold.*]`.
 - rules: `xenolith` (non-trivial guest in sink; holes → same rule w/ `Judgment` direction, `languages/api:V40`), `dangling-load` & `orphan-extract` (`src/graph:V7`), `stale-allow` (`src/config:V9`), `stale-rule` (`src/config:V44`), `host-parse-error` (`languages:V78`), `stale-exclude` (`src/config:V79`). kebab-case, stable ∀ schema version.
 - human output: `file:line:col xenolith: <guest> in <host> <sink> (<why>)`; `xnl extract` diff header `removing xenolith → <extract path>`. metaphor lives in rule id & wording, verbs stay conventional (`check`, `extract`, `graph`, `lint`, `langs`) ∼ fleet `mth check`, `sherd check`.
 - json: violation = `{rule, file, line, col, host, guest, sink, site, why, directions[]}`; `site` = `DelimKind` (`languages/api` §I); each direction `Mechanical`|`Judgment` (mirror microlith shape).
