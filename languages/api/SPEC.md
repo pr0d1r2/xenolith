@@ -39,6 +39,7 @@ V37: missing capability = missing impl, ⊥ default method returning empty. ⊥ 
 V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under nix `description`) = inert data ⊥ site (`languages:V2` negative fixture). delimiter bounds from grammar node ∴ escapes, nesting, heredoc terminators, indent rules resolved by parser, ⊥ brace counting over raw bytes.
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judgment` direction (pass value as arg | env | `substituteAll`-style template), `rewrite` refuses (exit 2) unless hole-free. ⊥ copying `${…}` into guest file verbatim (would change meaning).
+V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
 
 ## §T TASKS
 
