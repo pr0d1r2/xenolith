@@ -30,12 +30,14 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 
 V86: `claims`: `.github/workflows/*.y*ml` & `.github/actions/**/action.y*ml` (GH dialect: `run:` sinks); other `*.yml`/`*.yaml` claimed w/o sinks ? (future dialects).
 V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, `languages:V74`).
+V97: GH `${{ }}` holes → step `env:` entries `NAME: ${{ expr }}` (NAME per `languages/api:V40`), extract body uses `"$NAME"`, `run:` load carries no hole ∴ extraction also removes template injection (zizmor `template-injection`); overrides inline `NAME=` assignment for this dialect.
 
 ## §T TASKS
 
 id|status|task|cites
 T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|`languages:V74`,V75
+T100|.|holes → step `env:`; fixture: `${{ github.event.issue.title }}` in `run:` → env entry, zizmor clean after|V97
 
 ## §B BUGS
 
