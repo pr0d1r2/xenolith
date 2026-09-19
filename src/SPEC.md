@@ -47,6 +47,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - hk: consumer step `check = "xnl check {{files}}"`, `check_diff = "xnl extract {{files}}"` (hk shows proposed extraction), `fix = "xnl extract --write {{files}}"` (explicit `hk fix` only, C15); `xnl graph`, `xnl lint` as own steps.
 - flag: `--trust-config`: permit commands defined in any `xenolith.toml` (`[lint.<guest>]` checks/fixers, `[lint] all`); ⊥ config key can grant it.
 - cmd: `xnl lint` gains `--format human|json` (see `src/lint` §I).
+- cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
 
 ## §V INVARIANTS
 
@@ -72,6 +73,7 @@ T46|.|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only 
 T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
 T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
+T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
 
 ## §B BUGS
 
