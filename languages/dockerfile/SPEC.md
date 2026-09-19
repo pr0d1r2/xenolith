@@ -23,6 +23,7 @@ sib|languages/yaml|yaml parser, GH Actions sinks, placement
 
 ## §V INVARIANTS
 
+V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `Containerfile.*`.
 
 ## §T TASKS
 
