@@ -37,6 +37,7 @@ sib|src/lint|per-language linter map & invocation
 - `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` regardless of context, diff marks it `Judgment` (semantic change).
 - `[lint.<guest>]`: `checks = ["<cmd> {file}", …]`, `fixers = [...]`, `extend` (default `true`: append to guest defaults; `false`: replace).
 - `[langs] missing_guest` ∈ `error` (default) \| `warn` \| `ignore`: site whose guest is compiled out.
+- file: `xenolith.toml` — schema & defaults in `src/config` §I: `version`, `[extract]`, `[[extract.rule]]`, `[extract.shell]`, `[[allow]] path, sink, hash, reason`, `[[exclude]]` & per-verb `exclude`, `[[detect]]`, `[lint.<guest>]`, `[langs]`, `[parse]`, `[threshold.*]`.
 
 ## §V INVARIANTS
 
