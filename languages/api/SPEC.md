@@ -27,6 +27,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 - `Host::placement(&Site) -> Placement { name, dir }`: host's default extract name (from site syntax: nix attr path, hk step name, GH job/step id) & dir (pkl hk step → `scripts/hk`); layer D of extract resolution, lowest precedence.
 - `Guest::header() -> Option<&'static str>` (shebang + strict-mode prelude) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
+- `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
 
 ## §V INVARIANTS
 
