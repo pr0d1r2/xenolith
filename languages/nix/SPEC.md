@@ -13,6 +13,7 @@ self|languages/nix|nix parser, sinks, load idiom
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 sib|languages/pkl|pkl parser, hk step sinks, load idiom
 sib|languages/shell|bash parser & host sinks, single-command classifier, shell linters
+sib|languages/just|just parser, recipe sinks, load idiom
 
 ## §V INVARIANTS
 
