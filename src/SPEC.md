@@ -62,6 +62,7 @@ V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone &
 V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]`, `guests() -> &'static [&'static dyn Guest]`, each entry behind `#[cfg(feature = "lang-<lang>")]`, sorted by `LangId`. engines iterate registry; ⊥ `cfg(feature = "lang-*")` elsewhere (V30 no-leak made checkable).
 V42: guest compiled out: site whose `guest` ∉ `guests()` → per `[langs] missing_guest` (default `error`: exit 2 naming feature `lang-<guest>`; `warn` → warning; `ignore`); ⊥ guessing trivial/non-trivial.
 V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage.
+V95: scan parallel per file, results merged then sorted (V11) ∴ output byte-identical to serial run; `--jobs N` (default cores).
 
 ## §T TASKS
 
@@ -76,6 +77,7 @@ T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; 
 T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
 T97|.|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
+T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 
 ## §B BUGS
 
