@@ -28,7 +28,7 @@ sib|languages/html|html parser, inline script/style sinks
 ## §I INTERFACES
 
 - sinks: recipe body > single simple command, shebang recipe → guest shell \| python \| …; load after extract: `bash scripts/x.sh`.
-- placement prototype ? (T86 evaluates): just → `scripts/just/<recipe>.<ext>`, load `bash scripts/just/<recipe>.sh {{args}}` (recipe params → `languages/api:V40` params).
+- placement prototype ? (T86 evaluates): just → `scripts/just/<recipe>.<ext>`, load `bash scripts/just/<recipe>.sh {{args}}` (recipe params → `languages/api/src/holes:V40` params).
 
 ## §V INVARIANTS
 

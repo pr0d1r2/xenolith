@@ -26,7 +26,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - top-level `version = 1`: required config schema version.
 - defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; `[langs] unclaimed = "ignore"`; `[threshold.load] max_params = 6`; `[parse] host_errors = "warn"`; `[extract.shell] strict = "preserve"`; `[lint.<guest>] extend = true`; `[langs] missing_guest = "error"`; `[lint] hosts = true`; `[threshold.load] param_prefix = ""`; rule `base` = host's `runtime_base`.
 - `[langs] unclaimed` ∈ `ignore` (default) \| `warn` \| `error`: file no host claims.
-- `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api:V40`).
+- `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api/src/holes:V40`).
 - `[parse] host_errors` ∈ `warn` (default) \| `error` \| `ignore`: host file w/ parse `ERROR` nodes.
 - `[[exclude]]`: `glob`, `reason` (required) — tracked files ∀ verb skips; default = scan ∀ tracked file.
 - per-verb exclusion lists `[check] exclude`, `[extract] exclude`, `[lint] exclude`, `[graph] exclude` = `[{ glob, reason }]`, applied on top of `[[exclude]]`.
