@@ -48,7 +48,7 @@ V36: trait fns pure: ⊥ fs, ⊥ process, ⊥ env, ⊥ clock; `&str` in, values 
 V37: missing capability = missing impl, ⊥ default method returning empty. ⊥ silent skip (`src/lint:V8` spirit).
 V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under nix `description`) = inert data ⊥ site (`languages:V2` negative fixture). delimiter bounds from grammar node ∴ escapes, nesting, heredoc terminators, indent rules resolved by parser, ⊥ brace counting over raw bytes.
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
-V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judgment` direction (pass value as arg | env | `replaceVars` template, `languages/nix:V54`), `rewrite` refuses (exit 2) unless hole-free. ⊥ copying `${…}` into guest file verbatim (would change meaning).
+V40: holes → params: each distinct hole → `Guest::param(n)` in extract (same hole ⇒ same n); load = one-liner `<invoke> <hole₁> … <holeₙ>` in host syntax (holes stay host interpolations). MECHANICAL iff n ≤ `[threshold.load] max_params` & ∀ hole in expanding context (⊥ single-quoted, ⊥ quoted heredoc, ⊥ inside guest string literal) & `param` ≠ ⊥ & load one-liner trivial (`languages/shell:V3`); else `Judgment` w/ `hole_advice` & `rewrite` refuses (exit 2). ⊥ copying `${…}` into guest file verbatim.
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
 V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude())` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
 V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base — default HOST FILE dir (`./sub/x.sh`), else `Host::runtime_base` | rule `base` (`src/extract:V45`); ⊥ cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
@@ -62,6 +62,7 @@ T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shel
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|V38,V39,V40,`tests:V15`
 T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
 T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|V63,V34
+T76|.|holes → params rewrite; fixtures: `${pkgs.foo}` ×2 → one param, hole in single quotes → `Judgment`, 7 holes → `Judgment`|V40
 
 ## §B BUGS
 
