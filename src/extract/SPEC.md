@@ -29,6 +29,7 @@ V65: nested xenoliths: extract runs to fixpoint — ∀ extract re-scanned as ho
 V68: rule-configured `invoke` ! yield load host's `loads()` recognises: after rewrite, `loads(y) ∋ p` (`languages/api:V34` (c)) checked @ runtime; ⊥ → exit 2 naming rule & host ∴ custom invoke & `graph` ⊥ disagree.
 V71: ∀ write path: canonicalize existing ancestors (resolve symlinks); resolved path ∉ repo root \| any existing component = symlink → exit 2; ⊥ write through symlink, ⊥ create dir via symlink.
 V80: extract skips site covered by `[[allow]]` & files under `[[exclude]]` \| `[extract] exclude`; `--verbose` names skip reason.
+V83: rendered extract path & path in load text ⊆ `[A-Za-z0-9._/-]`, ⊥ leading `-`; else exit 2 ∴ ⊥ injection into host syntax (nix path, yaml, pkl strings).
 
 ## §T TASKS
 
@@ -44,6 +45,7 @@ T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate
 T69|.|runtime `languages/api:V34` (c) check for rule `invoke`; fixture w/ unrecognisable invoke → exit 2|V68
 T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
 T81|.|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
+T84|.|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 
 ## §B BUGS
 
