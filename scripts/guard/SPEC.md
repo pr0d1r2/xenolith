@@ -11,6 +11,12 @@ up|.|-
 up|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 self|scripts/guard|repo guardrail scripts hk calls
 
+## §C CONSTRAINTS
+
+- C11: TDD. RED commit (`test:` failing `#[test]` | fixture | bats) → GREEN commit (`feat:`|`fix:`) → REFACTOR commit (`refactor:`) ?. test commit ! precede impl commit.
+- C12: atomic commits. 1 logical change / commit. Conventional Commits. body ! carry agent reasoning (`Why:` + cite `§V.n`|`§T.n`) → audit trail.
+- C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` — verified PUBLIC 2026-09-18; `nix-shebang` — verified PUBLIC 2026-09-19) may be named. unknown = private. fixtures synthetic | anonymised.
+
 ## §V INVARIANTS
 
 V16: rule & its checker & its fixtures land in ONE commit; RED test commit precedes (C11).
