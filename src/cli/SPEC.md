@@ -11,7 +11,7 @@ up|.|-
 up|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
 self|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 sib|src/config|`xenolith.toml` parse & validation
-sib|src/extract|embed → own file, host rewrite, diff | `--write`
+sib|src/extract|embed → own file, host rewrite, diff \| `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
 
