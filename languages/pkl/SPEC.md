@@ -6,6 +6,7 @@ crate `xenolith-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bas
 
 ## §V INVARIANTS
 
+V52: pkl host placement: hk step site → name = step key, dir = `scripts/hk`, load = `bash scripts/hk/<name>.sh {{files}}` (hk passes files through).
 
 ## §T TASKS
 
