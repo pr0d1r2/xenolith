@@ -20,11 +20,13 @@ sib|docs|public project docs & notices
 V14: ∀ language crate owns its fixtures @ `languages/<lang>/tests/fixtures/<case>/`, shipped in crate package ∴ `cargo test` works from crates.io; root `tests/fixtures/` = cross-language & engine integration only.
 V15: ∀ rule ∃ ≥1 positive (flagged) & ≥1 negative (clean) fixture.
 V67: fixture case = `input.<ext>`, `expected.json` (check output), `expected/` tree = full post-`extract --write` state relative to case dir (rewritten host, ∀ extract, ∀ companion, ∀ nested level); compared byte-for-byte & exact file set.
+V118: ∀ corpus finding (crash, lens-law break, wrong guest, false positive \| negative) → minimal SYNTHETIC fixture in the owning crate (`tests:V14`) + `§B` row, in the fixing PR; corpus data leaves the machine only as counts & shapes (`scripts/guard` C17).
 
 ## §T TASKS
 
 id|status|task|cites
 T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
+T117|.|local corpus runner: `xnl check`/`extract --dry-run` over sibling repos, writes aggregate report only; finding → fixture checklist|V118
 
 ## §B BUGS
 
