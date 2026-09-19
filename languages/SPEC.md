@@ -15,6 +15,7 @@ just|just parser, recipe sinks, load idiom|shell classification (`languages/shel
 python|python grammar, guest rules|sinks holding python (their host node)|-
 sql|sql grammar, guest rules|sinks holding sql (their host node)|-
 jq|jq grammar, guest rules|sinks holding jq (their host node)|-
+awk|awk grammar, guest rules|sinks holding awk (their host node)|-
 
 ## §N NAV
 

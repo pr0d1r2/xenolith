@@ -17,6 +17,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 sib|languages/just|just parser, recipe sinks, load idiom
 sib|languages/python|python grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
+sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
