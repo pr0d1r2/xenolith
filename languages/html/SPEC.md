@@ -25,6 +25,11 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
 
+## §I INTERFACES
+
+- sinks: inline `<script>` body, inline `<style>` body, `on*=` attrs ? · js \| css · `<script src>`, `<link rel=stylesheet>`.
+- placement prototype ? (T86 evaluates): html → `<page_dir>/assets/<page>/<name>.js`, `<script src>`.
+
 ## §V INVARIANTS
 
 V105: `claims`: `*.html`, `*.htm`; templates (`*.erb`, `*.hbs`) ? later.
@@ -32,6 +37,7 @@ V105: `claims`: `*.html`, `*.htm`; templates (`*.erb`, `*.hbs`) ? later.
 ## §T TASKS
 
 id|status|task|cites
+T20|.|host html: inline `<script>`/`<style>` + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
