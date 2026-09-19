@@ -21,6 +21,10 @@ sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 sib|languages/yaml|yaml parser, GH Actions sinks, placement
 
+## §I INTERFACES
+
+- sinks: `RUN` > single simple command, `RUN <<EOF` heredoc → guest shell (dialect per `SHELL`, default `sh -c`); load after extract: `COPY` + `RUN sh /tmp/<name>.sh` (prototype, `languages` §I).
+
 ## §V INVARIANTS
 
 V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `Containerfile.*`.
@@ -28,6 +32,7 @@ V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `C
 ## §T TASKS
 
 id|status|task|cites
+T17|.|host Dockerfile `RUN` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
