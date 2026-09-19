@@ -26,6 +26,10 @@ sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines ext
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
+## §I INTERFACES
+
+- placement prototypes ? (for evaluation, ⊥ binding): just → `scripts/just/<recipe>.<ext>`, load `bash scripts/just/<recipe>.sh {{args}}` (recipe params → `languages/api:V40` params); Dockerfile → `<dockerfile_dir>/docker/<stage>-<n>.sh`, load `COPY` + `RUN bash /tmp/<name>.sh` (2-line rewrite: inline must remove both); bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (⚠ `$(` breaks `languages/shell:V3` for the load itself); rust → `<src_dir>/sql/<name>.sql`, `include_str!` (host-relative natively); ruby → `File.read(File.join(__dir__, "sql", "<name>.sql"))`; html → `<page_dir>/assets/<page>/<name>.js`, `<script src>`.
+
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
@@ -49,6 +53,7 @@ T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|V7
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
+T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,V75
 
 ## §B BUGS
 
