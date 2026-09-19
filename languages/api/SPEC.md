@@ -41,6 +41,7 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 - `Guest::param(name) -> Option<String>`: guest's reference to named env param (shell `"$FOO_BIN"`, python `os.environ["FOO_BIN"]`); `Guest::param_refs(body, names) -> Vec<(Span, name)>`: parse-based finder for inverse; ⊥ → holes of that guest stay `Judgment`.
 - `Host::candidates(&Site) -> Vec<LangId>`: ordered guest set the sink context permits; `Guest::rejects(body, &GuestEnv) -> bool`: cheap structural veto (⊥ full parse — `languages:V77`).
 - type `GuestEnv { dialect: Option<String>, options: Vec<String> }`: interpreter dialect & effective options at site, derived by host from context (shell: `sh`\|`bash`\|`zsh`, `errexit`, `nounset`, `pipefail`, …).
+- `Host::checks() -> Vec<LintCmd>` & `Host::fixers()`: checks for host files themselves (nix `statix`, `deadnix`, `nixfmt --check`; GH `actionlint`, `zizmor`; Dockerfile `hadolint`; just `just --fmt --check --unstable`; pkl `pkl format --diff` ?).
 
 ## §V INVARIANTS
 
