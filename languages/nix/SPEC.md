@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §I INTERFACES
 
-- sinks (host|sink detected|embedded|load idiom after extract): `nix` · `script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase` · shell · per `languages/nix:V53`
+- sinks: `script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase` → guest shell; load after extract: per `languages/nix:V53`.
 
 ## §V INVARIANTS
 

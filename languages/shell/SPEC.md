@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §I INTERFACES
 
-- sinks (host|sink detected|embedded|load idiom after extract): `bash` · heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? · python \| ruby \| sql \| js \| perl \| awk \| jq · `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`
+- sinks: heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? → guest python \| ruby \| sql \| js \| perl \| awk \| jq; load after extract: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
 
 ## §V INVARIANTS
 

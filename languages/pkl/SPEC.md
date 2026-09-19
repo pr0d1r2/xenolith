@@ -6,7 +6,7 @@ crate `xenolith-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bas
 
 ## §I INTERFACES
 
-- sinks (host|sink detected|embedded|load idiom after extract): `pkl` · hk step `check`, `fix`, `shell`, `check_diff`, `check_list_files` · shell · `bash scripts/hk/x.sh {{files}}`
+- sinks: hk step `check`, `fix`, `shell`, `check_diff`, `check_list_files` → guest shell; load after extract: `bash scripts/hk/x.sh {{files}}`.
 
 ## §V INVARIANTS
 

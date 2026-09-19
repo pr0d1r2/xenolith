@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §I INTERFACES
 
-- sinks (host|sink detected|embedded|load idiom after extract): `just` · recipe body > single simple command, shebang recipe · shell \| python \| … · `bash scripts/x.sh`
+- sinks: recipe body > single simple command, shebang recipe → guest shell \| python \| …; load after extract: `bash scripts/x.sh`.
 
 ## §V INVARIANTS
 
