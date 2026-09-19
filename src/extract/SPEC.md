@@ -28,6 +28,7 @@ V64: multi-site host: rewrites applied back-to-front (descending span) on one pa
 V65: nested xenoliths: extract runs to fixpoint — ∀ extract re-scanned as host & extracted in turn until ⊥ site or `[extract] depth` (default 5) reached; depth reached w/ sites left → exit 2 naming chain host → … → site. V5 idempotence holds over whole tree.
 V68: rule-configured `invoke` ! yield load host's `loads()` recognises: after rewrite, `loads(y) ∋ p` (`languages/api:V34` (c)) checked @ runtime; ⊥ → exit 2 naming rule & host ∴ custom invoke & `graph` ⊥ disagree.
 V71: ∀ write path: canonicalize existing ancestors (resolve symlinks); resolved path ∉ repo root \| any existing component = symlink → exit 2; ⊥ write through symlink, ⊥ create dir via symlink.
+V80: extract skips site covered by `[[allow]]` & files under `[[exclude]]` \| `[extract] exclude`; `--verbose` names skip reason.
 
 ## §T TASKS
 
@@ -42,6 +43,7 @@ T66|.|repo-root placement path → host-relative load path; fixtures w/ host in 
 T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per C17); until then V4 compares normalized whitespace|V4,C17
 T69|.|runtime `languages/api:V34` (c) check for rule `invoke`; fixture w/ unrecognisable invoke → exit 2|V68
 T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
+T81|.|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 
 ## §B BUGS
 
