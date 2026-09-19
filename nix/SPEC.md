@@ -21,6 +21,11 @@ sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts
 - C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
 - C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
 
+## §I INTERFACES
+
+- nix: `packages.<sys>.default` = xenolith; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
+- nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
+
 ## §V INVARIANTS
 
 V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sherd` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
