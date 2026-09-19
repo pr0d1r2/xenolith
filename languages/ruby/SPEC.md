@@ -24,6 +24,11 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/rust|rust parser, rust host sinks
 
+## §I INTERFACES
+
+- sinks: squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax · sql \| shell \| js · `File.read(…)` / `Rails.root.join` ?.
+- placement prototype ? (T86 evaluates): ruby → `File.read(File.join(__dir__, "sql", "<name>.sql"))`.
+
 ## §V INVARIANTS
 
 V104: `claims`: `*.rb`, `*.rake`, `Gemfile`, `Rakefile`, `*.gemspec`, shebang `ruby`.
@@ -31,6 +36,7 @@ V104: `claims`: `*.rb`, `*.rake`, `Gemfile`, `Rakefile`, `*.gemspec`, shebang `r
 ## §T TASKS
 
 id|status|task|cites
+T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
