@@ -30,7 +30,7 @@ sib|languages/awk|awk grammar, guest rules
 - `Host::unescape(&Delim, raw) -> String` (strip common indent, host escapes like nix `''$`) & `Host::escape` inverse; `rewrite`/`inline` go through them.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg }`, `Error`.
 - `Host::placement(&Site) -> Placement { name, dir }`: host's default extract name (from site syntax: nix attr path, hk step name, GH job/step id) & dir (pkl hk step → `scripts/hk`); layer D of extract resolution, lowest precedence.
-- `Guest::header() -> Option<&'static str>` (shebang + strict-mode prelude) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config.
+- `Guest::header() -> Option<&'static str>` (shebang line), `Guest::strict() -> Option<&'static str>` (strict-mode prelude: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. file prelude = header + strict; `shebang::strip_strict` removes exactly it.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
 - mod `shebang`: Rust port of `github:pr0d1r2/nix-shebang` — `has`, `get`, `strip`, `strip_strict`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; same semantics & shared test vectors; language-generic (bash, sh, `python3`, `awk -f`, `env -S jq -f`).
