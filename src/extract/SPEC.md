@@ -14,6 +14,10 @@ sib|src/config|`xenolith.toml` parse & validation
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
 
+## §C CONSTRAINTS
+
+- C15: report-only by default. `xnl extract` writes only w/ explicit `--write`; default prints diff.
+
 ## §V INVARIANTS
 
 V4: `extract` LOSSLESS: extracted file bytes + host rewrite ! round-trip — inlining extract back into host reproduces original semantics (normalized whitespace equal); asserted before write.
