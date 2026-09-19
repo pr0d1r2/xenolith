@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
-V59: python guest: `trivial` = single expression statement, ⊥ `import`, ⊥ `def`/`class`, within `[threshold.python]`; `header` = `#!/usr/bin/env python3`, `strict` ⊥; ext `py`; `invoke` = `python3 {path}`; linter `ruff check` + `ruff format --check`.
+V59: python guest: `trivial` = single expression statement, ⊥ `import`, ⊥ `def`/`class`, within `[threshold.python]`; `prelude` = shebang `#!/usr/bin/env python3`, strict ⊥; ext `py`; `invoke` = `python3 {path}`; linter `ruff check` + `ruff format --check`.
 
 ## §T TASKS
 

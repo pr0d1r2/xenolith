@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
-V61: jq guest: `trivial` = filter ⊥ `def`, within `[threshold.jq]`; `header` = `#!/usr/bin/env -S jq -f`; ext `jq`; `invoke` = `jq -f {path}`; linter ⊥ (grammar parse in `check` suffices).
+V61: jq guest: `trivial` = filter ⊥ `def`, within `[threshold.jq]`; `prelude` = shebang `#!/usr/bin/env -S jq -f`, strict ⊥; ext `jq`; `invoke` = `jq -f {path}`; linter ⊥ (grammar parse in `check` suffices).
 
 ## §T TASKS
 

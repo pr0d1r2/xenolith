@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
-V60: sql guest: `trivial` = single statement, ⊥ `;`-chained, within `[threshold.sql]`; `header` ⊥ (no shebang); ext `sql`; `invoke` = `psql -f {path}` (host may override); linter `sqlfluff lint`.
+V60: sql guest: `trivial` = single statement, ⊥ `;`-chained, within `[threshold.sql]`; `prelude` empty (no shebang, strict ⊥); ext `sql`; `invoke` = `psql -f {path}` (host may override); linter `sqlfluff lint`.
 
 ## §T TASKS
 
