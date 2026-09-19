@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract.shell]` → `languages/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
+`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract]` & `[[extract.rule]]` → `src/extract`, `[extract.shell]` → `languages/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
 
 ## §N NAV
 
@@ -20,11 +20,7 @@ sib|src/lint|per-language linter map & invocation
 
 ## §I INTERFACES
 
-- `[extract]`: `layout` ∈ `host` (default: host placement only) \| `mirror` (`<root>/<host path sans ext>/<name>.<ext>`) \| `sibling` (`<host_dir>/<host_stem>.<name>.<ext>`) \| `central` (`<root>/<guest>/<name>.<ext>`); `root` (default `scripts`). layer C.
-- `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `base` (`host` \| `root` \| `"<dir>"`, overrides `Host::runtime_base`), `invoke` (argv template, overrides `Guest::invoke`), `prelude` (`{ shebang, strict }`), `executable`, `companion` (template). layer B, highest precedence.
 - `[threshold.shell]`: `allow` ⊆ {`pipe`, `and`, `or`, `seq`, `subst`, `backtick`, `redirect`, `if`, `for`, `while`, `case`, `heredoc`, `subshell`, `function`} (default `[]`) — constructs tolerated inline, relaxes `languages/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
-- `[extract] depth` (default 5, ≥1): max nesting levels extracted in one run.
-- `[extract] inactive_rules` ∈ `ignore` \| `warn` (default) \| `error`: handling of `[[extract.rule]]` whose host or guest is compiled out | `[langs]`-disabled.
 - `[threshold.exec]`: `max_args` (default 8), `max_len` (default 120) — systemd `ExecStart*` line kept inline when within.
 - top-level `version = 1`: required config schema version.
 - defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; `[langs] unclaimed = "ignore"`; `[threshold.load] max_params = 6`; `[parse] host_errors = "warn"`; `[extract.shell] strict = "preserve"`; `[lint.<guest>] extend = true`; `[langs] missing_guest = "error"`; `[lint] hosts = true`; `[threshold.load] param_prefix = ""`; rule `base` = host's `runtime_base`.
