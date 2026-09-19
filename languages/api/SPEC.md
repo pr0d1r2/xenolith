@@ -47,6 +47,7 @@ V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under ni
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judgment` direction (pass value as arg | env | `replaceVars` template, `languages/nix:V54`), `rewrite` refuses (exit 2) unless hole-free. ⊥ copying `${…}` into guest file verbatim (would change meaning).
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
+V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file)` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(prelude + body) == body`; vectors shared w/ nix-shebang.
 
 ## §T TASKS
 
@@ -56,6 +57,7 @@ T43|.|`laws::check` harness + fixture loader over `tests/fixtures/<host>/<case>/
 T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|V34,V35
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|V38,V39,V40,`tests:V15`
 T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::header`, `Guest::executable` in api crate|V43,`languages/api:T42`
+T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|V63,V34
 
 ## §B BUGS
 
