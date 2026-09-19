@@ -37,6 +37,7 @@ V109: release ONLY via cargo-release (`release.toml`, `pre-release-hook` = full 
 V110: CHANGELOG keeps `Unreleased` & a version LADDER — each minor = a stated guarantee, a patch sits off the ladder; ∀ user-visible change adds an `Unreleased` entry in its PR.
 V111: `cargo semver-checks` in the gate ∀ published crate vs last release tag; any break ⇒ minor bump in the same PR; lockstep version across the workspace (`src` C1).
 V112: ∀ published crate: `description`, `license`, `repository`, `homepage`, `documentation` (docs.rs), `readme`, `keywords`, `categories`, `rust-version`, `exclude` set; docs.rs builds root w/ all `lang-*`; checked, ⊥ by review.
+V113: packaged content proven: `cargo package` ∀ crate & `cargo test` from the unpacked `.crate` passes (per-crate fixtures ship, `tests:V14`).
 
 ## §T TASKS
 
@@ -51,6 +52,7 @@ T108|.|`release.toml` for the workspace (lockstep, publish order api → languag
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
 T111|.|crate metadata ∀ crate + check script + docs.rs `[package.metadata.docs.rs]`|V112
+T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
 
 ## §B BUGS
 
