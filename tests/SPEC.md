@@ -17,10 +17,12 @@ sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 
 V14: ∀ language crate owns its fixtures @ `languages/<lang>/tests/fixtures/<case>/`, shipped in crate package ∴ `cargo test` works from crates.io; root `tests/fixtures/` = cross-language & engine integration only.
 V15: ∀ rule ∃ ≥1 positive (flagged) & ≥1 negative (clean) fixture.
+V67: fixture case = `input.<ext>`, `expected.json` (check output), `expected/` tree = full post-`extract --write` state relative to case dir (rewritten host, ∀ extract, ∀ companion, ∀ nested level); compared byte-for-byte & exact file set.
 
 ## §T TASKS
 
 id|status|task|cites
+T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
 
 ## §B BUGS
 
