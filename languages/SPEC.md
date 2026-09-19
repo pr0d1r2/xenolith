@@ -16,6 +16,7 @@ python|python grammar, guest rules|sinks holding python (their host node)|-
 sql|sql grammar, guest rules|sinks holding sql (their host node)|-
 jq|jq grammar, guest rules|sinks holding jq (their host node)|-
 awk|awk grammar, guest rules|sinks holding awk (their host node)|-
+yaml|yaml parser, GH Actions sinks, placement|shell classification (`languages/shell`)|-
 
 ## §N NAV
 

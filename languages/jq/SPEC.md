@@ -18,6 +18,7 @@ sib|languages/just|just parser, recipe sinks, load idiom
 sib|languages/python|python grammar, guest rules
 sib|languages/sql|sql grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
+sib|languages/yaml|yaml parser, GH Actions sinks, placement
 
 ## §V INVARIANTS
 
