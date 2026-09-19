@@ -39,6 +39,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, dockerfile ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
 - C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now — revisit once api traits are stable semver surface.
+- C26: markdown as GUEST = potential ? (M3+ per `.` C25): md embedded in host string literals, e.g. rust tests holding spec fixtures (`const SOURCE: &str = "# SPEC\n\n## §G…"`) → extract to `tests/fixtures/<name>.md` + `include_str!`; detection by exclusion (`languages:V81`) via heading/table shape; checks `markdownlint`, `mth check` for SPEC-shaped bodies. markdown as HOST stays per C18 (fenced code = docs).
 
 ## §V INVARIANTS
 
