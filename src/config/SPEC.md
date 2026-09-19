@@ -27,6 +27,7 @@ sib|src/lint|per-language linter map & invocation
 - `[langs] unclaimed` ∈ `ignore` (default) \| `warn` \| `error`: file no host claims.
 - `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api:V40`).
 - `[parse] host_errors` ∈ `warn` (default) \| `error` \| `ignore`: host file w/ parse `ERROR` nodes.
+- `[[exclude]]`: `glob`, `reason` (required) — tracked files ∀ verb skips; default = scan ∀ tracked file.
 
 ## §V INVARIANTS
 
