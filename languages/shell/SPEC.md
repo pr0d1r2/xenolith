@@ -27,7 +27,7 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 
 ## §V INVARIANTS
 
-V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation, unless construct ∈ `[threshold.shell] allow` (`src/config` §I). classification via shell AST (tree-sitter-bash), ⊥ substring grep.
+V3: sink w/ single simple command (argv, optional leading `NAME=value` assignments; generated load may use exactly `"$(dirname "${BASH_SOURCE[0]}")"` as path prefix; otherwise ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation, unless construct ∈ `[threshold.shell] allow` (`src/config` §I). classification via shell AST (tree-sitter-bash), ⊥ substring grep.
 V51: shell guest defaults: `prelude(env)` = shebang `#!/usr/bin/env <dialect>` + `set`/`setopt` line reproducing `env.options` (V82); ⊥ context → bash + `set -euo pipefail`; `executable` = true; ext `sh` (zsh → `zsh`); `invoke` = `<dialect> {path}`.
 V82: dialects `sh`, `bash`, `zsh` (`dash`/`ksh` ? as sh-family): `env.dialect` from context (`sh -c`, `bash -c`, `zsh -c`, shebang, GH `shell:`, nix systemd `script`; host declares) & `env.options` = effective `set -o`/`setopt` state; prelude reproduces both exactly ∴ semantics preserved. grammar: tree-sitter-bash ∀ sh & bash, zsh best-effort ? (unsupported construct → `Judgment`).
 
