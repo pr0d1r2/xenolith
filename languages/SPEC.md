@@ -34,6 +34,7 @@ V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = works
 V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, V74).
 V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unparseable <guest>`) & extractable; parse errors then surface as lint findings on extract (`src/lint:V8`), fixers may auto-correct.
 V78: site inside host `ERROR` node ⊥ reported & ⊥ extracted (spans unreliable); file w/ `ERROR` → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).
+V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors in fixed order only REMOVE — (1) `[[detect]]` (forces one), (2) explicit context (interpreter cmd, GH `shell:`, nix `writers.*`), (3) shebang in body (`shebang::resolves_to`), (4) heredoc tag, (5) `Guest::rejects`; 1 left → guest; >1 → first by host order, `--verbose` notes ambiguity; 0 → guest `unknown`, violation w/ `Judgment`. deterministic.
 
 ## §T TASKS
 
@@ -47,6 +48,7 @@ T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang
 T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|V74,V75
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
+T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
 
 ## §B BUGS
 
