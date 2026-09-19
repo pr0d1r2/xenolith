@@ -28,6 +28,7 @@ V11: deterministic: output order sorted (file, line, col); json byte-stable acro
 V13: unsupported host file ⊥ silently passed when named explicitly — `lyd check x.foo` → exit 2 "host unsupported".
 V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).
 V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]`, `guests() -> &'static [&'static dyn Guest]`, each entry behind `#[cfg(feature = "lang-<lang>")]`, sorted by `LangId`. engines iterate registry; ⊥ `cfg(feature = "lang-*")` elsewhere (`.:V30` no-leak made checkable).
+V42: guest compiled out: site whose `guest` ∉ `guests()` → exit 2 naming feature `lang-<guest>`, ⊥ silent skip, ⊥ guessing trivial/non-trivial ∴ same repo ⊥ passes on smaller build (C3).
 
 ## §T TASKS
 
