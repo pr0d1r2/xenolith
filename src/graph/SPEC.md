@@ -14,6 +14,10 @@ sib|src/config|`xenolith.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff | `--write`
 sib|src/lint|per-language linter map & invocation
 
+## §I INTERFACES
+
+- json (`xnl graph --format json`): envelope (`src` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", …}, {"rule": "dangling-load", …}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
+
 ## §V INVARIANTS
 
 V7: `graph`: ∀ load in host resolves to existing file (dangling = violation); ∀ file under extract roots (V50) loaded by ≥1 host (orphan = violation).
