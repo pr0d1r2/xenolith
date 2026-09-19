@@ -42,6 +42,7 @@ V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judg
 id|status|task|cites
 T42|.|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `LintCmd`, `Error`, `Host`, `Guest`; workspace member, ⊥ features|V33,V36,V37,C1
 T43|.|`laws::check` harness + fixture loader over `tests/fixtures/<host>/<case>/`; RED on toy host in api tests|V34,`tests:V14`
+T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|V34,V35
 
 ## §B BUGS
 
