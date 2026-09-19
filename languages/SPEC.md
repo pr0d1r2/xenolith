@@ -20,6 +20,7 @@ yaml|yaml parser, GH Actions sinks, placement|shell classification (`languages/s
 dockerfile|Dockerfile parser, `RUN` sinks, placement|shell classification (`languages/shell`)|-
 shebang|shebang parse/strip/wrap ∀ guest|guest rules (`languages/<lang>`), laws (`languages/api`)|-
 rust|rust parser, rust host sinks|sql & shell guest rules (their nodes)|-
+ruby|ruby parser, ruby host sinks|sql, shell, js guest rules (their nodes)|-
 
 ## §N NAV
 
