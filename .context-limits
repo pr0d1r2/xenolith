@@ -22,3 +22,4 @@ src/lint                 5000
 tests                    5000
 languages/yaml           5000
 languages/dockerfile     5000
+languages/shebang        5000

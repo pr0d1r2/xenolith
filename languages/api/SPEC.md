@@ -20,6 +20,7 @@ sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 sib|languages/yaml|yaml parser, GH Actions sinks, placement
 sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
+sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 
 ## §I INTERFACES
 
@@ -35,8 +36,6 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 - `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<&'static str> }` (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
-- mod `shebang`: Rust equivalent of `github:pr0d1r2/nix-shebang` generalised ∀ guest — `has`, `get`, `strip`, `strip_strict(text, &Prelude)`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; bash/sh semantics & vectors shared w/ nix-shebang, per-language vectors ∀ other guest (`python3`, `awk -f`, `env -S jq -f`).
-- `shebang::wrap(body, &Prelude) -> String`: extract file content = prelude + body; inverse of `strip_strict`.
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
 - `Guest::param(name) -> Option<String>`: guest's reference to named env param (shell `"$FOO_BIN"`, python `os.environ["FOO_BIN"]`); `Guest::param_refs(body, names) -> Vec<(Span, name)>`: parse-based finder for inverse; ⊥ → holes of that guest stay `Judgment`.
 - `Host::candidates(&Site) -> Vec<LangId>`: ordered guest set the sink context permits; `Guest::rejects(body, &GuestEnv) -> bool`: cheap structural veto (⊥ full parse — `languages:V77`).
@@ -45,7 +44,7 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 
 ## §V INVARIANTS
 
-V32: dependency shape: `xenolith-lang-api` ⊥ grammar dep, ⊥ feature; language crate deps ⊆ {`xenolith-lang-api`, own grammar, std-ish}; ⊥ root crate, ⊥ other language crate. checked from `cargo metadata`, ⊥ by review.
+V32: dependency shape: `xenolith-lang-api` deps ⊆ {`xenolith-shebang`}, ⊥ grammar dep, ⊥ feature; language crate deps ⊆ {`xenolith-lang-api`, own grammar, std-ish}; ⊥ root crate, ⊥ other language crate. checked from `cargo metadata`, ⊥ by review.
 V33: `LangId` closed & ungated: ∃ variant ∀ known language regardless of enabled features ∴ host names guest compiled out; adding language = add variant here first.
 V34: lens laws ∀ host, ∀ site `s` of fixture `x`, `y = rewrite(x, s, guest.invoke(p), p)`: (a) `inline(y, load, unescape(s.delim, s.delim.body))` ≡ `x` normalized whitespace (`src/extract:V4`); (b) `sites(y)` ∌ `s`; (c) `loads(y)` ∋ load of `p`; (d) `rewrite` on host w/ ⊥ sites = identity (`src/extract:V5`); (e) inverse of V40: `inline` reads `NAME=<hole>` pairs from load & replaces `param_refs` in body by original hole text ∴ (a) holds for sites w/ holes. enforced by `laws::check` ∀ language crate, ⊥ per-crate hand tests.
 V35: load idiom split: guest owns `invoke` (how to run file of me); host owns wrapping `Invoke` in own syntax (`builtins.readFile`, hk step, `run:`). ⊥ host hardcodes guest command; ⊥ guest knows host syntax.
@@ -66,7 +65,6 @@ T43|.|`laws::check` harness + fixture loader over calling crate's `tests/fixture
 T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|V34,V35
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|V38,V39,V40,`tests:V15`
 T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
-T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|V63,V34
 T76|.|holes → params rewrite; fixtures: `${pkgs.foo}` ×2 → one param, hole in single quotes → `Judgment`, 7 holes → `Judgment`|V40
 T90|.|param inverse in `inline` + law (e) in harness; fixture: 2 holes round-trip byte-equal|V34,V40
 

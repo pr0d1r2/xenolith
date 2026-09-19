@@ -18,6 +18,7 @@ jq|jq grammar, guest rules|sinks holding jq (their host node)|-
 awk|awk grammar, guest rules|sinks holding awk (their host node)|-
 yaml|yaml parser, GH Actions sinks, placement|shell classification (`languages/shell`)|-
 dockerfile|Dockerfile parser, `RUN` sinks, placement|shell classification (`languages/shell`)|-
+shebang|shebang parse/strip/wrap ∀ guest|guest rules (`languages/<lang>`), laws (`languages/api`)|-
 
 ## §N NAV
 
@@ -31,7 +32,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ## §C CONSTRAINTS
 
-- C24: ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: grammar dep, parser, sinks as host, load idiom, checks as guest; OPTIONAL behind feature `lang-<lang>`. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ root crate, ⊥ other language crate ∴ host names guest by `LangId`, ⊥ by type.
+- C24: ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: grammar dep, parser, sinks as host, load idiom, checks as guest; OPTIONAL behind feature `lang-<lang>`. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep; re-exports `xenolith-shebang` from `languages/shebang`): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ root crate, ⊥ other language crate ∴ host names guest by `LangId`, ⊥ by type.
 - C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, dockerfile ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
 - C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now — revisit once api traits are stable semver surface.
