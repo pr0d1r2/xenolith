@@ -18,14 +18,14 @@ up|-|-
 self|.|-
 
 ## §C CONSTRAINTS
-- C1: Rust. cargo workspace; repo & root crate = `lydite` (lib + bin `xnl` = `xenolith` consonant skeleton, short invocation, `ripgrep`/`rg` shape; `xnl` free as crate, nixpkgs & brew binary — checked 2026-09-19); lib exposed for consumers. ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: its grammar dep, parser, sinks as host, load idiom, default linter as embedded. root crate depends on language crates, each OPTIONAL behind cargo feature `lang-<lang>`; `default` = ∀ `lang-*` ∴ `xnl` works out of box, consumer trims via `default-features = false`. feature = compile-time (grammar ∉ binary); `xenolith.toml` `[hosts]` = runtime toggle over compiled-in set. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ on root crate, ⊥ on other language crate ∴ host names guest by `LangId`, ⊥ by type. MIT.
+- C1: Rust. cargo workspace; repo & root crate = `xenolith` (lib + bin `xnl` = `xenolith` consonant skeleton, short invocation, `ripgrep`/`rg` shape; `xnl` free as crate, nixpkgs & brew binary — checked 2026-09-19); lib exposed for consumers. ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: its grammar dep, parser, sinks as host, load idiom, default linter as embedded. root crate depends on language crates, each OPTIONAL behind cargo feature `lang-<lang>`; `default` = ∀ `lang-*` ∴ `xnl` works out of box, consumer trims via `default-features = false`. feature = compile-time (grammar ∉ binary); `xenolith.toml` `[hosts]` = runtime toggle over compiled-in set. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ on root crate, ⊥ on other language crate ∴ host names guest by `LangId`, ⊥ by type. MIT.
 - C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
 - C3: CPU only, offline, deterministic. ⊥ network, ⊥ model, ⊥ heuristic scoring w/ randomness. same input → same bytes out.
 - C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, dockerfile ?, just ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
 - C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
 - C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`), `sherd` (`github:pr0d1r2/sherd`). `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
-- C8: consumers take `lydite` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
+- C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
 - C9: guardrails = `hk` (from `nix-hk`), `hk.pkl`. ∀ hk step = one plain command a human can paste (`cargo fmt --check`, `xnl check {{files}}`); ⊥ inline shell logic (dogfood `languages/shell:V3`).
 - C10: `nix develop` shellHook runs `scripts/dev/shell-hook.sh` → `hk install` idempotent ∴ hooks current ∀ shell enter. shellHook wired via `builtins.readFile`, ⊥ inline.
 - C11: TDD. RED commit (`test:` failing `#[test]` | fixture | bats) → GREEN commit (`feat:`|`fix:`) → REFACTOR commit (`refactor:`) ?. test commit ! precede impl commit.
@@ -36,8 +36,8 @@ self|.|-
 - C16: single config `xenolith.toml` at consumer repo root. replaces per-language allowlist files (`.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist`, …).
 - C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` — verified PUBLIC 2026-09-18) may be named. unknown = private. fixtures synthetic | anonymised.
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
-- C19: dogfood: lydite repo passes `xnl check` on itself in CI.
-- C20: cycle risk: itok, microlith, sherd may later adopt lydite as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
+- C19: dogfood: xenolith repo passes `xnl check` on itself in CI.
+- C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
 - C21: spec toolchain in guardrails: `microlith` (`mth fmt --check`, `mth check` ∀ `SPEC.md`), `itok` (`itok check` vs `.context-limits`), `sherd` (`sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget`, `sherd coverage --check` vs `.coverage`, `sherd debt --check` vs `.lint-debt`; `sherd review` advisory ?). ∀ hk step one plain command (C9) ∴ remediation text in tool output | `scripts/hk/*.sh`, ⊥ inline `\|\| { echo …; }`.
 - C22: spec = sherd DAG federation. root `SPEC.md` holds §G, §C, §I, §F; ∀ node dir own `SPEC.md` w/ §V, §T, §B; §N generated by `sherd sync`. citations namespaced (`` `NODE:Vn` ``). nodes: `languages` hub → `languages/api` (contract crate) + 1 node per language crate (`languages/shell` incl. single-command classifier, `languages/nix`, `languages/pkl`; others added w/ their crate, host tasks wait @ hub until then); `src` hub → `src/extract`, `src/graph`, `src/lint`, `src/config` (cross-language engines calling into language crates); `scripts` hub → `scripts/guard` (repo guardrails); `tests` (fixtures). spec node = dir = crate for languages. federate FIRST, before code: node dir may hold only `SPEC.md` until its code lands ∴ ∀ task cites node-local ids from day one & ⊥ big-bang migration later.
 
@@ -51,8 +51,8 @@ self|.|-
 - exit: 0 ok · 1 violation | drift · 2 usage | config error.
 - file: `xenolith.toml` — `[extract] dir` per language (default `fragments/`), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[hosts] enable/disable`, `[threshold]` single-command rule toggles.
 - json: violation = `{rule, file, line, col, host, embedded, sink, why, directions[]}`; each direction `Mechanical`|`Judgment` (mirror microlith shape).
-- lib: `lydite::check(&Path, &Config) -> Vec<Violation>`, `lydite::extract(...) -> Edit`, `lydite::graph(...) -> Graph`.
-- nix: `packages.<sys>.default` = lydite; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
+- lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
+- nix: `packages.<sys>.default` = xenolith; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
 - nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
 - hk: consumer step `xnl check {{files}}`, `xnl graph`, `xnl lint`.
 - file (this repo): `.context-limits` (itok ceilings), `.coverage` (floor), `.lint-debt` (sherd debt baseline).
@@ -74,7 +74,7 @@ V12: CPU only, offline: test runs w/ network disabled; ⊥ `reqwest`/`ureq`/`hyp
 V16: rule & its checker & its fixtures land in ONE commit; RED test commit precedes (C11).
 V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sherd` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
 V18: `rust-version` ≡ pinned rustc minor; CI asserts.
-V19: lydite repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).
+V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).
 V22: `cargo fmt --check`, `clippy -D warnings`, `cargo deny check`, `cargo test` green before push; hk `pre-push` enforces.
 V25: ∀ `SPEC.md` (root & nodes) pass `mth fmt --check` & `mth check`.
 V26: ∀ path ∈ `.context-limits` ≤ ceiling via `itok check`; ceiling raise only in own commit w/ `Why:`.
@@ -101,7 +101,7 @@ T35|.|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd bud
 T36|.|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1)|V28,C14
 T37|.|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt .` proposal → map file → `sherd adopt . --map` → `sherd sync`|V27,C22
 T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
-T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt lydite|C20
+T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T40|.|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
 T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl hosts`; README consumer snippet w/ subset|V31,C8
 
