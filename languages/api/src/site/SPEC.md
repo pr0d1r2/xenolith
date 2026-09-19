@@ -12,6 +12,7 @@ up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, lo
 up|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 up|languages/api/src|api modules: site, lens, holes
 self|languages/api/src/site|Site/Delim/GuestEnv types, placement, claims, candidates
+sib|languages/api/src/lens|rewrite/inline, escape, runtime base, laws harness
 
 ## §I INTERFACES
 

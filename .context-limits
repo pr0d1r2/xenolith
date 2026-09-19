@@ -30,3 +30,4 @@ src/cli                  5000
 docs                     5000
 languages/api/src        5000
 languages/api/src/site   5000
+languages/api/src/lens   5000
