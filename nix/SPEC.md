@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-nix packaging: flake inputs & follows, `packages`, `checks`, devShell, cachix, language-subset override, closure hygiene. `flake.nix` stays at root & imports `./nix/*.nix`.
+packaging & release: flake inputs & follows, `packages`, `checks`, devShell, cachix, language-subset override, closure hygiene, crates.io release (`release.toml`, CHANGELOG, semver, crate metadata). `flake.nix` stays at root & imports `./nix/*.nix`.
 
 ## §N NAV
 
