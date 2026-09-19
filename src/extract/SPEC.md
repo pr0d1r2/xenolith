@@ -20,6 +20,7 @@ V4: `extract` LOSSLESS: extracted file bytes + host rewrite ! round-trip — inl
 V5: `extract` IDEMPOTENT: `extract(extract(x)) == extract(x)`; rerun on clean host = no-op.
 V6: `extract --write` ⊥ overwrite existing file ≠ same bytes; collision → exit 2 w/ message.
 V45: placement resolved PER FIELD (path, name, invoke, header, executable, companion): most specific matching `[[extract.rule]]` (B) > `[extract] layout` (C) > `Host::placement` / `Guest` defaults (D). specificity = count of matched keys (host, sink, guest); tie between rules = exit 2 naming both.
+V46: template vars closed set `{name}`, `{ext}`, `{host_dir}`, `{host_stem}`, `{sink}`, `{guest}`, `{path}`, `{path_stem}`; render deterministic, result normalized relative to repo root.
 
 ## §T TASKS
 
