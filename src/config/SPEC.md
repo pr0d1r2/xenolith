@@ -25,6 +25,7 @@ sib|src/lint|per-language linter map & invocation
 V9: `[[allow]]` entry ! carry non-empty `reason`; entry matching nothing (stale) = violation. ⊥ wildcard path allow.
 V10: allow keyed by content hash | span, ⊥ line number alone ∴ edits above embed ⊥ break allow; edits to embed itself ! invalidate allow.
 V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \| `..` escaping repo root → exit 2; rule matching ⊥ site in repo = `stale-rule` violation (∼ V9).
+V55: `[threshold]` validated @ load: unknown guest \| construct \| key, negative value → exit 2; threshold only RELAXES, ⊥ makes a guest-trivial body flagged.
 
 ## §T TASKS
 
@@ -32,6 +33,7 @@ id|status|task|cites
 T10|.|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
 T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
+T56|.|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 
 ## §B BUGS
 
