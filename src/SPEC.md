@@ -30,9 +30,9 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ## §I INTERFACES
 
-- cmd: `xnl check [--format human|json] [paths…]` → detect embeds; exit 1 ∃ violation.
+- cmd: `xnl check [--format human|json|sarif] [paths…]` → detect embeds; exit 1 ∃ violation.
 - cmd: `xnl extract [--write] [--relocate] <path>[:line]…` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
-- cmd: `xnl graph [--format human|json] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
+- cmd: `xnl graph [--format human|json|sarif] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
 - cmd: `xnl lint [--fix] [paths…]` → run ∀ configured check ∀ extract by language; `--fix` runs fixers then re-checks, extracts only; missing binary = error, ⊥ skip.
 - cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
 - flag: `--verbose` ∀ verb; silence = success otherwise.
@@ -46,7 +46,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 - hk: consumer step `check = "xnl check {{files}}"`, `check_diff = "xnl extract {{files}}"` (hk shows proposed extraction), `fix = "xnl extract --write {{files}}"` (explicit `hk fix` only, C15); `xnl graph`, `xnl lint` as own steps.
 - flag: `--trust-config`: permit commands defined in any `xenolith.toml` (`[lint.<guest>]` checks/fixers, `[lint] all`); ⊥ config key can grant it.
-- cmd: `xnl lint` gains `--format human|json` (see `src/lint` §I).
+- cmd: `xnl lint` gains `--format human|json|sarif` (see `src/lint` §I).
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
 - cmd: `xnl migrate [--write]` → read `.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist` (& siblings) → `[[allow]]` entries keyed per `src/config:V10`, `reason` = original comment \| `migrated from <file>`; default prints diff.
 - cmd: `xnl inline [--write] <extract>…` → put extract body back into host via lens inverse (`languages/api:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
@@ -64,6 +64,7 @@ V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]
 V42: guest compiled out: site whose `guest` ∉ `guests()` → per `[langs] missing_guest` (default `error`: exit 2 naming feature `lang-<guest>`; `warn` → warning; `ignore`); ⊥ guessing trivial/non-trivial.
 V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage.
 V95: scan parallel per file, results merged then sorted (V11) ∴ output byte-identical to serial run; `--jobs N` (default cores).
+V102: `--format sarif` = SARIF 2.1.0: rule id → `ruleId`, `file:line:col` → `physicalLocation`, `why` → `message`, `Mechanical` direction → `fixes` when diff known; lint findings keep tool `code` as `ruleId` under tool's own `run`; deterministic like V11.
 
 ## §T TASKS
 
@@ -79,6 +80,7 @@ T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
 T97|.|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
+T103|.|SARIF writer ∀ verb + schema validation test|V102
 
 ## §B BUGS
 
