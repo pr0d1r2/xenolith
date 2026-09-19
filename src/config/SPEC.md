@@ -23,6 +23,7 @@ sib|src/lint|per-language linter map & invocation
 - `[extract] inactive_rules` ∈ `ignore` \| `warn` (default) \| `error`: handling of `[[extract.rule]]` whose host or guest is compiled out | `[langs]`-disabled.
 - `[threshold.exec]`: `max_args` (default 8), `max_len` (default 120) — systemd `ExecStart*` line kept inline when within.
 - top-level `version = 1`: required config schema version.
+- defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; rule `base` = host's `runtime_base`.
 
 ## §V INVARIANTS
 
@@ -31,6 +32,7 @@ V10: allow keyed by content hash | span, ⊥ line number alone ∴ edits above e
 V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \| `..` escaping repo root → exit 2; rule matching ⊥ site in repo = `stale-rule` violation (∼ V9); rule for inactive language ⊥ stale → per `[extract] inactive_rules`.
 V55: `[threshold]` validated @ load: unknown guest \| construct \| key, negative value → exit 2; threshold only RELAXES, ⊥ makes a guest-trivial body flagged.
 V70: `version` missing \| unknown → exit 2 naming supported versions.
+V73: ∀ default value (number, policy, path) ∃ config key & entry in defaults table; engines ⊥ literal defaults — read resolved config only. `--verbose` prints ∀ effective value w/ source (`default` \| `xenolith.toml`).
 
 ## §T TASKS
 
@@ -40,6 +42,7 @@ T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
 T56|.|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
+T73|.|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
 
 ## §B BUGS
 
