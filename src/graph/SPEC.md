@@ -23,6 +23,7 @@ V50: extract roots = static prefix (before first `{`) of ∀ rule `path` + layou
 
 id|status|task|cites
 T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
+T52|.|extract roots from rules, layout & host dirs; orphan scan over roots only|V50,V7
 
 ## §B BUGS
 
