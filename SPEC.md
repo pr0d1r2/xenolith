@@ -61,7 +61,7 @@ self|.|-
 
 ### host × sink matrix (initial)
 host|sink detected|embedded|load idiom after extract
-nix|`script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase`|shell|`builtins.readFile ./fragments/x.sh`
+nix|`script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase`|shell|per `languages/nix:V53`
 pkl|hk step `check`, `fix`, `shell`, `check_diff`, `check_list_files`|shell|`bash scripts/hk/x.sh {{files}}`
 just|recipe body > single simple command, shebang recipe|shell \| python \| …|`bash scripts/x.sh`
 yaml (GH Actions)|`run:` block|shell|`run: bash scripts/ci/x.sh`
