@@ -24,6 +24,7 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
+V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → skipped, unless named explicitly → `src:V13` exit 2. engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
 
 ## §T TASKS
 
@@ -34,6 +35,7 @@ T17|.|host Dockerfile `RUN` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V
 T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,`tests:V14`,`tests:V15`
 T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,`tests:V14`,`tests:V15`
 T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,`tests:V14`,`tests:V15`
+T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
 
 ## §B BUGS
 
