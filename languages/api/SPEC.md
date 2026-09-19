@@ -25,6 +25,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 - `Host::unescape(&Delim, raw) -> String` (strip common indent, host escapes like nix `''$`) & `Host::escape` inverse; `rewrite`/`inline` go through them.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg }`, `Error`.
 - `Host::placement(&Site) -> Placement { name, dir }`: host's default extract name (from site syntax: nix attr path, hk step name, GH job/step id) & dir (pkl hk step → `scripts/hk`); layer D of extract resolution, lowest precedence.
+- `Guest::header() -> Option<&'static str>` (shebang + strict-mode prelude) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config.
 
 ## §V INVARIANTS
 
