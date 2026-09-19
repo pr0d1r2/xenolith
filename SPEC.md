@@ -56,7 +56,7 @@ self|.|-
 - lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 - nix: `packages.<sys>.default` = xenolith; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
 - nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
-- hk: consumer step `xnl check {{files}}`, `xnl graph`, `xnl lint`.
+- hk: consumer step `check = "xnl check {{files}}"`, `check_diff = "xnl extract {{files}}"` (hk shows proposed extraction), `fix = "xnl extract --write {{files}}"` (explicit `hk fix` only, C15); `xnl graph`, `xnl lint` as own steps.
 - file (this repo): `.context-limits` (itok ceilings), `.coverage` (floor), `.lint-debt` (sherd debt baseline).
 
 ### host × sink matrix (initial)
