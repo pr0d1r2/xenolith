@@ -29,6 +29,7 @@ sib|src/lint|per-language linter map & invocation
 - `[parse] host_errors` ∈ `warn` (default) \| `error` \| `ignore`: host file w/ parse `ERROR` nodes.
 - `[[exclude]]`: `glob`, `reason` (required) — tracked files ∀ verb skips; default = scan ∀ tracked file.
 - per-verb exclusion lists `[check] exclude`, `[extract] exclude`, `[lint] exclude`, `[graph] exclude` = `[{ glob, reason }]`, applied on top of `[[exclude]]`.
+- `[[detect]]`: `host`?, `sink`? (glob), `path`? (glob), `guest` — forces guest for matching sites, overrides detection.
 
 ## §V INVARIANTS
 
