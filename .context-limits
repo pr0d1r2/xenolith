@@ -1,0 +1,22 @@
+# chain ceilings (tokens) per sherd node; `sherd budget`/`validate` & `itok check` gate them.
+# 5000 = working ceiling agreed 2026-09-19; raise only in own commit w/ Why (scripts:V26).
+SPEC.md                  5000
+languages                5000
+languages/api            5000
+languages/awk            5000
+languages/jq             5000
+languages/just           5000
+languages/nix            5000
+languages/pkl            5000
+languages/python         5000
+languages/shell          5000
+languages/sql            5000
+nix                      5000
+scripts                  5000
+scripts/guard            5000
+src                      5000
+src/config               5000
+src/extract              5000
+src/graph                5000
+src/lint                 5000
+tests                    5000
