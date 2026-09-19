@@ -29,6 +29,7 @@ V13: unsupported host file ⊥ silently passed when named explicitly — `xnl ch
 V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).
 V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]`, `guests() -> &'static [&'static dyn Guest]`, each entry behind `#[cfg(feature = "lang-<lang>")]`, sorted by `LangId`. engines iterate registry; ⊥ `cfg(feature = "lang-*")` elsewhere (`.:V30` no-leak made checkable).
 V42: guest compiled out: site whose `guest` ∉ `guests()` → exit 2 naming feature `lang-<guest>`, ⊥ silent skip, ⊥ guessing trivial/non-trivial ∴ same repo ⊥ passes on smaller build (C3).
+V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage.
 
 ## §T TASKS
 
@@ -36,6 +37,7 @@ id|status|task|cites
 T8|.|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,V24,`languages/api:T42`
 T9|.|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
 T46|.|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,`.:V30`
+T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
 
 ## §B BUGS
 
