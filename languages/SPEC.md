@@ -40,9 +40,6 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
 - C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now — revisit once api traits are stable semver surface.
 
-## §I INTERFACES
-
-
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
