@@ -48,6 +48,7 @@ self|.|-
 - cmd: `xnl lint [paths…]` → run configured linter ∀ extract by language; missing linter binary = error, ⊥ skip.
 - cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
 - flag: `--verbose` ∀ verb; silence = success otherwise.
+- warnings: human → stderr, json → `warnings[]`; ⊥ change exit code.
 - exit: 0 ok · 1 violation | drift · 2 usage | config error.
 - file: `xenolith.toml` — `[extract]` layout & `[[extract.rule]]` (`src/config` §I), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[langs] enable/disable`, `[threshold]` single-command rule toggles.
 - rules: `xenolith` (non-trivial guest in sink; holes → same rule w/ `Judgment` direction, `languages/api:V40`), `dangling-load` & `orphan-extract` (`src/graph:V7`), `stale-allow` (`src/config:V9`), `stale-rule` (`src/config:V44`). kebab-case, stable ∀ schema version.
