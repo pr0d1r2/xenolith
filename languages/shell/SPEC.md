@@ -16,7 +16,7 @@ sib|languages/pkl|pkl parser, hk step sinks, load idiom
 
 ## §V INVARIANTS
 
-V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation. classification via shell AST (tree-sitter-bash), ⊥ substring grep.
+V3: sink w/ single simple command (argv only: ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation, unless construct ∈ `[threshold.shell] allow` (`src/config` §I). classification via shell AST (tree-sitter-bash), ⊥ substring grep.
 V51: shell guest defaults: `header` = `#!/usr/bin/env bash` + `set -euo pipefail`, `executable` = true, `ext` = `sh`, `invoke` = `bash {path}`.
 
 ## §T TASKS
