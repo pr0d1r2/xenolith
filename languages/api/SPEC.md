@@ -30,10 +30,10 @@ sib|languages/awk|awk grammar, guest rules
 - `Host::unescape(&Delim, raw) -> String` (strip common indent, host escapes like nix `''$`) & `Host::escape` inverse; `rewrite`/`inline` go through them.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg }`, `Error`.
 - `Host::placement(&Site) -> Placement { name, dir }`: host's default extract name (from site syntax: nix attr path, hk step name, GH job/step id) & dir (pkl hk step → `scripts/hk`); layer D of extract resolution, lowest precedence.
-- `Guest::header() -> Option<&'static str>` (shebang line), `Guest::strict() -> Option<&'static str>` (strict-mode prelude: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. file prelude = header + strict; `shebang::strip_strict` removes exactly it.
+- `Guest::prelude() -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<&'static str> }` (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
-- mod `shebang`: Rust port of `github:pr0d1r2/nix-shebang` — `has`, `get`, `strip`, `strip_strict`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; same semantics & shared test vectors; language-generic (bash, sh, `python3`, `awk -f`, `env -S jq -f`).
+- mod `shebang`: Rust equivalent of `github:pr0d1r2/nix-shebang` generalised ∀ guest — `has`, `get`, `strip`, `strip_strict(text, &Prelude)`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; bash/sh semantics & vectors shared w/ nix-shebang, per-language vectors ∀ other guest (`python3`, `awk -f`, `env -S jq -f`).
 
 ## §V INVARIANTS
 
@@ -47,7 +47,7 @@ V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under ni
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judgment` direction (pass value as arg | env | `replaceVars` template, `languages/nix:V54`), `rewrite` refuses (exit 2) unless hole-free. ⊥ copying `${…}` into guest file verbatim (would change meaning).
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
-V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file)` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(prelude + body) == body`; vectors shared w/ nix-shebang.
+V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude())` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(prelude + body) == body`; vectors shared w/ nix-shebang.
 V66: load path in `rewrite` & `LoadRef.path` relative to HOST FILE dir (`./sub/x.sh`, `../scripts/x.sh`), ⊥ repo-root | cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
 
 ## §T TASKS
@@ -57,7 +57,7 @@ T42|.|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `Li
 T43|.|`laws::check` harness + fixture loader over calling crate's `tests/fixtures/<case>/`; RED on toy host in api tests|V34,`tests:V14`
 T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|V34,V35
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|V38,V39,V40,`tests:V15`
-T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::header`, `Guest::executable` in api crate|V43,`languages/api:T42`
+T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
 T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|V63,V34
 
 ## §B BUGS
