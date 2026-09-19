@@ -77,40 +77,15 @@ ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ cont
 html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<script src>`, `<link rel=stylesheet>`
 
 ## §V INVARIANTS
-V12: CPU only, offline: test runs w/ network disabled; ⊥ `reqwest`/`ureq`/`hyper` in dep tree (cargo-deny ban).
-V16: rule & its checker & its fixtures land in ONE commit; RED test commit precedes (C11).
-V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sherd` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
-V18: `rust-version` ≡ pinned rustc minor; CI asserts.
 V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).
-V22: `cargo fmt --check`, `clippy -D warnings`, `cargo deny check`, `cargo test` green before push; hk `pre-push` enforces.
-V25: ∀ `SPEC.md` (root & nodes) pass `mth fmt --check` & `mth check`.
-V26: ∀ path ∈ `.context-limits` ≤ ceiling via `itok check`; ceiling raise only in own commit w/ `Why:`.
-V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget` green; §N ⊥ hand-edited.
-V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
-V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
-V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files unclaimed per `src:V13`; strict → exit 2 message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
-V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 
 ## §T TASKS
 id|status|task|cites
-T1|.|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
-T3|.|`Cargo.toml` (edition 2024, rust-version 1.95, MIT, lints), `clippy.toml`, `rustfmt.toml`, `deny.toml` w/ network crate bans|C2,C5,V12,V18
-T4|.|`hk.pkl`: fmt, clippy, deny, test, shellcheck, shfmt, nixfmt, statix, deadnix; commit-msg & pre-push hooks|C9,V22
-T26|.|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,V19
-T27|.|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
 T28|.|dogfood: `xnl check`/`graph`/`lint` on own repo green|V19,C19
 T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix|I.file,C8
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `xenolith.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
-T33|.|hk steps `mth fmt --check` & `mth check` ∀ `SPEC.md`; `mth fmt` as fix|V25,C21
-T34|.|`.context-limits` ceilings + hk `itok check`|V26,C21
-T35|.|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget`; `sherd review` advisory ?|V27,C21
-T36|.|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1)|V28,C14
-T37|.|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt .` proposal → map file → `sherd adopt . --map` → `sherd sync`|V27,C22
-T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
-T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
-T40|.|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
-T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,C8
+T37|.|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt .` proposal → map file → `sherd adopt . --map` → `sherd sync`|`scripts:V27`,C22
 
 ## §B BUGS
 id|date|cause|fix
