@@ -18,11 +18,13 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 ## §V INVARIANTS
 
 V106: public doc set present & non-empty: `LICENSE` (MIT, `src` C1), `AGENTS.md`, `docs/CODE_OF_CONDUCT.md`, `docs/CONTRIBUTING.md`, `docs/SECURITY.md`, `docs/LLM-DISCLAIMER.md`, `docs/THIRD-PARTY-NOTICES.md`; guard checks presence (`scripts/guard`).
+V107: `docs/SECURITY.md` names every trust boundary — `--trust-config` (`src/lint:V91`), symlink-safe writes & reads (`src/extract:V71`, `src/graph:V72`), path charset (`src/extract:V83`), fixtures synthetic (C17) — & a private reporting channel.
 
 ## §T TASKS
 
 id|status|task|cites
 T104|.|write `LICENSE` (MIT), CoC, CONTRIBUTING (gate, TDD & commit rules), LLM-DISCLAIMER, mirroring the siblings' texts|V106
+T105|.|write `docs/SECURITY.md` per V107, incl. CI trust boundary (fork PRs take config from base branch)|V107
 
 ## §B BUGS
 
