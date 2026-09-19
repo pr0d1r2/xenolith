@@ -27,6 +27,7 @@ sib|languages/ruby|ruby parser, ruby host sinks
 
 ## §V INVARIANTS
 
+V105: `claims`: `*.html`, `*.htm`; templates (`*.erb`, `*.hbs`) ? later.
 
 ## §T TASKS
 
