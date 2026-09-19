@@ -23,6 +23,7 @@ V54: nix `hole_advice`: `${…}` holes → propose `replaceVars ./<file> { var =
 
 id|status|task|cites
 T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
+T55|.|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
 
 ## §B BUGS
 
