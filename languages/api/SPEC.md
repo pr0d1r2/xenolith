@@ -52,7 +52,7 @@ V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under ni
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes → params: each distinct hole → `Guest::param(n)` in extract (same hole ⇒ same n); load = one-liner `<invoke> <hole₁> … <holeₙ>` in host syntax (holes stay host interpolations). MECHANICAL iff n ≤ `[threshold.load] max_params` & ∀ hole in expanding context (⊥ single-quoted, ⊥ quoted heredoc, ⊥ inside guest string literal) & `param` ≠ ⊥ & load one-liner trivial (`languages/shell:V3`); else `Judgment` w/ `hole_advice` & `rewrite` refuses (exit 2). ⊥ copying `${…}` into guest file verbatim.
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
-V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude(&site.env))` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
+V63: extract file = `shebang::wrap(body, prelude)`; inline from disk = `shebang::strip_strict(file, &guest.prelude(&site.env))` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
 V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base — default HOST FILE dir (`./sub/x.sh`), else `Host::runtime_base` | rule `base` (`src/extract:V45`); ⊥ cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
 
 ## §T TASKS
