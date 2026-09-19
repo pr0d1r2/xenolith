@@ -21,7 +21,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
-V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `builtins.readFile ./<host_stem>/<name>.<ext>`.
+V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty.
 V54: nix `hole_advice`: `${…}` holes → propose `replaceVars ./<file> { var = …; }` w/ `@var@` placeholders, else pass as argv | env. advice only, ⊥ auto-applied.
 
 ## §T TASKS
