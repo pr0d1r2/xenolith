@@ -34,7 +34,7 @@ V42: guest compiled out: site whose `guest` ∉ `guests()` → exit 2 naming fea
 
 id|status|task|cites
 T8|.|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,V24,`languages/api:T42`
-T9|.|CLI skeleton `xnl` (check, extract, graph, lint, hosts; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
+T9|.|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
 T46|.|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,`.:V30`
 
 ## §B BUGS

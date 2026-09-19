@@ -46,7 +46,7 @@ self|.|-
 - cmd: `xnl extract [--write] <path>[:line]` → move embed to extract file, rewrite host to load it; default = print unified diff.
 - cmd: `xnl graph [--format human|json] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
 - cmd: `xnl lint [paths…]` → run configured linter ∀ extract by language; missing linter binary = error, ⊥ skip.
-- cmd: `xnl hosts` → list supported host languages, sinks, load idioms.
+- cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
 - flag: `--verbose` ∀ verb; silence = success otherwise.
 - exit: 0 ok · 1 violation | drift · 2 usage | config error.
 - file: `xenolith.toml` — `[extract] dir` per language (default `fragments/`), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[hosts] enable/disable`, `[threshold]` single-command rule toggles.
@@ -82,7 +82,7 @@ V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check
 V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files hit `src:V13` exit 2, message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
-V31: nix `languages` subset exact: `xnl hosts` of subset build lists exactly subset; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
+V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 
 ## §T TASKS
 id|status|task|cites
@@ -103,7 +103,7 @@ T37|.|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt
 T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T40|.|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
-T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl hosts`; README consumer snippet w/ subset|V31,C8
+T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,C8
 
 ## §B BUGS
 id|date|cause|fix
