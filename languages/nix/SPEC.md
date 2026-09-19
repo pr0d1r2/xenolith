@@ -14,6 +14,7 @@ sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types,
 sib|languages/pkl|pkl parser, hk step sinks, load idiom
 sib|languages/shell|bash parser & host sinks, single-command classifier, shell linters
 sib|languages/just|just parser, recipe sinks, load idiom
+sib|languages/python|python grammar, guest rules
 
 ## §V INVARIANTS
 

@@ -12,6 +12,7 @@ nix|nix parser, sinks, load idiom|shell classification (`languages/shell`)|-
 pkl|pkl parser, hk step sinks, load idiom|shell classification (`languages/shell`)|-
 shell|bash parser & host sinks, single-command classifier, shell linters|sinks in other hosts (their node)|-
 just|just parser, recipe sinks, load idiom|shell classification (`languages/shell`)|-
+python|python grammar, guest rules|sinks holding python (their host node)|-
 
 ## §N NAV
 
