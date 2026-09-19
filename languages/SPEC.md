@@ -29,7 +29,7 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
-V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → skipped, unless named explicitly → `src:V13` exit 2. engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
+V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → per `src:V13` (default ignored). engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
 V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = workspace); Dockerfile → `HostDir` (build context = Dockerfile dir, override via rule `base`); others → `HostDir`.
 V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, V74).
 

@@ -48,6 +48,7 @@ self|.|-
 - cmd: `xnl lint [paths…]` → run configured linter ∀ extract by language; missing linter binary = error, ⊥ skip.
 - cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
 - flag: `--verbose` ∀ verb; silence = success otherwise.
+- flag: `--strict-hosts` ∀ verb: unclaimed file → exit 2 (≡ `[langs] unclaimed = "error"`).
 - warnings: human → stderr, json → `warnings[]`; ⊥ change exit code.
 - exit: 0 ok · 1 violation | drift · 2 usage | config error | refused. several apply → highest wins (2 > 1 > 0).
 - file: `xenolith.toml` — `[extract]` layout & `[[extract.rule]]` (`src/config` §I), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[langs] enable/disable`, `[threshold]` single-command rule toggles.
@@ -84,7 +85,7 @@ V26: ∀ path ∈ `.context-limits` ≤ ceiling via `itok check`; ceiling raise 
 V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget` green; §N ⊥ hand-edited.
 V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
-V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files hit `src:V13` exit 2, message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
+V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files unclaimed per `src:V13`; strict → exit 2 message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 
 ## §T TASKS
