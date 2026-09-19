@@ -20,12 +20,13 @@ sib|src/lint|per-language linter map & invocation
 - `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `invoke` (argv template, overrides `Guest::invoke`), `header`, `executable`, `companion` (template). layer B, highest precedence.
 - `[threshold.shell]`: `allow` ⊆ {`pipe`, `and`, `or`, `seq`, `subst`, `backtick`, `redirect`, `if`, `for`, `while`, `case`, `heredoc`, `subshell`, `function`} (default `[]`) — constructs tolerated inline, relaxes `languages/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
 - `[extract] depth` (default 5, ≥1): max nesting levels extracted in one run.
+- `[extract] inactive_rules` ∈ `ignore` \| `warn` (default) \| `error`: handling of `[[extract.rule]]` whose host or guest is compiled out | `[langs]`-disabled.
 
 ## §V INVARIANTS
 
 V9: `[[allow]]` entry ! carry non-empty `reason`; entry matching nothing (stale) = violation. ⊥ wildcard path allow.
 V10: allow keyed by content hash | span, ⊥ line number alone ∴ edits above embed ⊥ break allow; edits to embed itself ! invalidate allow.
-V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \| `..` escaping repo root → exit 2; rule matching ⊥ site in repo = `stale-rule` violation (∼ V9).
+V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \| `..` escaping repo root → exit 2; rule matching ⊥ site in repo = `stale-rule` violation (∼ V9); rule for inactive language ⊥ stale → per `[extract] inactive_rules`.
 V55: `[threshold]` validated @ load: unknown guest \| construct \| key, negative value → exit 2; threshold only RELAXES, ⊥ makes a guest-trivial body flagged.
 
 ## §T TASKS
@@ -35,6 +36,7 @@ T10|.|`xenolith.toml` parser: extract layout & rules, allow (reason required, ha
 T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
 T56|.|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
+T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
 
 ## §B BUGS
 
