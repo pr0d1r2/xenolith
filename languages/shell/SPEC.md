@@ -24,6 +24,7 @@ V51: shell guest defaults: `header` = `#!/usr/bin/env bash` + `set -euo pipefail
 id|status|task|cites
 T11|.|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,`languages:V2`
 T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
+T53|.|shell `Guest::header`/`executable`/`invoke` defaults + fixture proving extract passes shellcheck|V51
 
 ## §B BUGS
 
