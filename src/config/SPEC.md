@@ -45,7 +45,7 @@ V9: `[[allow]]` entry ! carry non-empty `reason`; entry matching nothing (stale)
 V10: allow key = host path + sink path (e.g. `systemd.services.foo.script`) + content hash of body; ⊥ line number, ⊥ byte span ∴ edits above site ⊥ break allow; edits to body ! invalidate allow.
 V44: `[[extract.rule]]` checked @ load: unknown template var \| absolute path \| `..` escaping repo root → exit 2; rule matching ⊥ site in repo = `stale-rule` violation (∼ V9); rule for inactive language ⊥ stale → per `[extract] inactive_rules`.
 V55: `[threshold]` validated @ load: unknown guest \| construct \| key, negative value → exit 2; threshold only RELAXES, ⊥ makes a guest-trivial body flagged.
-V70: `version` missing \| unknown → exit 2 naming supported versions.
+V70: `version` missing \| unknown → exit 2 naming supported versions; ∀ `xenolith.toml` in one merge chain ! declare same `version`, else exit 2 naming both files.
 V73: ∀ default value (number, policy, path) ∃ config key & entry in defaults table; engines ⊥ literal defaults — read resolved config only. `--verbose` prints ∀ effective value w/ source (`default` \| `xenolith.toml`).
 V79: ∀ exclude entry (`[[exclude]]` & per-verb) ! carry non-empty `reason`; glob matching ⊥ tracked file = `stale-exclude` violation; excluded file ⊥ read.
 V85: config reference `docs/config.md` generated from defaults table & §I schema by a test (`UPDATE=1` rewrites); gate: generated ≡ committed, ⊥ hand-edited.
