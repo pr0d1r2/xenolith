@@ -28,7 +28,7 @@ V11: deterministic: output order sorted (file, line, col); json byte-stable acro
 V13: unclaimed file (0 hosts claim, named or not) ⊥ scanned & ⊥ reported by default; `--strict-hosts` \| `[langs] unclaimed = "error"` → exit 2 "host unsupported"; `warn` → warning.
 V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).
 V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]`, `guests() -> &'static [&'static dyn Guest]`, each entry behind `#[cfg(feature = "lang-<lang>")]`, sorted by `LangId`. engines iterate registry; ⊥ `cfg(feature = "lang-*")` elsewhere (`.:V30` no-leak made checkable).
-V42: guest compiled out: site whose `guest` ∉ `guests()` → exit 2 naming feature `lang-<guest>`, ⊥ silent skip, ⊥ guessing trivial/non-trivial ∴ same repo ⊥ passes on smaller build (C3).
+V42: guest compiled out: site whose `guest` ∉ `guests()` → per `[langs] missing_guest` (default `error`: exit 2 naming feature `lang-<guest>`; `warn` → warning; `ignore`); ⊥ guessing trivial/non-trivial.
 V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage.
 
 ## §T TASKS
@@ -39,6 +39,7 @@ T9|.|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verb
 T46|.|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,`.:V30`
 T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
+T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 
 ## §B BUGS
 
