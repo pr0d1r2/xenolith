@@ -22,6 +22,7 @@ V58: `claims`: filename `justfile` (case-insensitive), `.justfile`, extension `.
 ## §T TASKS
 
 id|status|task|cites
+T16|.|host just (tree-sitter-just): recipe sinks + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

@@ -31,7 +31,6 @@ V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; �
 
 id|status|task|cites
 T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
-T16|.|host just (tree-sitter-just ?) + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T17|.|host Dockerfile `RUN` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,`tests:V14`,`tests:V15`
 T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,`tests:V14`,`tests:V15`
