@@ -16,11 +16,11 @@ sib|src/graph|host → extract load edges, dangling & orphan
 
 ## §I INTERFACES
 
-- default checks / fixers (all overridable): sh & bash → `shellcheck -s <dialect>`, `shfmt -d` / `shfmt -w`; zsh → `zsh -n`; python → `ruff check`, `ruff format --check`, `mypy` ? / `ruff check --fix`, `ruff format`; sql → `sqlfluff lint` / `sqlfluff fix`; jq → `jq -n -f {file}`; awk → `gawk --lint -f {file} /dev/null` ?.
+- default checks / fixers (all overridable; more = better): sh → `shellcheck -s sh`, `checkbashisms`, `shfmt -d`; bash → `shellcheck -s bash`, `shfmt -d` / `shfmt -w`; zsh → `zsh -n`; python → `ruff check`, `ruff format --check`, `mypy`, `bandit` / `ruff check --fix`, `ruff format`; sql → `sqlfluff lint`, `squawk` ? (postgres DDL) / `sqlfluff fix`; jq → `jq -n -f {file}`; awk → `gawk --lint -f {file} /dev/null`; ∀ extract → `typos`, `editorconfig-checker` ?.
 
 ## §V INVARIANTS
 
-V8: `lint`: ∀ extract run ∀ check of its guest (defaults ∪ | replaced by `[lint.<guest>]`), each reported separately, ⊥ stop at first; binary absent from PATH = exit 2, ⊥ silent skip; `--fix` runs fixers then re-checks, touches extracts only.
+V8: `lint`: ∀ extract run ∀ check of its guest & `[lint] all`, ∀ host file ∀ `Host::checks` (when `[lint] hosts`) (defaults ∪ | replaced by `[lint.<guest>]`), each reported separately, ⊥ stop at first; binary absent from PATH = exit 2, ⊥ silent skip; `--fix` runs fixers then re-checks, touches extracts only.
 V91: config-defined commands run only w/ `--trust-config`; untrusted → skipped w/ warning `untrusted-command` naming each, built-in defaults still run.
 
 ## §T TASKS
