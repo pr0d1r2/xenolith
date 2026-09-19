@@ -46,7 +46,7 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 
 V32: dependency shape: `xenolith-lang-api` ⊥ grammar dep, ⊥ feature; language crate deps ⊆ {`xenolith-lang-api`, own grammar, std-ish}; ⊥ root crate, ⊥ other language crate. checked from `cargo metadata`, ⊥ by review.
 V33: `LangId` closed & ungated: ∃ variant ∀ known language regardless of enabled features ∴ host names guest compiled out; adding language = add variant here first.
-V34: lens laws ∀ host, ∀ site `s` of fixture `x`, `y = rewrite(x, s, guest.invoke(p), p)`: (a) `inline(y, load, unescape(s.delim, s.delim.body))` ≡ `x` normalized whitespace (`src/extract:V4`); (b) `sites(y)` ∌ `s`; (c) `loads(y)` ∋ load of `p`; (d) `rewrite` on host w/ ⊥ sites = identity (`src/extract:V5`). enforced by `laws::check` ∀ language crate, ⊥ per-crate hand tests.
+V34: lens laws ∀ host, ∀ site `s` of fixture `x`, `y = rewrite(x, s, guest.invoke(p), p)`: (a) `inline(y, load, unescape(s.delim, s.delim.body))` ≡ `x` normalized whitespace (`src/extract:V4`); (b) `sites(y)` ∌ `s`; (c) `loads(y)` ∋ load of `p`; (d) `rewrite` on host w/ ⊥ sites = identity (`src/extract:V5`); (e) inverse of V40: `inline` reads `NAME=<hole>` pairs from load & replaces `param_refs` in body by original hole text ∴ (a) holds for sites w/ holes. enforced by `laws::check` ∀ language crate, ⊥ per-crate hand tests.
 V35: load idiom split: guest owns `invoke` (how to run file of me); host owns wrapping `Invoke` in own syntax (`builtins.readFile`, hk step, `run:`). ⊥ host hardcodes guest command; ⊥ guest knows host syntax.
 V36: trait fns pure: ⊥ fs, ⊥ process, ⊥ env, ⊥ clock; `&str` in, values out ∴ engines own IO (`--write`, lint runs) & C3 determinism holds per crate. `Vec` outputs sorted by span.
 V37: missing capability = missing impl, ⊥ default method returning empty. ⊥ silent skip (`src/lint:V8` spirit).
@@ -67,6 +67,7 @@ T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in har
 T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
 T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|V63,V34
 T76|.|holes → params rewrite; fixtures: `${pkgs.foo}` ×2 → one param, hole in single quotes → `Judgment`, 7 holes → `Judgment`|V40
+T90|.|param inverse in `inline` + law (e) in harness; fixture: 2 holes round-trip byte-equal|V34,V40
 
 ## §B BUGS
 
