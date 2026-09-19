@@ -7,7 +7,7 @@ root crate: lib + `xnl` bin: core model, CLI, verbs; cross-language engines extr
 ## §F FEDERATION
 
 dir|owns|⊥owns|tokens
-config|`lydite.toml` parse & validation|applying config — each verb's node|-
+config|`xenolith.toml` parse & validation|applying config — each verb's node|-
 extract|embed → own file, host rewrite, diff \| `--write`|detection (`languages`), load resolution (`graph`)|-
 graph|host → extract load edges, dangling & orphan|writing files (`extract`)|-
 lint|per-language linter map & invocation|deciding what is an extract (`graph`, `config`)|-
