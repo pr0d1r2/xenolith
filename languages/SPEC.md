@@ -19,6 +19,7 @@ awk|awk grammar, guest rules|sinks holding awk (their host node)|-
 yaml|yaml parser, GH Actions sinks, placement|shell classification (`languages/shell`)|-
 dockerfile|Dockerfile parser, `RUN` sinks, placement|shell classification (`languages/shell`)|-
 shebang|shebang parse/strip/wrap ∀ guest|guest rules (`languages/<lang>`), laws (`languages/api`)|-
+rust|rust parser, rust host sinks|sql & shell guest rules (their nodes)|-
 
 ## §N NAV
 

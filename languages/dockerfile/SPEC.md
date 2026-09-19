@@ -21,6 +21,7 @@ sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
 sib|languages/yaml|yaml parser, GH Actions sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
+sib|languages/rust|rust parser, rust host sinks
 
 ## §I INTERFACES
 
