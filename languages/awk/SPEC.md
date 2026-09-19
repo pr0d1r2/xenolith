@@ -21,10 +21,12 @@ sib|languages/jq|jq grammar, guest rules
 
 ## §V INVARIANTS
 
+V62: awk guest: `trivial` = single pattern-action, ⊥ `BEGIN`/`END`/`function`, within `[threshold.awk]`; `header` = `#!/usr/bin/awk -f`; ext `awk`; `invoke` = `awk -f {path}`; linter ⊥ (grammar parse in `check` suffices).
 
 ## §T TASKS
 
 id|status|task|cites
+T62|.|awk `Guest` + fixtures (`{print $1}` inline, BEGIN block flagged)|V62
 
 ## §B BUGS
 
