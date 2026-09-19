@@ -25,6 +25,7 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 ## §I INTERFACES
 
 - sinks: `RUN` > single simple command, `RUN <<EOF` heredoc → guest shell (dialect per `SHELL`, default `sh -c`); load after extract: `COPY` + `RUN sh /tmp/<name>.sh` (prototype, `languages` §I).
+- placement prototype ? (T86 evaluates): Dockerfile → `<dockerfile_dir>/docker/<stage>-<n>.sh`, load `COPY` + `RUN bash /tmp/<name>.sh` (2-line rewrite: inline must remove both).
 
 ## §V INVARIANTS
 
