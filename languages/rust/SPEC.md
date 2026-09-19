@@ -23,6 +23,11 @@ sib|languages/yaml|yaml parser, GH Actions sinks, placement
 sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 
+## §I INTERFACES
+
+- sinks: `Command::new("sh"\|"bash").arg("-c")`, SQL string literal passed to query fn ? · shell \| sql · `include_str!("x.sql")`.
+- placement prototype ? (T86 evaluates): rust → `<src_dir>/sql/<name>.sql`, `include_str!` (host-relative natively).
+
 ## §V INVARIANTS
 
 V103: `claims`: `*.rs`.
@@ -30,6 +35,7 @@ V103: `claims`: `*.rs`.
 ## §T TASKS
 
 id|status|task|cites
+T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

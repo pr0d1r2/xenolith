@@ -42,7 +42,6 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ### host × sink matrix (hosts w/o own node yet)
 host|sink detected|embedded|load idiom after extract
-rust|`Command::new("sh"\|"bash").arg("-c")`, SQL string literal passed to query fn ?|shell \| sql|`include_str!("x.sql")`
 ruby|squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax|sql \| shell \| js|`File.read(…)` / `Rails.root.join` ?
 html|inline `<script>` body, inline `<style>` body, `on*=` attrs ?|js \| css|`<script src>`, `<link rel=stylesheet>`
 
@@ -58,7 +57,6 @@ V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors i
 ## §T TASKS
 
 id|status|task|cites
-T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|V2,`tests:V14`,`tests:V15`
 T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|V2,`tests:V14`,`tests:V15`
 T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,`tests:V14`,`tests:V15`
 T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
