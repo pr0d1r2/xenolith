@@ -28,6 +28,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 ## §V INVARIANTS
 
 V32: dependency shape: `lydite-lang-api` ⊥ grammar dep, ⊥ feature; language crate deps ⊆ {`lydite-lang-api`, own grammar, std-ish}; ⊥ root crate, ⊥ other language crate. checked from `cargo metadata`, ⊥ by review.
+V33: `LangId` closed & ungated: ∃ variant ∀ known language regardless of enabled features ∴ host names guest compiled out; adding language = add variant here first.
 
 ## §T TASKS
 
