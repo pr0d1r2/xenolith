@@ -13,6 +13,7 @@ self|src/config|`xenolith.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff | `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
+sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 
 ## §C CONSTRAINTS
 

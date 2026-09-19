@@ -26,3 +26,4 @@ languages/shebang        5000
 languages/rust           5000
 languages/ruby           5000
 languages/html           5000
+src/cli                  5000

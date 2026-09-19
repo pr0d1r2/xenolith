@@ -13,10 +13,11 @@ self|src/graph|host → extract load edges, dangling & orphan
 sib|src/config|`xenolith.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff | `--write`
 sib|src/lint|per-language linter map & invocation
+sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 
 ## §I INTERFACES
 
-- json (`xnl graph --format json`): envelope (`src` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", …}, {"rule": "dangling-load", …}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
+- json (`xnl graph --format json`): envelope (`src/cli` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", …}, {"rule": "dangling-load", …}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
 
 ## §V INVARIANTS
 
