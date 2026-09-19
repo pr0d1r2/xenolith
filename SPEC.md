@@ -1,7 +1,7 @@
 # SPEC
 
 ## §G GOAL
-purity of implementation: ∀ file holds ONE language. `lydite` detects embeds of other language inside host file, extracts them to own file, rewrites host to cross-load extract, verifies ∀ load resolves & ∀ extract linted by its own linter. named for Lydian touchstone (lydite) — ancient test of gold purity.
+purity of implementation: ∀ file holds ONE language. `xenolith` detects embeds of other language inside host file, extracts them to own file, rewrites host to cross-load extract, verifies ∀ load resolves & ∀ extract linted by its own linter. named for xenolith — foreign rock fragment enclosed in host rock (geology; `-lith` ∼ sibling `microlith`). embed = xenolith in host file; tool finds & removes them → host of one material.
 
 ## §F FEDERATION
 
