@@ -7,6 +7,7 @@
 ## §F FEDERATION
 
 dir|owns|⊥owns|tokens
+api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness|any language specifics (its node), engines (`src`)|-
 nix|nix parser, sinks, load idiom|shell classification (`languages/shell`)|-
 pkl|pkl parser, hk step sinks, load idiom|shell classification (`languages/shell`)|-
 shell|bash parser & host sinks, single-command classifier, shell linters|sinks in other hosts (their node)|-

@@ -2,15 +2,15 @@
 
 ## §G GOAL
 
-crate `lydite-lang-nix` (feature `lang-nix`): `rnix` parser; nix sinks per matrix, `builtins.readFile` load idiom.
+crate `lydite-lang-api`: contract ∀ language crate — `Host` & `Guest` traits, shared types, lens law harness. language plays host (file holding embed), guest (embedded code), or both; extract & inline = one lens, 2 directions.
 
 ## §N NAV
 
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-self|languages/nix|nix parser, sinks, load idiom
-sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
+self|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
+sib|languages/nix|nix parser, sinks, load idiom
 sib|languages/pkl|pkl parser, hk step sinks, load idiom
 sib|languages/shell|bash parser & host sinks, single-command classifier, shell linters
 
@@ -20,7 +20,6 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 ## §T TASKS
 
 id|status|task|cites
-T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
