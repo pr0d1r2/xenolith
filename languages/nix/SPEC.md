@@ -16,6 +16,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 
 ## §V INVARIANTS
 
+V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `builtins.readFile ./<host_stem>/<name>.<ext>`.
 
 ## §T TASKS
 
