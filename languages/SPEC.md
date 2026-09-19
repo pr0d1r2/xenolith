@@ -33,6 +33,7 @@ V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; �
 V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = workspace); Dockerfile → `HostDir` (build context = Dockerfile dir, override via rule `base`); others → `HostDir`.
 V75: GH Actions placement default: `.github/scripts/<workflow-stem>/<name>.sh`, name = step `id` \| slug(step `name`) \| `<job>-<n>`; load `run: bash .github/scripts/<workflow-stem>/<name>.sh` (base `RepoRoot`, V74).
 V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unparseable <guest>`) & extractable; parse errors then surface as lint findings on extract (`src/lint:V8`), fixers may auto-correct.
+V78: site inside host `ERROR` node ⊥ reported & ⊥ extracted (spans unreliable); file w/ `ERROR` → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).
 
 ## §T TASKS
 
@@ -45,6 +46,7 @@ T20|.|host html: inline `<script>`/`<style>` + fixtures|V2,`tests:V14`,`tests:V1
 T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
 T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|V74,V75
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
+T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 
 ## §B BUGS
 
