@@ -33,7 +33,7 @@ V42: guest compiled out: site whose `guest` ∉ `guests()` → exit 2 naming fea
 ## §T TASKS
 
 id|status|task|cites
-T8|.|core model: `Host`, `Sink`, `Embed`, `Violation`, `Direction`; json schema v1; sorted output|V1,V11,V24
+T8|.|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,V24,`languages/api:T42`
 T9|.|CLI skeleton `lyd` (check, extract, graph, lint, hosts; `--format`, `--verbose`); exit codes|I.cmd,V24,V13
 
 ## §B BUGS
