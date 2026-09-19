@@ -34,6 +34,7 @@ sib|languages/awk|awk grammar, guest rules
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
 - mod `shebang`: Rust equivalent of `github:pr0d1r2/nix-shebang` generalised ∀ guest — `has`, `get`, `strip`, `strip_strict(text, &Prelude)`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; bash/sh semantics & vectors shared w/ nix-shebang, per-language vectors ∀ other guest (`python3`, `awk -f`, `env -S jq -f`).
+- `shebang::wrap(body, &Prelude) -> String`: extract file content = prelude + body; inverse of `strip_strict`.
 
 ## §V INVARIANTS
 
@@ -47,7 +48,7 @@ V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under ni
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judgment` direction (pass value as arg | env | `replaceVars` template, `languages/nix:V54`), `rewrite` refuses (exit 2) unless hole-free. ⊥ copying `${…}` into guest file verbatim (would change meaning).
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
-V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude())` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(prelude + body) == body`; vectors shared w/ nix-shebang.
+V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude())` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
 V66: load path in `rewrite` & `LoadRef.path` relative to HOST FILE dir (`./sub/x.sh`, `../scripts/x.sh`), ⊥ repo-root | cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
 
 ## §T TASKS
