@@ -17,10 +17,12 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ## §V INVARIANTS
 
+V106: public doc set present & non-empty: `LICENSE` (MIT, `src` C1), `AGENTS.md`, `docs/CODE_OF_CONDUCT.md`, `docs/CONTRIBUTING.md`, `docs/SECURITY.md`, `docs/LLM-DISCLAIMER.md`, `docs/THIRD-PARTY-NOTICES.md`; guard checks presence (`scripts/guard`).
 
 ## §T TASKS
 
 id|status|task|cites
+T104|.|write `LICENSE` (MIT), CoC, CONTRIBUTING (gate, TDD & commit rules), LLM-DISCLAIMER, mirroring the siblings' texts|V106
 
 ## §B BUGS
 
