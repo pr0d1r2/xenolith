@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-`xenolith.toml` parse: extract dirs, `[[allow]]` (reason, hash|span, staleness), lint map, hosts toggle, thresholds.
+`xenolith.toml` parse: extract dirs, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
 
 ## §N NAV
 
@@ -22,7 +22,7 @@ V10: allow keyed by content hash | span, ⊥ line number alone ∴ edits above e
 ## §T TASKS
 
 id|status|task|cites
-T10|.|`xenolith.toml` parser: extract dirs, allow (reason required, hash/span keyed), lint map, hosts toggle|C16,V9,V10
+T10|.|`xenolith.toml` parser: extract dirs, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
 T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
 
 ## §B BUGS
