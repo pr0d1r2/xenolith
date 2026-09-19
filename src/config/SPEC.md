@@ -51,6 +51,7 @@ V73: ∀ default value (number, policy, path) ∃ config key & entry in defaults
 V79: ∀ exclude entry (`[[exclude]]` & per-verb) ! carry non-empty `reason`; glob matching ⊥ tracked file = `stale-exclude` violation; excluded file ⊥ read.
 V85: config reference `docs/config.md` generated from defaults table & §I schema by a test (`UPDATE=1` rewrites); gate: generated ≡ committed, ⊥ hand-edited.
 V88: independently buildable: ∀ crate \| sherd node dir checkable standalone (`xnl check` inside it w/o ancestors, e.g. from crates.io package) → own `xenolith.toml` + defaults; ⊥ correctness depends on ancestor config.
+V89: convention over configuration: key whose value ≡ inherited effective value → warning `redundant-config` ∴ configs hold only deviations.
 
 ## §T TASKS
 
