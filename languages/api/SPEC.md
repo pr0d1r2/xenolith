@@ -26,11 +26,11 @@ sib|languages/awk|awk grammar, guest rules
 - fn `laws::check::<H: Host>(fixtures: &Path)` → panics w/ fixture path & broken law; called from each language crate's `cargo test`.
 - crate impl: host-only | guest-only | both. guest-only language (python, sql, jq, …) ⊥ needs host grammar.
 - type `LangId`: closed enum ∀ language in root host × sink matrix + guest-only (python, sql, js, css, perl, awk, jq, ruby); ⊥ feature-gated.
-- type `Site { sink, guest: LangId, delim: Delim, holes: Vec<Span> }`. `Delim { kind, open: Span, body: Span, close: Span }` = the braces bounding foreign code, taken from AST string|block node, ⊥ scanned. `DelimKind` ∈ nix `''…''` \| `"…"`, heredoc `<<[-~]TAG` (quoted \| not), pkl `"""…"""` / `#"""…"""#`, yaml block `\|`/`>` + chomp, html `<script>`/`<style>` element, rust `r#"…"#`, ruby `<<~TAG`, argv string (`-c`/`-e`). `holes` = host interpolations inside body (nix `${…}`, pkl `\(…)`, shell `$VAR` in unquoted heredoc, yaml `${{ }}`).
+- type `Site { sink, guest: LangId, env: GuestEnv, delim: Delim, holes: Vec<Span> }`. `Delim { kind, open: Span, body: Span, close: Span }` = the braces bounding foreign code, taken from AST string|block node, ⊥ scanned. `DelimKind` ∈ nix `''…''` \| `"…"`, heredoc `<<[-~]TAG` (quoted \| not), pkl `"""…"""` / `#"""…"""#`, yaml block `\|`/`>` + chomp, html `<script>`/`<style>` element, rust `r#"…"#`, ruby `<<~TAG`, argv string (`-c`/`-e`). `holes` = host interpolations inside body (nix `${…}`, pkl `\(…)`, shell `$VAR` in unquoted heredoc, yaml `${{ }}`).
 - `Host::unescape(&Delim, raw) -> String` (strip common indent, host escapes like nix `''$`) & `Host::escape` inverse; `rewrite`/`inline` go through them.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg }`, `Error`.
 - `Host::placement(&Site) -> Placement { name, dir }`: host's default extract name (from site syntax: nix attr path, hk step name, GH job/step id) & dir (pkl hk step → `scripts/hk`); layer D of extract resolution, lowest precedence.
-- `Guest::prelude() -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<&'static str> }` (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
+- `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<&'static str> }` (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
 - mod `shebang`: Rust equivalent of `github:pr0d1r2/nix-shebang` generalised ∀ guest — `has`, `get`, `strip`, `strip_strict(text, &Prelude)`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; bash/sh semantics & vectors shared w/ nix-shebang, per-language vectors ∀ other guest (`python3`, `awk -f`, `env -S jq -f`).
@@ -38,6 +38,7 @@ sib|languages/awk|awk grammar, guest rules
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
 - `Guest::param(n) -> Option<String>`: guest's reference to n-th positional arg (shell `"$1"`, python `sys.argv[1]`); ⊥ → holes of that guest stay `Judgment`.
 - `Host::candidates(&Site) -> Vec<LangId>`: ordered guest set the sink context permits; `Guest::rejects(body, &GuestEnv) -> bool`: cheap structural veto (⊥ full parse — `languages:V77`).
+- type `GuestEnv { dialect: Option<String>, options: Vec<String> }`: interpreter dialect & effective options at site, derived by host from context (shell: `sh`\|`bash`\|`zsh`, `errexit`, `nounset`, `pipefail`, …).
 
 ## §V INVARIANTS
 
@@ -51,7 +52,7 @@ V38: site = delimiter ∧ sink context. delimiter alone (same `''…''` under ni
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V40: holes → params: each distinct hole → `Guest::param(n)` in extract (same hole ⇒ same n); load = one-liner `<invoke> <hole₁> … <holeₙ>` in host syntax (holes stay host interpolations). MECHANICAL iff n ≤ `[threshold.load] max_params` & ∀ hole in expanding context (⊥ single-quoted, ⊥ quoted heredoc, ⊥ inside guest string literal) & `param` ≠ ⊥ & load one-liner trivial (`languages/shell:V3`); else `Judgment` w/ `hole_advice` & `rewrite` refuses (exit 2). ⊥ copying `${…}` into guest file verbatim.
 V43: `placement` name deterministic & semantic: derived from site syntax (attr path, step name, job id), kebab-case, ⊥ line numbers, ⊥ random | hash-only names; no semantic name → `<host_stem>-<sink>`.
-V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude())` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
+V63: extract file = header + strict + body; inline from disk = `shebang::strip_strict(file, &guest.prelude(&site.env))` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
 V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base — default HOST FILE dir (`./sub/x.sh`), else `Host::runtime_base` | rule `base` (`src/extract:V45`); ⊥ cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
 
 ## §T TASKS
