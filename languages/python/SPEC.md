@@ -18,10 +18,12 @@ sib|languages/just|just parser, recipe sinks, load idiom
 
 ## §V INVARIANTS
 
+V59: python guest: `trivial` = single expression statement, ⊥ `import`, ⊥ `def`/`class`, within `[threshold.python]`; `header` = `#!/usr/bin/env python3`, `strict` ⊥; ext `py`; `invoke` = `python3 {path}`; linter `ruff check` + `ruff format --check`.
 
 ## §T TASKS
 
 id|status|task|cites
+T59|.|python `Guest` + fixtures (trivial one-liner inline, multi-statement flagged)|V59
 
 ## §B BUGS
 
