@@ -31,7 +31,7 @@ V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only 
 ## §T TASKS
 id|status|task|cites
 T28|.|dogfood: `xnl check`/`graph`/`lint` on own repo green|V19,C19
-T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix|I.file,C8
+T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix, trust boundary note (`--trust-config` guards xnl only; CI on fork PRs must take workflow & hk config from base branch)|I.file,C8
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `xenolith.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
 T91|.|nested discovery & merge; `xenolith.toml` in ∀ node dir + guard script listing missing ones|V90,`src/config:V88`
