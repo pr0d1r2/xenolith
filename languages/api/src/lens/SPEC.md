@@ -13,6 +13,7 @@ up|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, 
 up|languages/api/src|api modules: site, lens, holes
 self|languages/api/src/lens|rewrite/inline, escape, runtime base, laws harness
 sib|languages/api/src/site|Site/Delim/GuestEnv types, placement, claims, candidates
+sib|languages/api/src/holes|param naming, param refs, hole advice
 
 ## §I INTERFACES
 

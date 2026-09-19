@@ -8,6 +8,7 @@ api crate modules: `site` (what a host finds), `lens` (the round trip), `holes` 
 
 site|Site/Delim/GuestEnv types, placement, claims, candidates|rewriting (`lens`), hole params (`holes`)|-
 lens|rewrite/inline, escape, runtime base, laws harness|site discovery (`site`), hole naming (`holes`)|-
+holes|param naming, param refs, hole advice|the laws that check them (`lens`)|-
 
 ## §N NAV
 
