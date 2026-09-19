@@ -30,6 +30,9 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 ## §C CONSTRAINTS
 
 - C24: ∀ language = member crate `languages/<lang>` named `xenolith-lang-<lang>`: grammar dep, parser, sinks as host, load idiom, checks as guest; OPTIONAL behind feature `lang-<lang>`. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ root crate, ⊥ other language crate ∴ host names guest by `LangId`, ⊥ by type.
+- C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, dockerfile ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
+- C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
+- C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now — revisit once api traits are stable semver surface.
 
 ## §I INTERFACES
 
