@@ -30,6 +30,7 @@ V49: `companion` configured → `--write` creates companion stub w/ extract; V4�
 id|status|task|cites
 T22|.|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
 T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6
+T50|.|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
 
 ## §B BUGS
 
