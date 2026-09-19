@@ -41,6 +41,7 @@ V27: federation consistent: `sherd validate`, `sherd sync --check`, `sherd check
 V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverage --check`, `sherd debt --check`); both ratchet one way.
 V114: workflows audited in the gate: `zizmor --persona=pedantic` (declines recorded in `.github/zizmor.yml` w/ reason & exit condition), `actionlint`, link check (`lychee --offline`).
 V115: GitHub settings stated & checked, ⊥ assumed: `main` protected, CI jobs required, admins included, Actions may open PRs only if a bot needs it; `scripts/guard/github-settings.sh` compares `gh api` output (advisory offline).
+V116: ⊥ silent automation: a workflow that pushes a branch ! confirm its PR exists & exit non-zero otherwise; "branch exists → nothing to do" is ⊥ success.
 
 ## §T TASKS
 
