@@ -22,6 +22,7 @@ sib|languages/awk|awk grammar, guest rules
 
 ## §V INVARIANTS
 
+V86: `claims`: `.github/workflows/*.y*ml` & `.github/actions/**/action.y*ml` (GH dialect: `run:` sinks); other `*.yml`/`*.yaml` claimed w/o sinks ? (future dialects).
 
 ## §T TASKS
 
