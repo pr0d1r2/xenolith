@@ -17,6 +17,7 @@ sib|src/lint|per-language linter map & invocation
 ## §I INTERFACES
 
 - `[extract]`: `layout` ∈ `host` (default: host placement only) \| `mirror` (`<root>/<host path sans ext>/<name>.<ext>`) \| `sibling` (`<host_dir>/<host_stem>.<name>.<ext>`) \| `central` (`<root>/<guest>/<name>.<ext>`); `root` (default `scripts`). layer C.
+- `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `invoke` (argv template, overrides `Guest::invoke`), `header`, `executable`, `companion` (template). layer B, highest precedence.
 
 ## §V INVARIANTS
 
