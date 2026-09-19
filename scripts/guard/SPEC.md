@@ -13,7 +13,7 @@ self|scripts/guard|repo guardrail scripts hk calls
 
 ## §V INVARIANTS
 
-V20: ∀ commit msg Conventional Commits & body contains `Why:`; hk `commit-msg` enforces (via `ldt`-free script ∵ bootstrap).
+V20: ∀ commit msg Conventional Commits & body contains `Why:`; hk `commit-msg` enforces (via `xnl`-free script ∵ bootstrap).
 V21: ∀ `scripts/**/*.sh` ∃ bats at mirrored path & vice versa (⊥ orphan test).
 V23: ⊥ private repo name in tracked files | commit msgs (C17); hk check against denylist in gitignored file ?.
 
