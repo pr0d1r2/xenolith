@@ -9,7 +9,7 @@ dir|owns|⊥owns|tokens
 languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter|engines (`src`)|-
 src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config|language specifics (`languages`), repo tooling (`scripts`), fixtures (`tests`)|-
 scripts|∀ shell in repo: dev shell hook, guardrail scripts|product rules (`src`), bats (`tests`)|-
-tests|fixtures per host & case, integration tests, bats mirroring `scripts/`|implementation (`src`, `scripts`)|-
+tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`|implementation (`src`, `scripts`)|-
 
 ## §N NAV
 

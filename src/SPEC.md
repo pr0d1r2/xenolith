@@ -19,7 +19,7 @@ up|.|-
 self|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
-sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
+sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 
 ## §V INVARIANTS
 

@@ -2,13 +2,13 @@
 
 ## §G GOAL
 
-fixtures per host & case, integration tests, bats under `tests/unit/` mirroring `scripts/`.
+fixture FORMAT (V67) & runner; cross-language & engine integration fixtures (language fixtures live in each crate, V14); bats under `tests/unit/` mirroring `scripts/` & `.github/scripts/`.
 
 ## §N NAV
 
 rel|path|lens
 up|.|-
-self|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
+self|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
