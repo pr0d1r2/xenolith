@@ -31,7 +31,7 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 ## §I INTERFACES
 
 - cmd: `xnl check [--format human|json] [paths…]` → detect embeds; exit 1 ∃ violation.
-- cmd: `xnl extract [--write] <path>[:line]…` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
+- cmd: `xnl extract [--write] [--relocate] <path>[:line]…` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
 - cmd: `xnl graph [--format human|json] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
 - cmd: `xnl lint [--fix] [paths…]` → run ∀ configured check ∀ extract by language; `--fix` runs fixers then re-checks, extracts only; missing binary = error, ⊥ skip.
 - cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.

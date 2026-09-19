@@ -35,6 +35,7 @@ V71: ∀ write path: canonicalize existing ancestors (resolve symlinks); resolve
 V80: extract skips site covered by `[[allow]]` & files under `[[exclude]]` \| `[extract] exclude`; `--verbose` names skip reason.
 V83: rendered extract path & path in load text ⊆ `[A-Za-z0-9._/-]`, ⊥ leading `-`; else exit 2 ∴ ⊥ injection into host syntax (nix path, yaml, pkl strings).
 V84: writes atomic per file: temp in same dir → fsync → rename; per host: extracts & companions written BEFORE host rewrite ∴ crash leaves orphan extract (`src/graph:V7` finds it), ⊥ dangling load.
+V99: `xnl extract --relocate [--write]` moves ∀ `misplaced-extract` to its expected path & rewrites the load, same atomicity & order as V84 (new file, host, then old file removed); companion moves along.
 
 ## §T TASKS
 
@@ -52,6 +53,7 @@ T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink point
 T81|.|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 T84|.|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 T85|.|atomic writes & write order; test kills between extract & host write|V84
+T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 
 ## §B BUGS
 
