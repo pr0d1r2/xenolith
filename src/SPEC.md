@@ -46,6 +46,7 @@ V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]
 V42: guest compiled out: site whose `guest` ∉ `guests()` → per `[langs] missing_guest` (default `error`: exit 2 naming feature `lang-<guest>`; `warn` → warning; `ignore`); ⊥ guessing trivial/non-trivial.
 V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage.
 V95: scan parallel per file, results merged then sorted (V11) ∴ output byte-identical to serial run; `--jobs N` (default cores).
+V120: scan throughput recorded (files/s over the M2 corpus & a synthetic large tree); regression beyond recorded budget = warning `slow-scan`, ⊥ gate failure (timing noise); budget raise only w/ Why.
 
 ## §T TASKS
 
@@ -58,6 +59,7 @@ T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
 T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
+T119|.|benchmark harness + recorded budget file|V120,V95
 
 ## §B BUGS
 
