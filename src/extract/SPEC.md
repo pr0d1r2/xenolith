@@ -24,6 +24,7 @@ V46: template vars closed set `{name}`, `{ext}`, `{host_dir}`, `{host_stem}`, `{
 V47: 2 sites resolving to same path → disambiguate by appending sink segment (`foo-script`, `foo-prestart`), deterministic; still equal → V6 exit 2.
 V48: `xnl extract --verbose` prints ∀ site ∀ field the deciding layer (`rule #n` \| `layout` \| `host` \| `guest`) ∴ placement explainable, ⊥ guessed.
 V49: `companion` configured → `--write` creates companion stub w/ extract; V4–V6 cover companion too: existing companion ⊥ rewritten, rerun = no-op, differing existing file → exit 2.
+V64: multi-site host: rewrites applied back-to-front (descending span) on one parse ∴ earlier spans stay valid; under `--write` file all-or-nothing — any site refused (holes, collision) → file & its extracts untouched, other files proceed, refusal reported.
 
 ## §T TASKS
 
@@ -32,6 +33,7 @@ T22|.|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, l
 T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6
 T50|.|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
 T51|.|companion creation under `--write` w/ V4–V6 laws|V49
+T64|.|back-to-front multi-site rewrite + all-or-nothing file write; fixture w/ 3 sites, 1 refused|V64
 
 ## §B BUGS
 
