@@ -40,6 +40,7 @@ V40: holes ⊥ silently extracted: site w/ ≥1 hole → violation carries `Judg
 ## §T TASKS
 
 id|status|task|cites
+T42|.|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `LintCmd`, `Error`, `Host`, `Guest`; workspace member, ⊥ features|V33,V36,V37,C1
 
 ## §B BUGS
 
