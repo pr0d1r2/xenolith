@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `lydite-lang-nix` (feature `lang-nix`): `rnix` parser; nix sinks per matrix, `builtins.readFile` load idiom.
+crate `xenolith-lang-nix` (feature `lang-nix`): `rnix` parser; nix sinks per matrix, `builtins.readFile` load idiom.
 
 ## §N NAV
 

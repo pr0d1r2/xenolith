@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `lydite-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bash scripts/hk/x.sh {{files}}` load idiom.
+crate `xenolith-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `bash scripts/hk/x.sh {{files}}` load idiom.
 
 ## §V INVARIANTS
 
