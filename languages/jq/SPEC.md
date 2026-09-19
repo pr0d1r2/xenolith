@@ -20,10 +20,12 @@ sib|languages/sql|sql grammar, guest rules
 
 ## §V INVARIANTS
 
+V61: jq guest: `trivial` = filter ⊥ `def`, within `[threshold.jq]`; `header` = `#!/usr/bin/env -S jq -f`; ext `jq`; `invoke` = `jq -f {path}`; linter ⊥ (grammar parse in `check` suffices).
 
 ## §T TASKS
 
 id|status|task|cites
+T61|.|jq `Guest` + fixtures (`.foo` inline, filter w/ `def` flagged)|V61
 
 ## §B BUGS
 
