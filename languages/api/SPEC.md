@@ -33,6 +33,7 @@ sib|languages/awk|awk grammar, guest rules
 - `Guest::header() -> Option<&'static str>` (shebang + strict-mode prelude) & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config.
 - `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
 - `Host::claims(path, head: &str) -> bool`: host claims file by filename, extension, path glob or shebang in `head` (first line); ∀ file is a candidate host.
+- mod `shebang`: Rust port of `github:pr0d1r2/nix-shebang` — `has`, `get`, `strip`, `strip_strict`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; same semantics & shared test vectors; language-generic (bash, sh, `python3`, `awk -f`, `env -S jq -f`).
 
 ## §V INVARIANTS
 
