@@ -21,7 +21,7 @@ V14: ∀ language crate owns its fixtures @ `languages/<lang>/tests/fixtures/<ca
 V15: ∀ rule ∃ ≥1 positive (flagged) & ≥1 negative (clean) fixture.
 V67: fixture case = `input.<ext>`, `expected.json` (check output), `expected/` tree = full post-`extract --write` state relative to case dir (rewritten host, ∀ extract, ∀ companion, ∀ nested level); compared byte-for-byte & exact file set.
 V118: ∀ corpus finding (crash, lens-law break, wrong guest, false positive \| negative) → minimal SYNTHETIC fixture in the owning crate (`tests:V14`) + `§B` row, in the fixing PR; corpus data leaves the machine only as counts & shapes (`scripts/guard` C17).
-V119: lens laws fuzzed: `rewrite`/`inline` (`languages/api:V34`), `escape`/`unescape` (`languages/api:V39`), `shebang::wrap`/`strip_strict` (`languages/api:V63`) — property tests bounded in CI, cargo-fuzz targets per language crate run locally; crash or law break → fixture per V118.
+V119: lens laws fuzzed: `rewrite`/`inline` (`languages/api/src/lens:V34`), `escape`/`unescape` (`languages/api/src/lens:V39`), `shebang::wrap`/`strip_strict` (`languages/api/src/lens:V63`) — property tests bounded in CI, cargo-fuzz targets per language crate run locally; crash or law break → fixture per V118.
 
 ## §T TASKS
 

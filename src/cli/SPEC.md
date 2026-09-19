@@ -35,7 +35,7 @@ sib|src/lint|per-language linter map & invocation
 - cmd: `xnl lint` gains `--format human|json|sarif` (see `src/lint` §I).
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
 - cmd: `xnl migrate [--write]` → read `.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist` (& siblings) → `[[allow]]` entries keyed per `src/config:V10`, `reason` = original comment \| `migrated from <file>`; default prints diff.
-- cmd: `xnl inline [--write] <extract>…` → put extract body back into host via lens inverse (`languages/api:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
+- cmd: `xnl inline [--write] <extract>…` → put extract body back into host via lens inverse (`languages/api/src/lens:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
 - json (`xnl langs`): envelope + `langs`: `[{"id": "shell", "role": "both", "compiled_in": true, "feature": "lang-shell", "sinks": [...], "delims": [...], "checks": [...], "fixers": [...]}]`.
 - human (`graph`, `lint`): one line per item `file:line:col <rule|check>: <message>`, summary line last (`N edges, N violations` \| `N checks, N failed`), silent on success unless `--verbose`.
 

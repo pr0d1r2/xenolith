@@ -36,7 +36,7 @@ sib|languages/html|html parser, inline script/style sinks
 ## §T TASKS
 
 id|status|task|cites
-T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|`languages/api:V63`,`languages/api:V34`
+T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|`languages/api/src/lens:V63`,`languages/api/src/lens:V34`
 
 ## §B BUGS
 
