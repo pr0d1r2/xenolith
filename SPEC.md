@@ -34,7 +34,7 @@ self|.|-
 - C14: Rust coverage via `cargo llvm-cov`, floor in `.coverage`, gated by `sherd coverage --check`, ratchets up only (`--record` refuses drop). lint debt ratchet via `sherd debt --check` vs `.lint-debt`.
 - C15: report-only by default. `xnl extract` writes only w/ explicit `--write`; default prints diff.
 - C16: single config `xenolith.toml` at consumer repo root. replaces per-language allowlist files (`.nix-embedded-shell-allowlist`, `.pkl-embedded-shell-allowlist`, …).
-- C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` — verified PUBLIC 2026-09-18) may be named. unknown = private. fixtures synthetic | anonymised.
+- C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` — verified PUBLIC 2026-09-18; `nix-shebang` — verified PUBLIC 2026-09-19) may be named. unknown = private. fixtures synthetic | anonymised.
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
 - C19: dogfood: xenolith repo passes `xnl check` on itself in CI.
 - C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
