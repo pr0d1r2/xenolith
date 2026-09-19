@@ -36,6 +36,7 @@ sib|languages/awk|awk grammar, guest rules
 - mod `shebang`: Rust equivalent of `github:pr0d1r2/nix-shebang` generalised ∀ guest — `has`, `get`, `strip`, `strip_strict(text, &Prelude)`, `parse -> Shebang { interpreter, args, is_env, resolved_interpreter }`, `resolves_to(LangId)`; bash/sh semantics & vectors shared w/ nix-shebang, per-language vectors ∀ other guest (`python3`, `awk -f`, `env -S jq -f`).
 - `shebang::wrap(body, &Prelude) -> String`: extract file content = prelude + body; inverse of `strip_strict`.
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
+- `Guest::param(n) -> Option<String>`: guest's reference to n-th positional arg (shell `"$1"`, python `sys.argv[1]`); ⊥ → holes of that guest stay `Judgment`.
 
 ## §V INVARIANTS
 
