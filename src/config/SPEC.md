@@ -18,6 +18,7 @@ sib|src/lint|per-language linter map & invocation
 
 - `[extract]`: `layout` ∈ `host` (default: host placement only) \| `mirror` (`<root>/<host path sans ext>/<name>.<ext>`) \| `sibling` (`<host_dir>/<host_stem>.<name>.<ext>`) \| `central` (`<root>/<guest>/<name>.<ext>`); `root` (default `scripts`). layer C.
 - `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `invoke` (argv template, overrides `Guest::invoke`), `header`, `executable`, `companion` (template). layer B, highest precedence.
+- `[threshold.shell]`: `allow` ⊆ {`pipe`, `and`, `or`, `seq`, `subst`, `backtick`, `redirect`, `if`, `for`, `while`, `case`, `heredoc`, `subshell`, `function`} (default `[]`) — constructs tolerated inline, relaxes `languages/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
 
 ## §V INVARIANTS
 
