@@ -18,6 +18,7 @@ sib|src/lint|per-language linter map & invocation
 
 V7: `graph`: ∀ load in host resolves to existing file (dangling = violation); ∀ file under extract roots (V50) loaded by ≥1 host (orphan = violation).
 V50: extract roots = static prefix (before first `{`) of ∀ rule `path` + layout `root` + ∀ `Host::placement` dir; orphan scan (V7) walks exactly these, ⊥ whole repo.
+V72: orphan scan & load resolution ⊥ follow symlinks; load resolving through symlink → `dangling-load`.
 
 ## §T TASKS
 
