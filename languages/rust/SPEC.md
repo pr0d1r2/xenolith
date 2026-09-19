@@ -25,6 +25,7 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 
 ## §V INVARIANTS
 
+V103: `claims`: `*.rs`.
 
 ## §T TASKS
 
