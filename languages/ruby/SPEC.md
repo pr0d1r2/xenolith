@@ -26,6 +26,7 @@ sib|languages/rust|rust parser, rust host sinks
 
 ## §V INVARIANTS
 
+V104: `claims`: `*.rb`, `*.rake`, `Gemfile`, `Rakefile`, `*.gemspec`, shebang `ruby`.
 
 ## §T TASKS
 
