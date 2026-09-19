@@ -23,7 +23,7 @@ sib|tests|fixtures per host & case, integration tests, bats mirroring `scripts/`
 
 ## §V INVARIANTS
 
-V1: ∀ violation carries `rule`, `file:line:col`, host lang, embedded lang, sink, `why`, ≥1 direction. ⊥ bare "bad".
+V1: ∀ violation carries `rule`, `file:line:col`, host lang, guest lang, sink, site delimiter kind, `why`, ≥1 direction. ⊥ bare "bad".
 V11: deterministic: output order sorted (file, line, col); json byte-stable across runs & platforms.
 V13: unsupported host file ⊥ silently passed when named explicitly — `xnl check x.foo` → exit 2 "host unsupported".
 V24: exit codes stable: 0 ok, 1 violation, 2 usage/config/unsupported. json schema versioned (`"schema": 1`).

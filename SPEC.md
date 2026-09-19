@@ -50,7 +50,7 @@ self|.|-
 - flag: `--verbose` ∀ verb; silence = success otherwise.
 - exit: 0 ok · 1 violation | drift · 2 usage | config error.
 - file: `xenolith.toml` — `[extract] dir` per language (default `fragments/`), `[[allow]] path, span|hash, reason` (reason required), `[lint] <lang> = "<cmd> {file}"`, `[langs] enable/disable`, `[threshold]` single-command rule toggles.
-- json: violation = `{rule, file, line, col, host, embedded, sink, why, directions[]}`; each direction `Mechanical`|`Judgment` (mirror microlith shape).
+- json: violation = `{rule, file, line, col, host, guest, sink, site, why, directions[]}`; `site` = `DelimKind` (`languages/api` §I); each direction `Mechanical`|`Judgment` (mirror microlith shape).
 - lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 - nix: `packages.<sys>.default` = xenolith; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
 - nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
