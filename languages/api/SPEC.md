@@ -4,6 +4,11 @@
 
 crate `xenolith-lang-api`: contract ∀ language crate — `Host` & `Guest` traits, shared types, lens law harness. language plays host (file holding embed), guest (embedded code), or both; extract & inline = one lens, 2 directions.
 
+## §F FEDERATION
+
+dir|owns|⊥owns|tokens
+src|api modules: site, lens, holes|traits & LangId (this node)|-
+
 ## §N NAV
 
 rel|path|lens

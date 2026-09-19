@@ -28,3 +28,4 @@ languages/ruby           5000
 languages/html           5000
 src/cli                  5000
 docs                     5000
+languages/api/src        5000
