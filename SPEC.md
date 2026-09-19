@@ -25,6 +25,7 @@ self|.|-
 
 ## §V INVARIANTS
 V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).
+V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only per `src/config:V89`) ∴ node buildable & checkable standalone.
 
 ## §T TASKS
 id|status|task|cites
@@ -33,6 +34,7 @@ T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer f
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `xenolith.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
 T37|x|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt .` proposal → map file → `sherd adopt . --map` → `sherd sync`|`scripts:V27`,C22
+T91|.|nested discovery & merge; `xenolith.toml` in ∀ node dir + guard script listing missing ones|V90,`src/config:V88`
 
 ## §B BUGS
 id|date|cause|fix
