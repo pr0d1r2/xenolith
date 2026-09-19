@@ -34,6 +34,7 @@ V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs,
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 V96: `packages.default` = `xnl` wrapped w/ PATH ⊇ ∀ confirmed (non-`?`) default check & fixer of compiled-in languages & hosts; `languages` override drops tools of excluded languages; dev-only inputs still excluded (V29).
 V109: release ONLY via cargo-release (`release.toml`, `pre-release-hook` = full gate); version bump lands through a PR; tag, publish & push run from `main` (`cargo release hook` first ∵ `tag`/`publish`/`push` skip the hook); ⊥ release scripts.
+V110: CHANGELOG keeps `Unreleased` & a version LADDER — each minor = a stated guarantee, a patch sits off the ladder; ∀ user-visible change adds an `Unreleased` entry in its PR.
 
 ## §T TASKS
 
@@ -45,6 +46,7 @@ T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,C8
 T99|.|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96
 T108|.|`release.toml` for the workspace (lockstep, publish order api → languages → root) + runbook section|V109
+T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 
 ## §B BUGS
 
