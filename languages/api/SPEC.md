@@ -37,6 +37,7 @@ sib|languages/awk|awk grammar, guest rules
 - `shebang::wrap(body, &Prelude) -> String`: extract file content = prelude + body; inverse of `strip_strict`.
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
 - `Guest::param(n) -> Option<String>`: guest's reference to n-th positional arg (shell `"$1"`, python `sys.argv[1]`); ⊥ → holes of that guest stay `Judgment`.
+- `Host::candidates(&Site) -> Vec<LangId>`: ordered guest set the sink context permits; `Guest::rejects(body, &GuestEnv) -> bool`: cheap structural veto (⊥ full parse — `languages:V77`).
 
 ## §V INVARIANTS
 
