@@ -19,10 +19,8 @@ up|-|-
 self|.|-
 
 ## §C CONSTRAINTS
-- C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
 - C3: CPU only, offline, deterministic. ⊥ network, ⊥ model, ⊥ heuristic scoring w/ randomness. same input → same bytes out.
 - C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, dockerfile ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
-- C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
 - C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`), `sherd` (`github:pr0d1r2/sherd`). `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
 - C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
