@@ -28,6 +28,24 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 - C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
 - C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
 
+## §I INTERFACES
+
+- cmd: `xnl check [--format human|json] [paths…]` → detect embeds; exit 1 ∃ violation.
+- cmd: `xnl extract [--write] <path>[:line]…` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
+- cmd: `xnl graph [--format human|json] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
+- cmd: `xnl lint [--fix] [paths…]` → run ∀ configured check ∀ extract by language; `--fix` runs fixers then re-checks, extracts only; missing binary = error, ⊥ skip.
+- cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
+- flag: `--verbose` ∀ verb; silence = success otherwise.
+- flag: `--strict-hosts` ∀ verb: unclaimed file → exit 2 (≡ `[langs] unclaimed = "error"`).
+- warnings: human → stderr, json → `warnings[]`; ⊥ change exit code.
+- exit: 0 ok · 1 violation | drift · 2 usage | config error | refused. several apply → highest wins (2 > 1 > 0).
+- rules: `xenolith` (non-trivial guest in sink; holes → same rule w/ `Judgment` direction, `languages/api:V40`), `dangling-load` & `orphan-extract` (`src/graph:V7`), `stale-allow` (`src/config:V9`), `stale-rule` (`src/config:V44`), `host-parse-error` (`languages:V78`), `stale-exclude` (`src/config:V79`). kebab-case, stable ∀ schema version.
+- human output: `file:line:col xenolith: <guest> in <host> <sink> (<why>)`; `xnl extract` diff header `removing xenolith → <extract path>`. metaphor lives in rule id & wording, verbs stay conventional (`check`, `extract`, `graph`, `lint`, `langs`) ∼ fleet `mth check`, `sherd check`.
+- json: violation = `{rule, file, line, col, host, guest, sink, site, why, directions[]}`; `site` = `DelimKind` (`languages/api` §I); each direction `Mechanical`|`Judgment` (mirror microlith shape).
+- json envelope: `{"schema": 1, "violations": [...], "warnings": [{"code", "file"?, "message"}]}`; keys sorted, arrays sorted per `src:V11`.
+- lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
+- hk: consumer step `check = "xnl check {{files}}"`, `check_diff = "xnl extract {{files}}"` (hk shows proposed extraction), `fix = "xnl extract --write {{files}}"` (explicit `hk fix` only, C15); `xnl graph`, `xnl lint` as own steps.
+
 ## §V INVARIANTS
 
 V1: ∀ violation carries `rule`, `file:line:col`, host lang, guest lang, sink, site delimiter kind, `why`, ≥1 direction. ⊥ bare "bad".
