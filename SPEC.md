@@ -34,7 +34,6 @@ T28|.|dogfood: `xnl check`/`graph`/`lint` on own repo green|V19,C19
 T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix|I.file,C8
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `xenolith.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
-T37|x|federate spec before code: node dirs w/ `SPEC.md` + `§F` → `sherd adopt .` proposal → map file → `sherd adopt . --map` → `sherd sync`|`scripts:V27`,C22
 T91|.|nested discovery & merge; `xenolith.toml` in ∀ node dir + guard script listing missing ones|V90,`src/config:V88`
 T95|.|M2 language survey: aggregate language & embed counts over sibling local repos, ⊥ names in repo; propose M3+ groups|C25
 
