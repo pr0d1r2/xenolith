@@ -15,7 +15,7 @@ sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
 
 ## §V INVARIANTS
 
-V14: ∀ host in §I matrix ∃ fixture dir `tests/fixtures/<host>/<case>/` w/ `input.*`, `expected.json`, & for extract `expected.host`, `expected.extract.*`.
+V14: ∀ language crate owns its fixtures @ `languages/<lang>/tests/fixtures/<case>/`, shipped in crate package ∴ `cargo test` works from crates.io; root `tests/fixtures/` = cross-language & engine integration only.
 V15: ∀ rule ∃ ≥1 positive (flagged) & ≥1 negative (clean) fixture.
 
 ## §T TASKS
