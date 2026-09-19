@@ -19,10 +19,12 @@ sib|languages/python|python grammar, guest rules
 
 ## §V INVARIANTS
 
+V60: sql guest: `trivial` = single statement, ⊥ `;`-chained, within `[threshold.sql]`; `header` ⊥ (no shebang); ext `sql`; `invoke` = `psql -f {path}` (host may override); linter `sqlfluff lint`.
 
 ## §T TASKS
 
 id|status|task|cites
+T60|.|sql `Guest` + fixtures (single SELECT inline, multi-statement flagged)|V60
 
 ## §B BUGS
 
