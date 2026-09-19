@@ -12,6 +12,7 @@ V52: pkl host placement: hk step site → name = step key, dir = `scripts/hk`, l
 
 id|status|task|cites
 T13|.|host pkl (tree-sitter-pkl ?): hk step sinks, fixtures|`languages:V2`,`languages/shell:V3`,`tests:V14`,`tests:V15`
+T54|.|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52
 
 ## §B BUGS
 
