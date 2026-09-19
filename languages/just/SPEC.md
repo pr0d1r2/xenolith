@@ -17,6 +17,7 @@ sib|languages/shell|bash parser & host sinks, single-command classifier, shell l
 
 ## §V INVARIANTS
 
+V58: `claims`: filename `justfile` (case-insensitive), `.justfile`, extension `.just`.
 
 ## §T TASKS
 
