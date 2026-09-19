@@ -30,6 +30,7 @@ V68: rule-configured `invoke` ! yield load host's `loads()` recognises: after re
 V71: ∀ write path: canonicalize existing ancestors (resolve symlinks); resolved path ∉ repo root \| any existing component = symlink → exit 2; ⊥ write through symlink, ⊥ create dir via symlink.
 V80: extract skips site covered by `[[allow]]` & files under `[[exclude]]` \| `[extract] exclude`; `--verbose` names skip reason.
 V83: rendered extract path & path in load text ⊆ `[A-Za-z0-9._/-]`, ⊥ leading `-`; else exit 2 ∴ ⊥ injection into host syntax (nix path, yaml, pkl strings).
+V84: writes atomic per file: temp in same dir → fsync → rename; per host: extracts & companions written BEFORE host rewrite ∴ crash leaves orphan extract (`src/graph:V7` finds it), ⊥ dangling load.
 
 ## §T TASKS
 
@@ -46,6 +47,7 @@ T69|.|runtime `languages/api:V34` (c) check for rule `invoke`; fixture w/ unreco
 T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
 T81|.|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 T84|.|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
+T85|.|atomic writes & write order; test kills between extract & host write|V84
 
 ## §B BUGS
 
