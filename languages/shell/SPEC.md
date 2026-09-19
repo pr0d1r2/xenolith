@@ -25,6 +25,7 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 ## §I INTERFACES
 
 - sinks: heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? → guest python \| ruby \| sql \| js \| perl \| awk \| jq; load after extract: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
+- `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` regardless of context, diff marks it `Judgment` (semantic change).
 
 ## §V INVARIANTS
 
