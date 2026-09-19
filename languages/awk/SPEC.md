@@ -21,7 +21,7 @@ sib|languages/jq|jq grammar, guest rules
 
 ## §V INVARIANTS
 
-V62: awk guest: `trivial` = single pattern-action, ⊥ `BEGIN`/`END`/`function`, within `[threshold.awk]`; `prelude` = shebang `#!/usr/bin/awk -f`, strict ⊥; ext `awk`; `invoke` = `awk -f {path}`; linter ⊥ (grammar parse in `check` suffices).
+V62: awk guest: `trivial` = single pattern-action, ⊥ `BEGIN`/`END`/`function`, within `[threshold.awk]`; `prelude` = shebang `#!/usr/bin/awk -f`, strict ⊥; ext `awk`; `invoke` = `awk -f {path}`; checks & fixers per `src/lint` §I defaults.
 
 ## §T TASKS
 
