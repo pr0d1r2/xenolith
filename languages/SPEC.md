@@ -42,8 +42,6 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 
 ## §I INTERFACES
 
-### host × sink matrix (hosts w/o own node yet)
-host|sink detected|embedded|load idiom after extract
 
 ## §V INVARIANTS
 
