@@ -48,6 +48,7 @@ T42|.|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `Li
 T43|.|`laws::check` harness + fixture loader over `tests/fixtures/<host>/<case>/`; RED on toy host in api tests|V34,`tests:V14`
 T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|V34,V35
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|V38,V39,V40,`tests:V15`
+T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::header`, `Guest::executable` in api crate|V43,`languages/api:T42`
 
 ## §B BUGS
 
