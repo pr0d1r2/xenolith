@@ -29,6 +29,16 @@ run_hook() {
   PATH="${BIN}:${PATH}" run bash "$SCRIPT"
 }
 
+# The dev shell this suite runs IN has hk on PATH, so "hk is missing" has to
+# be staged rather than assumed: PATH is replaced, not prepended to. The
+# script checks for hk before it calls anything else, so a PATH holding only
+# the stub directory is enough to reach that branch. bash is named by its
+# absolute path because PATH no longer resolves it.
+run_hook_without_hk() {
+  cd "$WORK" || return 1
+  PATH="${BIN}" run "$BASH" "$SCRIPT"
+}
+
 @test "installs the hooks via hk install" {
   stub_hk
   run_hook
@@ -46,7 +56,7 @@ run_hook() {
 }
 
 @test "refuses loudly when hk is off PATH, rather than skipping silently" {
-  run_hook
+  run_hook_without_hk
   [ "$status" -ne 0 ]
   [[ "$output" == *"hk"* ]]
   [[ "$output" == *"PATH"* ]]

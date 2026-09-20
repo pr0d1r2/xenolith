@@ -52,7 +52,7 @@ V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `
 | M3 | publication | T113, T114 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T2|.|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
+T2|x|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
 T4|.|`hk.pkl`: fmt, clippy, deny, test, bats, cargo-hack, shellcheck, shfmt, nixfmt, statix, deadnix, taplo, typos, editorconfig, trailing-whitespace, final-newline, no-large-files, secret scan, link check; commit-msg & pre-push hooks|C9,V22,V122
 T27|.|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
 T33|.|hk steps `mth fmt --check` & `mth check` ∀ `SPEC.md`; `mth fmt` as fix|V25,C21

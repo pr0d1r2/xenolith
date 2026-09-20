@@ -71,4 +71,17 @@ pkgs.mkShell {
   LANG = "C.UTF-8";
   LLVM_COV = "${pkgs.llvmPackages.llvm}/bin/llvm-cov";
   LLVM_PROFDATA = "${pkgs.llvmPackages.llvm}/bin/llvm-profdata";
+
+  # The hook is READ from `scripts/dev/shell-hook.sh`, never inlined
+  # (`scripts:C10`): shell written into this file would be shell that
+  # shellcheck, shfmt and bats never see, and the one script that installs
+  # the gate is the last place to keep an unchecked rule.
+  #
+  # Materialized as its own script rather than pasted into the shellHook
+  # body, so its `set -euo pipefail` governs that process alone. Pasted, an
+  # `-e` would leak into the interactive shell and a typo at the prompt
+  # would close the terminal.
+  shellHook = "${pkgs.writeShellScript "xenolith-shell-hook" (
+    builtins.readFile ../scripts/dev/shell-hook.sh
+  )}";
 }
