@@ -6,13 +6,16 @@
 //! rather than transcribed.
 
 use serde_json::Value;
-use xenolith_shebang::{Prelude, get, has, parse, strip, strip_preamble, strip_strict};
+use xenolith_shebang::{Prelude, Shebang, get, has, parse, strip, strip_preamble, strip_strict};
 
 /// The prelude that reproduces nix-shebang's `stripStrict`: shebang plus
 /// the exact bash strict line, nothing else.
 fn bash_strict() -> Prelude {
     Prelude {
-        shebang: None,
+        // Some, because the nix implementation strips whatever shebang the
+        // file carries; a prelude that declares one says "this file is
+        // executable and the top line is mine".
+        shebang: Some(Shebang::env("bash")),
         strict: Some("set -euo pipefail"),
     }
 }
@@ -25,10 +28,19 @@ fn vectors() -> Vec<Value> {
     }
 }
 
+/// `serde_json` indexing panics on a missing key, and `indexing_slicing` is
+/// denied workspace-wide for exactly that reason: a vectors.json that lost
+/// a field should fail as a named assertion rather than as a panic inside
+/// the harness.
+fn field<'a>(row: &'a Value, key: &str) -> &'a Value {
+    const NULL: Value = Value::Null;
+    row.get(key).unwrap_or(&NULL)
+}
+
 fn text<'a>(row: &'a Value, key: &str) -> &'a str {
-    row[key]
+    field(row, key)
         .as_str()
-        .unwrap_or_else(|| panic!("row {} has no string {key}", row["name"]))
+        .unwrap_or_else(|| panic!("row {:?} has no string {key}", field(row, "name")))
 }
 
 #[test]
@@ -37,7 +49,7 @@ fn has_matches_every_vector() {
         let name = text(&row, "name");
         assert_eq!(
             has(text(&row, "input")),
-            row["has"].as_bool().unwrap_or_default(),
+            field(&row, "has").as_bool().unwrap_or_default(),
             "has disagrees on vector {name}"
         );
     }
@@ -49,7 +61,7 @@ fn get_matches_every_vector() {
         let name = text(&row, "name");
         assert_eq!(
             get(text(&row, "input")),
-            row["get"].as_str(),
+            field(&row, "get").as_str(),
             "get disagrees on vector {name}"
         );
     }
@@ -96,32 +108,32 @@ fn parse_matches_every_vector() {
     for row in vectors() {
         let name = text(&row, "name");
         let parsed = parse(text(&row, "input"));
-        match (&row["parse"], parsed) {
+        match (field(&row, "parse"), parsed) {
             (Value::Null, None) => {}
             (Value::Null, Some(got)) => panic!("vector {name} expects no shebang, got {got:?}"),
             (expected, None) => panic!("vector {name} expects {expected:?}, got none"),
             (expected, Some(got)) => {
                 assert_eq!(
                     got.interpreter,
-                    expected["interpreter"].as_str().unwrap_or_default(),
+                    field(expected, "interpreter").as_str().unwrap_or_default(),
                     "interpreter disagrees on vector {name}"
                 );
                 assert_eq!(
                     got.is_env,
-                    expected["isEnv"].as_bool().unwrap_or_default(),
+                    field(expected, "isEnv").as_bool().unwrap_or_default(),
                     "is_env disagrees on vector {name}"
                 );
                 assert_eq!(
                     got.resolved_interpreter(),
-                    expected["resolvedInterpreter"].as_str().unwrap_or_default(),
+                    field(expected, "resolvedInterpreter")
+                        .as_str()
+                        .unwrap_or_default(),
                     "resolved_interpreter disagrees on vector {name}"
                 );
-                let want: Vec<&str> = expected["args"]
+                let want: Vec<&str> = field(expected, "args")
                     .as_array()
-                    .unwrap_or(&Vec::new())
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .collect();
+                    .map(|args| args.iter().filter_map(Value::as_str).collect())
+                    .unwrap_or_default();
                 assert_eq!(got.args, want, "args disagree on vector {name}");
             }
         }
