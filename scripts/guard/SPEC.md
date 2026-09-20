@@ -43,3 +43,4 @@ T115|.|history audit script (`git log -p` over refs to push vs denylist) + bats;
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-20|`bats-mirror` ran on pre-commit ∴ ⊥ RED commit possible: C11 test commit precedes its script, so orphan test = method working, ⊥ defect. V21 read as per-commit ⊥ per-branch|step moved to `all` (pre-push, `hk check`); mirror = property of branch, checked before push when GREEN exists
