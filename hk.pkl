@@ -158,6 +158,21 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-per-file.sh mth check -- {{files}}"
   }
 
+  // itok counts the tokens a spec chain costs and compares them with the
+  // ceilings in `.context-limits` (`scripts:V26`). Whole-repo rather than
+  // file-scoped: the number that matters is what a CHAIN costs, and every
+  // chain pays the root -- so a row added to the root SPEC.md is billed
+  // thirty-four times and no per-file view would show it.
+  //
+  // A ceiling raise belongs in its own commit with its reason, because the
+  // spec is re-read on every session that touches this repo: every byte is
+  // a recurring cost, and raising the number trains the reflex instead of
+  // fixing the growth.
+  ["spec-tokens"] {
+    glob = List("**/SPEC.md", ".context-limits")
+    check = "scripts/hk/run-tool.sh itok check"
+  }
+
   // The cheap hygiene family, all from `hk util`: no extra binary, no
   // version to pin, and each does exactly one thing its name states.
   ["trailing-whitespace"] {
