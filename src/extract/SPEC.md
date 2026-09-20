@@ -48,6 +48,12 @@ V101: `xnl inline` = exact inverse of extract: removes extract & companion only 
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84, T85 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T67, T101, T102 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M4 | CI languages -- yaml, dockerfile, just | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+
 id|status|task|cites
 T22|.|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
 T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6

@@ -31,6 +31,11 @@ V93: `xnl lint --sites` lints in-host sites BEFORE extraction: body materialised
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T24, T87, T92, T93 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T94 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T24|.|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
 T87|.|multi-check runner, per-check results, `--fix`; defaults table; fixture w/ 2 checks both failing|V8

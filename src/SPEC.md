@@ -50,6 +50,11 @@ V120: scan throughput recorded (files/s over the M2 corpus & a synthetic large t
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T3|.|`Cargo.toml` (edition 2024, rust-version 1.95, MIT, lints), `clippy.toml`, `rustfmt.toml`, `deny.toml` w/ network crate bans|C2,C5,V12,V18
 T8|.|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,`src/cli:V24`,`languages/api:T42`

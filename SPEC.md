@@ -30,6 +30,13 @@ V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19
 V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only per `src/config:V89`) ∴ node buildable & checkable standalone.
 
 ## §T TASKS
+
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T28, T91 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M2 | language survey & corpus run | T95 | counts & failure shapes recorded, every finding filed as a fixture (`tests:V118`) |
+| M3 | publication | T30-T32, T116 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T28|.|dogfood: `xnl check`/`graph`/`lint` on own repo green|V19,C19
 T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix, trust boundary note (`--trust-config` guards xnl only; CI on fork PRs must take workflow & hk config from base branch)|I.file,C8

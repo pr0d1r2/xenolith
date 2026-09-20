@@ -29,6 +29,10 @@ V100: extract whose body is trivial for its guest (incl. threshold) → warning 
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T21, T52 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+
 id|status|task|cites
 T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
 T52|.|extract roots from rules, layout & host dirs; orphan scan over roots only|V50,V7

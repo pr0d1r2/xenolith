@@ -46,6 +46,11 @@ V102: `--format sarif` = SARIF 2.1.0: rule id → `ruleId`, `file:line:col` → 
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T9 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T96, T97, T103 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T9|.|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,`src:V13`
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`

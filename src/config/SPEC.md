@@ -51,6 +51,11 @@ V89: convention over configuration: key whose value ≡ inherited effective valu
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T10, T25, T49, T56, T70, T73, T80 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T89 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T10|.|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
 T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
