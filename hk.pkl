@@ -286,6 +286,20 @@ local all = (fast) {
     check = "scripts/guard/bats-mirror.sh"
   }
 
+  // No private repo name in a tracked file (`scripts/guard:V23`,
+  // `scripts/guard:C17`). Whole-repo and push-side: the denylist can
+  // gain an entry at any time, and the question it answers is about the
+  // whole tree about to be published, not the files in one commit.
+  //
+  // It exits 0 with a loud line when `.private-names` is absent -- the
+  // list is gitignored by necessity, so CI and a fresh clone have none.
+  // The backstop that does not depend on a local file is the history
+  // audit before the first public push (`scripts/guard:V117`).
+  ["private-names"] {
+    glob = List("**/*")
+    check = "scripts/guard/private-names.sh"
+  }
+
   // The TDD order (`scripts/guard:C11`), checked over the range a push
   // would publish. Push-side by nature: ordering is a property of
   // history, and mid-branch the sequence is not finished yet.
