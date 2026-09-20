@@ -47,7 +47,7 @@ V113: packaged content proven: `cargo package` ∀ crate & `cargo test` from the
 | M3 | publication | T39, T108-T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T1|.|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
+T1|x|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
 T26|.|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,`.:V19`
 T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20

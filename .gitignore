@@ -1,0 +1,16 @@
+# Build outputs.
+/target/
+result
+result-*
+
+# direnv's materialized profile. The `.envrc` is tracked; what it builds is not.
+/.direnv/
+
+# Coverage artifacts. `cargo llvm-cov` drops these beside the manifest.
+*.profraw
+*.profdata
+
+# The private-name denylist is itself the list of names that must not be
+# published (`scripts/guard:V23`), so it is the one file that may never be
+# tracked. The guard reads it from here.
+/.private-names
