@@ -1,0 +1,235 @@
+//! The contract, tested from outside the crate -- the way a language crate
+//! sees it.
+//!
+//! These are not tests of behaviour: the traits have no behaviour, which
+//! is the point of `languages/api:V36` (pure functions, `&str` in, values
+//! out). What they pin is SHAPE, and shape is what breaks silently: a
+//! trait that stops being object-safe, a `LangId` missing a variant for a
+//! language nobody compiled in, an ordering that no longer sorts.
+
+use std::path::Path;
+
+use xenolith_lang_api::{
+    Delim, DelimKind, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd,
+    LoadRef, Site, Span,
+};
+
+#[test]
+fn lang_id_names_every_language_in_the_federation() {
+    // Every language with a node under `languages/` (`languages` §F). The
+    // list is written out rather than derived, so adding a crate without
+    // adding its variant fails here (`languages/api:V33`).
+    for (id, name) in [
+        (LangId::Awk, "awk"),
+        (LangId::Css, "css"),
+        (LangId::Dockerfile, "dockerfile"),
+        (LangId::Html, "html"),
+        (LangId::Jq, "jq"),
+        (LangId::Js, "js"),
+        (LangId::Just, "just"),
+        (LangId::Nix, "nix"),
+        (LangId::Perl, "perl"),
+        (LangId::Pkl, "pkl"),
+        (LangId::Python, "python"),
+        (LangId::Ruby, "ruby"),
+        (LangId::Rust, "rust"),
+        (LangId::Shell, "shell"),
+        (LangId::Sql, "sql"),
+        (LangId::Yaml, "yaml"),
+    ] {
+        assert_eq!(id.as_str(), name);
+        assert_eq!(LangId::from_name(name), Some(id));
+    }
+}
+
+#[test]
+fn lang_id_all_is_complete_and_sorted() {
+    // The registry iterates in `LangId` order (`src:V41`), so the order
+    // has to be a property of this type rather than of each caller.
+    let all = LangId::ALL;
+    assert_eq!(all.len(), 16, "a language was added without a variant");
+    let mut sorted = all.to_vec();
+    sorted.sort_unstable();
+    assert_eq!(sorted.as_slice(), all, "LangId::ALL must be sorted");
+}
+
+#[test]
+fn an_unknown_name_is_none_rather_than_a_guess() {
+    assert_eq!(LangId::from_name("cobol"), None);
+    assert_eq!(LangId::from_name("Nix"), None, "matching is exact");
+}
+
+#[test]
+fn spans_sort_by_start_then_end() {
+    let mut spans = vec![Span::new(10, 20), Span::new(0, 5), Span::new(0, 3)];
+    spans.sort_unstable();
+    assert_eq!(
+        spans,
+        vec![Span::new(0, 3), Span::new(0, 5), Span::new(10, 20)]
+    );
+}
+
+#[test]
+fn a_span_knows_the_text_it_covers() {
+    let src = "let x = ''echo hi'';";
+    let span = Span::new(10, 17);
+    assert_eq!(span.of(src), Some("echo hi"));
+    assert_eq!(
+        Span::new(10, 999).of(src),
+        None,
+        "out of bounds is None, not a panic"
+    );
+}
+
+#[test]
+fn traits_are_object_safe_so_the_registry_can_hold_them() {
+    // `src:V41` stores `&'static [&'static dyn Host]`. A trait that stops
+    // being object-safe breaks that registry and nothing else, which is
+    // exactly the kind of break that is found late.
+    let host: &dyn Host = &FakeHost;
+    let guest: &dyn Guest = &FakeGuest;
+    assert_eq!(host.id(), LangId::Nix);
+    assert_eq!(guest.id(), LangId::Shell);
+    assert_eq!(guest.extension(), "sh");
+    assert_eq!(guest.invoke(Path::new("x.sh")).argv, vec!["bash", "x.sh"]);
+}
+
+#[test]
+fn a_site_carries_what_the_host_found() {
+    let site = fake_site();
+    assert_eq!(site.guest, LangId::Shell);
+    assert_eq!(site.sink, "script");
+    assert_eq!(site.delim.kind, DelimKind::NixIndented);
+    assert_eq!(site.delim.body, Span::new(10, 17));
+    assert!(site.holes.is_empty());
+    assert_eq!(site.env.dialect.as_deref(), Some("bash"));
+}
+
+#[test]
+fn a_load_ref_points_at_a_path_and_a_guest() {
+    let load = LoadRef {
+        span: Span::new(0, 12),
+        path: "scripts/hk/fmt.sh".into(),
+        guest: LangId::Shell,
+    };
+    assert_eq!(load.guest, LangId::Shell);
+    assert_eq!(load.path, Path::new("scripts/hk/fmt.sh"));
+}
+
+#[test]
+fn a_lint_cmd_states_how_the_file_reaches_the_tool() {
+    let appended = LintCmd {
+        argv: vec!["shellcheck".into(), "-s".into(), "bash".into()],
+        file_arg: FileArg::Append,
+        format: Format::Json("shellcheck"),
+    };
+    assert_eq!(appended.file_arg, FileArg::Append);
+
+    // `[lint.<guest>] checks = ["jq -n -f {file}"]` (`src/lint` §I): the
+    // path goes where the author put the token, not at the end.
+    let placed = LintCmd {
+        argv: vec!["jq".into(), "-n".into(), "-f".into(), "{file}".into()],
+        file_arg: FileArg::Placeholder,
+        format: Format::Raw,
+    };
+    assert_eq!(placed.file_arg, FileArg::Placeholder);
+}
+
+#[test]
+fn an_error_says_which_language_and_what_went_wrong() {
+    let err = Error::parse(LangId::Nix, "unterminated indented string");
+    let shown = err.to_string();
+    assert!(shown.contains("nix"), "got {shown:?}");
+    assert!(shown.contains("unterminated"), "got {shown:?}");
+
+    let err = Error::unsupported(LangId::Pkl, "inline");
+    let shown = err.to_string();
+    assert!(
+        shown.contains("pkl") && shown.contains("inline"),
+        "got {shown:?}"
+    );
+}
+
+#[test]
+fn errors_implement_the_standard_trait_so_callers_can_box_them() {
+    let boxed: Box<dyn std::error::Error> = Box::new(Error::parse(LangId::Nix, "x"));
+    assert!(!boxed.to_string().is_empty());
+}
+
+fn fake_site() -> Site {
+    Site {
+        sink: "script".into(),
+        guest: LangId::Shell,
+        env: GuestEnv {
+            dialect: Some("bash".into()),
+            options: vec!["errexit".into()],
+        },
+        delim: Delim {
+            kind: DelimKind::NixIndented,
+            open: Span::new(8, 10),
+            body: Span::new(10, 17),
+            close: Span::new(17, 19),
+        },
+        holes: Vec::new(),
+    }
+}
+
+struct FakeHost;
+
+impl Host for FakeHost {
+    fn id(&self) -> LangId {
+        LangId::Nix
+    }
+    fn claims(&self, path: &Path, _head: &str) -> bool {
+        path.extension().is_some_and(|e| e == "nix")
+    }
+    fn sites(&self, _src: &str) -> Result<Vec<Site>, Error> {
+        Ok(vec![fake_site()])
+    }
+    fn loads(&self, _src: &str) -> Result<Vec<LoadRef>, Error> {
+        Ok(Vec::new())
+    }
+    fn rewrite(
+        &self,
+        src: &str,
+        _site: &Site,
+        _invoke: &Invoke,
+        _path: &Path,
+    ) -> Result<String, Error> {
+        Ok(src.to_owned())
+    }
+    fn inline(&self, src: &str, _load: &LoadRef, _body: &str) -> Result<String, Error> {
+        Ok(src.to_owned())
+    }
+    fn checks(&self) -> Vec<LintCmd> {
+        Vec::new()
+    }
+    fn fixers(&self) -> Vec<LintCmd> {
+        Vec::new()
+    }
+}
+
+struct FakeGuest;
+
+impl Guest for FakeGuest {
+    fn id(&self) -> LangId {
+        LangId::Shell
+    }
+    fn extension(&self) -> &'static str {
+        "sh"
+    }
+    fn invoke(&self, path: &Path) -> Invoke {
+        Invoke {
+            argv: vec!["bash".into(), path.display().to_string()],
+        }
+    }
+    fn trivial(&self, body: &str) -> Result<bool, Error> {
+        Ok(!body.contains('\n'))
+    }
+    fn checks(&self, _env: &GuestEnv) -> Vec<LintCmd> {
+        Vec::new()
+    }
+    fn fixers(&self, _env: &GuestEnv) -> Vec<LintCmd> {
+        Vec::new()
+    }
+}

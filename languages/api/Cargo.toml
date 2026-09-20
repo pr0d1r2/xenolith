@@ -1,0 +1,27 @@
+[package]
+name = "xenolith-lang-api"
+description = "The contract every xenolith language crate implements: Host and Guest traits, LangId, shared types"
+keywords = ["xenolith", "lint", "refactor", "static-analysis"]
+categories = ["development-tools"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+# EMPTY, and checked rather than reviewed (`languages/api:V32`): this crate
+# may depend on `xenolith-shebang` and nothing else. No grammar, because a
+# grammar here would land in every language crate's tree whether it parses
+# that language or not.
+[dependencies]
+
+# NO FEATURES, deliberately (`languages/api:V33`). `LangId` names every
+# known language regardless of which crates a build compiles in, so a host
+# can report "this site holds shell and shell is not compiled in" instead of
+# failing to name what it found.
+[features]
+
+[lints]
+workspace = true

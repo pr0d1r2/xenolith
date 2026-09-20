@@ -5,3 +5,7 @@ version = 4
 [[package]]
 name = "xenolith"
 version = "0.1.0"
+
+[[package]]
+name = "xenolith-lang-api"
+version = "0.1.0"
