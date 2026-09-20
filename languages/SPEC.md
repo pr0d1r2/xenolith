@@ -50,12 +50,13 @@ V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = works
 V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unparseable <guest>`) & extractable; parse errors then surface as lint findings on extract (`src/lint:V8`), fixers may auto-correct.
 V78: site inside host parse-error region (tree-sitter `ERROR`/`MISSING`, `rnix` error node) ⊥ reported & ⊥ extracted (spans unreliable); file w/ parse error → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).
 V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors in fixed order only REMOVE — (1) `[[detect]]` (forces one), (2) explicit context (interpreter cmd, GH `shell:`, nix `writers.*`), (3) shebang in body (`shebang::resolves_to`), (4) heredoc tag, (5) `Guest::rejects`; 1 left → guest; >1 → first by host order, `--verbose` notes ambiguity; 0 → guest `unknown`, violation w/ `Judgment`. deterministic.
+V121: grammar ⊥ published on crates.io → VENDOR its generated C (`src/parser.c`, `src/scanner.c`) into the language crate, built w/ `cc`, recording upstream repo, rev & license in the crate & in `docs:V108`; ⊥ git dep (unpublishable, breaks `src` C1 & `nix:V112`). refresh = own commit naming the new rev. measured 2026-09-20: `tree-sitter-pkl` (apple, Apache-2.0) & `tree-sitter-awk` (Beaglefoot, MIT) exist only as repos; bash, nix (`rnix`), yaml, just, jq, dockerfile, rust, ruby, html, python ship as crates.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T57, T77, T78, T82 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T57, T77, T78, T82, T120 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M4 | CI languages -- yaml, dockerfile, just | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
@@ -64,6 +65,7 @@ T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `s
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
 T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/yaml:V75`
+T120|.|vendoring harness: `cc` build, rev+license record, notices hook, `cargo package` proves the C ships (`nix:V113`)|V121,`docs:V108`
 
 ## §B BUGS
 
