@@ -1,0 +1,74 @@
+# The workspace and the root crate in one manifest: `xenolith` is both the
+# library consumers call and the package that owns the `xnl` binary
+# (`src:C1`), and a separate virtual-manifest root would add a directory
+# level that exists only to hold a file.
+
+[workspace]
+# Language crates join as they land (`languages:C24`). The list is explicit
+# rather than a glob: a glob makes a half-written crate a member the moment
+# its directory appears, and `cargo test` then fails for a reason that has
+# nothing to do with the change being made.
+members = []
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+# Edition 2024 and the rustc pinned in nixpkgs-lock, stated rather than
+# discovered (`src:C2`, `src:V18`). No rust-toolchain.toml, no rust-overlay:
+# the flake already decides the toolchain, and a second declaration is a
+# second thing to drift.
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+repository = "https://github.com/pr0d1r2/xenolith"
+homepage = "https://github.com/pr0d1r2/xenolith"
+authors = ["Marcin Nowicki"]
+
+# One lint policy for every crate in the workspace, inherited via
+# `lints.workspace = true` (`src:C5`).
+[workspace.lints.clippy]
+# A panic in a linter is a linter that stops mid-tree and reports nothing
+# about the files it had not reached. These are DENY rather than warn
+# because `-D warnings` already makes warnings fatal in the gate -- naming
+# them here states the rule where a reader looks for it.
+unwrap_used = "deny"
+expect_used = "deny"
+# The tool's whole subject is text spans; an off-by-one in slicing is the
+# defect class most likely to be silent.
+indexing_slicing = "deny"
+pedantic = { level = "warn", priority = -1 }
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[package]
+name = "xenolith"
+description = "One language per file: find embedded foreign code, extract it, verify every load resolves"
+keywords = ["lint", "refactor", "shell", "nix", "static-analysis"]
+categories = ["development-tools", "command-line-utilities"]
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lib]
+name = "xenolith"
+path = "src/lib.rs"
+
+# `xnl` is the xenolith consonant skeleton, the `rg` shape (`src:C1`).
+[[bin]]
+name = "xnl"
+path = "src/main.rs"
+
+# No dependencies yet, and that is the point of recording it: every crate
+# added here needs its justification in a comment beside it (`src:C5`), and
+# the network crates are banned outright in deny.toml (`src:V12`).
+[dependencies]
+
+[lints]
+workspace = true

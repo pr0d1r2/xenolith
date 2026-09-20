@@ -1,0 +1,10 @@
+# Formatting is not a matter of taste here: it is the difference between a
+# diff that shows a change and a diff that shows a re-wrap. Defaults
+# everywhere except the two settings that make `cargo fmt` deterministic
+# across the comments this codebase leans on.
+edition = "2024"
+# Comments carry the reasoning in this repo (`scripts/guard:C12` asks the
+# same of commit bodies), so they are formatted rather than left to drift
+# past the column limit.
+wrap_comments = true
+comment_width = 76

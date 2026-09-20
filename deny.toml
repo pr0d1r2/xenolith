@@ -1,0 +1,51 @@
+# `cargo deny` gate (`src:C5`). Four questions, asked mechanically:
+# advisories, licenses, bans, sources.
+
+[advisories]
+# An advisory with no fix is still an advisory. Failing on it is the point:
+# the choice to ship anyway belongs in a diff, as an explicit ignore with a
+# reason, not in a tool's default leniency.
+yanked = "deny"
+ignore = []
+
+[licenses]
+# Permissive only. A copyleft dependency in a library others link changes
+# what THEY may ship, which is not a decision this crate gets to make for
+# them.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+]
+confidence-threshold = 0.93
+
+[bans]
+# Two copies of one crate is two versions of one behaviour, and for a
+# grammar crate it is also twice the binary.
+multiple-versions = "warn"
+wildcards = "deny"
+
+# `.:C3` and `src:V12`: CPU only, offline, deterministic. A network client
+# in the dependency tree makes that claim unverifiable by reading, so it is
+# denied by name -- the list grows when a new client appears, which is a
+# review that happens in a diff rather than never.
+deny = [
+  { name = "reqwest" },
+  { name = "ureq" },
+  { name = "hyper" },
+  { name = "isahc" },
+  { name = "curl" },
+  { name = "attohttpc" },
+  { name = "surf" },
+]
+
+[sources]
+# crates.io only. A git dependency is a version nobody can look up and a
+# build nobody else can reproduce from the lock alone.
+unknown-registry = "deny"
+unknown-git = "deny"
