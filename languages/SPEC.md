@@ -53,6 +53,11 @@ V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors i
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T57, T77, T78, T82 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M4 | CI languages -- yaml, dockerfile, just | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+
 id|status|task|cites
 T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77

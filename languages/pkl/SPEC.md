@@ -14,6 +14,10 @@ V52: pkl host placement: hk step site → name = step key, dir = `scripts/hk`, l
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T13, T54 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+
 id|status|task|cites
 T13|.|host pkl (tree-sitter-pkl ?): hk step sinks, fixtures|`languages:V2`,`languages/shell:V3`,`tests:V14`,`tests:V15`
 T54|.|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52

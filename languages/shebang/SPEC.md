@@ -35,6 +35,10 @@ sib|languages/html|html parser, inline script/style sinks
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T63 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+
 id|status|task|cites
 T63|.|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|`languages/api/src/lens:V63`,`languages/api/src/lens:V34`
 

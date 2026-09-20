@@ -30,6 +30,10 @@ V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base —
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T43, T45, T90 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+
 id|status|task|cites
 T43|.|`laws::check` harness + fixture loader over calling crate's `tests/fixtures/<case>/`; RED on toy host in api tests|V34,`tests:V14`
 T45|.|`Delim`/`DelimKind`/holes + `unescape`/`escape` round-trip property in harness; fixtures ∀ kind incl. indent, escapes, holes|`languages/api/src/site:V38`,V39,`languages/api/src/holes:V40`,`tests:V15`
