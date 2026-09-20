@@ -13,11 +13,13 @@ setup() {
   mkdir -p "$BIN"
 }
 
-# A stub tool that echoes its arguments and exits with a chosen code.
+# A stub tool that echoes its arguments and exits with a chosen code. Its
+# shebang names bash absolutely: these stubs run under a PATH that holds
+# only this directory, so `/usr/bin/env bash` would find no bash at all.
 stub_tool() {
   local name="$1" code="${2:-0}"
   cat >"${BIN}/${name}" <<STUB
-#!/usr/bin/env bash
+#!${BASH}
 echo "args: \$*"
 exit ${code}
 STUB
