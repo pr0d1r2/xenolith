@@ -13,8 +13,13 @@ indent_style = space
 indent_size = 2
 
 [*.rs]
-# rustfmt's default, and rustfmt is the authority for Rust (`scripts:V22`).
-indent_size = 4
+# rustfmt is the authority for Rust layout (`scripts:V22`), so the
+# indent width is UNSET here rather than stated twice. Measured: rustfmt
+# indents a wrapped string continuation to the opening quote, which is
+# not a multiple of four, and editorconfig-checker then rejects a file
+# rustfmt considers formatted -- two formatters over one file is drift
+# with extra steps. The line cap stays, because both agree on 100.
+indent_size = unset
 max_line_length = 100
 
 [*.sh]

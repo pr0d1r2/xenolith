@@ -7,7 +7,3 @@
 # honest number here is above the default, and raising it deliberately is
 # better than sprinkling allow attributes at each call site.
 too-many-arguments-threshold = 8
-
-# Names that are one letter apart are the reading hazard in a codebase full
-# of `host`/`hosts` and `site`/`sites`.
-allow-similar-names = false

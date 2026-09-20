@@ -3,8 +3,8 @@
 # everywhere except the two settings that make `cargo fmt` deterministic
 # across the comments this codebase leans on.
 edition = "2024"
-# Comments carry the reasoning in this repo (`scripts/guard:C12` asks the
-# same of commit bodies), so they are formatted rather than left to drift
-# past the column limit.
-wrap_comments = true
-comment_width = 76
+# Nothing else. `wrap_comments` and `comment_width` would fit this
+# codebase -- the reasoning lives in comments here -- but both are
+# nightly-only, and rustfmt merely WARNS about an unstable key rather
+# than failing, so setting them would mean a formatting rule that
+# silently does not apply.
