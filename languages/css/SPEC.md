@@ -2,14 +2,14 @@
 
 ## §G GOAL
 
-crate `xenolith-lang-html` (feature `lang-html`): tree-sitter-html; host: inline `<script>`, `<style>`, `on*=` attrs ?.
+crate `xenolith-lang-css` (feature `lang-css`): tree-sitter-css; guest (html inline `<style>`, `style=` attrs ?).
 
 ## §N NAV
 
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-self|languages/html|html parser, inline script/style sinks
+self|languages/css|css grammar, guest rules
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 sib|languages/nix|nix parser, sinks, load idiom
 sib|languages/pkl|pkl parser, hk step sinks, load idiom
@@ -24,26 +24,21 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
+sib|languages/html|html parser, inline script/style sinks
 sib|languages/js|javascript grammar, guest rules
-sib|languages/css|css grammar, guest rules
-
-## §I INTERFACES
-
-- sinks: inline `<script>` body, inline `<style>` body, `on*=` attrs ? · js \| css · `<script src>`, `<link rel=stylesheet>`.
-- placement prototype ? (T86 evaluates): html → `<page_dir>/assets/<page>/<name>.js`, `<script src>`.
 
 ## §V INVARIANTS
 
-V105: `claims`: `*.html`, `*.htm`; templates (`*.erb`, `*.hbs`) ? later.
+V124: css guest: `trivial` = single declaration block ≤ `[threshold.css]`; `prelude` ⊥; ext `css`; `invoke` ⊥ (css is loaded, ⊥ run) ∴ load idiom is the host's `<link rel=stylesheet>`; checks & fixers per `src/lint` §I defaults.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M6 | web languages -- html (js & css guests) | T20 | inline `<script>`/`<style>` extraction w/ fixtures |
+| M6 | web languages -- html (js & css guests) | T123 | inline `<script>`/`<style>` extraction w/ fixtures |
 
 id|status|task|cites
-T20|.|host html: inline `<script>`/`<style>` + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
+T123|.|css `Guest` + fixtures (one rule inline, stylesheet flagged)|V124
 
 ## §B BUGS
 

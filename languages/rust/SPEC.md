@@ -25,6 +25,7 @@ sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/ruby|ruby parser, ruby host sinks
 sib|languages/html|html parser, inline script/style sinks
 sib|languages/js|javascript grammar, guest rules
+sib|languages/css|css grammar, guest rules
 
 ## §I INTERFACES
 

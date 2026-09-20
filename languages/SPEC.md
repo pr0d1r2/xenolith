@@ -23,6 +23,7 @@ rust|rust parser, rust host sinks|sql & shell guest rules (their nodes)|-
 ruby|ruby parser, ruby host sinks|sql, shell, js guest rules (their nodes)|-
 html|html parser, inline script/style sinks|js & css guest rules (future nodes)|-
 js|javascript grammar, guest rules|html sinks (`languages/html`)|-
+css|css grammar, guest rules|html sinks (`languages/html`)|-
 
 ## §N NAV
 
