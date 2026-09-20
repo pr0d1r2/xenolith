@@ -137,6 +137,15 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-tool.sh editorconfig-checker {{files}}"
   }
 
+  // The repo's own structural guards. Whole-repo rather than file-scoped:
+  // both rules are about the SET of files, and a deletion or a rename is
+  // exactly the change that breaks them -- neither shows up as a changed
+  // file the step would be handed.
+  ["bats-mirror"] {
+    glob = List("**/*.sh", "**/*.bats")
+    check = "scripts/guard/bats-mirror.sh"
+  }
+
   // The SPEC toolchain (`scripts:C21`). microlith owns the format: `mth
   // fmt` is whitespace-only and proves that before writing, `mth check` is
   // the structural rule set. Both take ONE path per run, hence the
