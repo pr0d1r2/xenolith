@@ -98,6 +98,9 @@ version = "0.1.0"
 [[package]]
 name = "xenolith-lang-api"
 version = "0.1.0"
+dependencies = [
+ "xenolith-shebang",
+]
 
 [[package]]
 name = "xenolith-shebang"

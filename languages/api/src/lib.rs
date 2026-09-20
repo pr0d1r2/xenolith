@@ -25,6 +25,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod shebang;
 pub mod site;
 
 use std::fmt;
