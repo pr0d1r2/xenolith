@@ -1,0 +1,238 @@
+[
+  {
+    "get": "#!/usr/bin/env bash",
+    "has": true,
+    "input": "#!/usr/bin/env bash\necho hello\n",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "envBash",
+    "parse": {
+      "args": [
+        "bash"
+      ],
+      "interpreter": "/usr/bin/env",
+      "isEnv": true,
+      "resolvedInterpreter": "bash"
+    },
+    "strip": "echo hello\n",
+    "stripPreamble": "echo hello\n",
+    "stripStrict": "echo hello\n"
+  },
+  {
+    "get": "#!/usr/bin/env bash",
+    "has": true,
+    "input": "#!/usr/bin/env bash\nset -euo pipefail\necho hello\n",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "envBashStrict",
+    "parse": {
+      "args": [
+        "bash"
+      ],
+      "interpreter": "/usr/bin/env",
+      "isEnv": true,
+      "resolvedInterpreter": "bash"
+    },
+    "strip": "set -euo pipefail\necho hello\n",
+    "stripPreamble": "echo hello\n",
+    "stripStrict": "echo hello\n"
+  },
+  {
+    "get": "#!/bin/bash",
+    "has": true,
+    "input": "#!/bin/bash\nset -euo pipefail\n",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "binBashStrictOnly",
+    "parse": {
+      "args": [],
+      "interpreter": "/bin/bash",
+      "isEnv": false,
+      "resolvedInterpreter": "/bin/bash"
+    },
+    "strip": "set -euo pipefail\n",
+    "stripPreamble": "",
+    "stripStrict": ""
+  },
+  {
+    "get": "#!/bin/sh",
+    "has": true,
+    "input": "#!/bin/sh\necho hello",
+    "isBash": false,
+    "isSh": true,
+    "isShellScript": true,
+    "name": "binSh",
+    "parse": {
+      "args": [],
+      "interpreter": "/bin/sh",
+      "isEnv": false,
+      "resolvedInterpreter": "/bin/sh"
+    },
+    "strip": "echo hello",
+    "stripPreamble": "echo hello",
+    "stripStrict": "echo hello"
+  },
+  {
+    "get": "#!/usr/bin/sh",
+    "has": true,
+    "input": "#!/usr/bin/sh\necho hi\n",
+    "isBash": false,
+    "isSh": true,
+    "isShellScript": true,
+    "name": "usrBinSh",
+    "parse": {
+      "args": [],
+      "interpreter": "/usr/bin/sh",
+      "isEnv": false,
+      "resolvedInterpreter": "/usr/bin/sh"
+    },
+    "strip": "echo hi\n",
+    "stripPreamble": "echo hi\n",
+    "stripStrict": "echo hi\n"
+  },
+  {
+    "get": "#!/usr/bin/env python3",
+    "has": true,
+    "input": "#!/usr/bin/env python3\nprint('hi')",
+    "isBash": false,
+    "isSh": false,
+    "isShellScript": false,
+    "name": "envPython",
+    "parse": {
+      "args": [
+        "python3"
+      ],
+      "interpreter": "/usr/bin/env",
+      "isEnv": true,
+      "resolvedInterpreter": "python3"
+    },
+    "strip": "print('hi')",
+    "stripPreamble": "print('hi')",
+    "stripStrict": "print('hi')"
+  },
+  {
+    "get": "#!/usr/bin/awk -f",
+    "has": true,
+    "input": "#!/usr/bin/awk -f\n{ print $1 }\n",
+    "isBash": false,
+    "isSh": false,
+    "isShellScript": false,
+    "name": "awkProgram",
+    "parse": {
+      "args": [
+        "-f"
+      ],
+      "interpreter": "/usr/bin/awk",
+      "isEnv": false,
+      "resolvedInterpreter": "/usr/bin/awk"
+    },
+    "strip": "{ print $1 }\n",
+    "stripPreamble": "{ print $1 }\n",
+    "stripStrict": "{ print $1 }\n"
+  },
+  {
+    "get": "#!/usr/bin/env -S jq -f",
+    "has": true,
+    "input": "#!/usr/bin/env -S jq -f\n.foo\n",
+    "isBash": false,
+    "isSh": false,
+    "isShellScript": false,
+    "name": "envSplitString",
+    "parse": {
+      "args": [
+        "-S",
+        "jq",
+        "-f"
+      ],
+      "interpreter": "/usr/bin/env",
+      "isEnv": true,
+      "resolvedInterpreter": "jq"
+    },
+    "strip": ".foo\n",
+    "stripPreamble": ".foo\n",
+    "stripStrict": ".foo\n"
+  },
+  {
+    "get": "#!/bin/bash",
+    "has": true,
+    "input": "#!/bin/bash",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "shebangOnly",
+    "parse": {
+      "args": [],
+      "interpreter": "/bin/bash",
+      "isEnv": false,
+      "resolvedInterpreter": "/bin/bash"
+    },
+    "strip": "",
+    "stripPreamble": "",
+    "stripStrict": ""
+  },
+  {
+    "get": "#!/bin/bash",
+    "has": true,
+    "input": "#!/bin/bash\necho a\nset -euo pipefail\n",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "strictNotFirst",
+    "parse": {
+      "args": [],
+      "interpreter": "/bin/bash",
+      "isEnv": false,
+      "resolvedInterpreter": "/bin/bash"
+    },
+    "strip": "echo a\nset -euo pipefail\n",
+    "stripPreamble": "echo a\nset -euo pipefail\n",
+    "stripStrict": "echo a\nset -euo pipefail\n"
+  },
+  {
+    "get": "#!/bin/bash",
+    "has": true,
+    "input": "#!/bin/bash\nset -eu\necho x\n",
+    "isBash": true,
+    "isSh": false,
+    "isShellScript": true,
+    "name": "strictVariant",
+    "parse": {
+      "args": [],
+      "interpreter": "/bin/bash",
+      "isEnv": false,
+      "resolvedInterpreter": "/bin/bash"
+    },
+    "strip": "set -eu\necho x\n",
+    "stripPreamble": "echo x\n",
+    "stripStrict": "set -eu\necho x\n"
+  },
+  {
+    "get": null,
+    "has": false,
+    "input": "echo hello",
+    "isBash": false,
+    "isSh": false,
+    "isShellScript": false,
+    "name": "noShebang",
+    "parse": null,
+    "strip": "echo hello",
+    "stripPreamble": "echo hello",
+    "stripStrict": "echo hello"
+  },
+  {
+    "get": null,
+    "has": false,
+    "input": "",
+    "isBash": false,
+    "isSh": false,
+    "isShellScript": false,
+    "name": "empty",
+    "parse": null,
+    "strip": "",
+    "stripPreamble": "",
+    "stripStrict": ""
+  }
+]
