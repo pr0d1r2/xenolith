@@ -54,6 +54,7 @@ V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unp
 V78: site inside host parse-error region (tree-sitter `ERROR`/`MISSING`, `rnix` error node) ⊥ reported & ⊥ extracted (spans unreliable); file w/ parse error → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).
 V81: guest by EXCLUSION: start = `Host::candidates` ∩ compiled-in; detectors in fixed order only REMOVE — (1) `[[detect]]` (forces one), (2) explicit context (interpreter cmd, GH `shell:`, nix `writers.*`), (3) shebang in body (`shebang::resolves_to`), (4) heredoc tag, (5) `Guest::rejects`; 1 left → guest; >1 → first by host order, `--verbose` notes ambiguity; 0 → guest `unknown`, violation w/ `Judgment`. deterministic.
 V121: grammar ⊥ published on crates.io → VENDOR its generated C (`src/parser.c`, `src/scanner.c`) into the language crate, built w/ `cc`, recording upstream repo, rev & license in the crate & in `docs:V108`; ⊥ git dep (unpublishable, breaks `src` C1 & `nix:V112`). refresh = own commit naming the new rev. measured 2026-09-20: `tree-sitter-pkl` (apple, Apache-2.0) & `tree-sitter-awk` (Beaglefoot, MIT) exist only as repos; bash, nix (`rnix`), yaml, just, jq, dockerfile, rust, ruby, html, python ship as crates.
+V129: ∀ language node's `§N` lists every sibling ∴ each new language lengthens EVERY language chain. when a language chain passes 4,000 tok, group languages under category hubs (`languages/{shells,data,web,ci}`) ? — measured, ⊥ pre-emptive: 13 languages cost ~1k of §N today.
 
 ## §T TASKS
 
