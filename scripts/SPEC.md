@@ -42,6 +42,7 @@ V28: coverage ≥ `.coverage` floor & lint debt ≤ `.lint-debt` (`sherd coverag
 V114: workflows audited in the gate: `zizmor --persona=pedantic` (declines recorded in `.github/zizmor.yml` w/ reason & exit condition), `actionlint`, link check (`lychee --offline`).
 V115: GitHub settings stated & checked, ⊥ assumed: `main` protected, CI jobs required, admins included, Actions may open PRs only if a bot needs it; `scripts/guard/github-settings.sh` compares `gh api` output (advisory offline).
 V116: ⊥ silent automation: a workflow that pushes a branch ! confirm its PR exists & exit non-zero otherwise; "branch exists → nothing to do" is ⊥ success.
+V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `hk` set, ⊥ restates steps; a step exists once. hooks installed by shell entry (C10) & REFUSE when `hk` is off PATH, ⊥ skip silently.
 
 ## §T TASKS
 
@@ -52,7 +53,7 @@ V116: ⊥ silent automation: a workflow that pushes a branch ! confirm its PR ex
 
 id|status|task|cites
 T2|.|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
-T4|.|`hk.pkl`: fmt, clippy, deny, test, shellcheck, shfmt, nixfmt, statix, deadnix; commit-msg & pre-push hooks|C9,V22
+T4|.|`hk.pkl`: fmt, clippy, deny, test, bats, cargo-hack, shellcheck, shfmt, nixfmt, statix, deadnix, taplo, typos, editorconfig, trailing-whitespace, final-newline, no-large-files, secret scan, link check; commit-msg & pre-push hooks|C9,V22,V122
 T27|.|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
 T33|.|hk steps `mth fmt --check` & `mth check` ∀ `SPEC.md`; `mth fmt` as fix|V25,C21
 T34|.|`.context-limits` ceilings + hk `itok check`|V26,C21
