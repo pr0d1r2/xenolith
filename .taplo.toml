@@ -1,0 +1,14 @@
+# TOML formatting, for `taplo format` in the gate. The files this governs are
+# `Cargo.toml` (one per crate, once `src/` and `languages/` land) and
+# `xenolith.toml` (the tool's own config, one per sherd node -- `.:V90`), so
+# the settings are chosen for hand-edited config rather than generated data.
+
+[formatting]
+# Cargo convention: keys stay in the order a human put them, because
+# dependency order and section order carry meaning that alphabetising
+# destroys.
+reorder_keys = false
+reorder_arrays = false
+align_entries = false
+indent_string = "  "
+column_width = 100

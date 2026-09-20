@@ -1,0 +1,30 @@
+# Byte-level house style, stated once for every editor that reads it. The
+# gate checks these same properties (`hk.pkl`: trailing-whitespace,
+# final-newline, line-endings), so this file is the DECLARATION and hk is
+# the enforcement -- an editor that honours it simply never trips them.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.rs]
+# rustfmt's default, and rustfmt is the authority for Rust (`scripts:V22`).
+indent_size = 4
+max_line_length = 100
+
+[*.sh]
+# shfmt is run with `-i 2`, so the two agree by construction.
+indent_size = 2
+
+[*.md]
+# A hard-wrapped SPEC.md row would change meaning, and trailing double-space
+# is markdown's line break -- so markdown opts out of the trim.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

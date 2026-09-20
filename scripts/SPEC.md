@@ -61,7 +61,7 @@ T35|.|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd bud
 T36|.|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1)|V28,C14
 T113|.|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
 T114|.|`github-settings.sh` + bats; runbook lists the intended settings|V115
-T121|.|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
+T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
 
 ## §B BUGS
 
