@@ -12,3 +12,8 @@ extend-exclude = ["pkl/"]
 # fragment enclosed in host rock; `xnl` is the binary.
 xenolith = "xenolith"
 xnl = "xnl"
+# Both spellings are attested; the spec uses this one throughout, and the
+# word appears in an invariant's own text (`languages:V77`) where the
+# wording is the rule. Renaming it in three SPEC rows to satisfy a
+# dictionary would be a spec edit driven by a linter's preference.
+unparseable = "unparseable"

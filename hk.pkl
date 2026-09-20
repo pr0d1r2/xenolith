@@ -1,0 +1,234 @@
+/// xenolith's gate, defined ONCE (`scripts:V122`).
+///
+/// Every op below is one plain command a human can paste (`scripts:C9`). hk
+/// decides WHEN a step runs -- which files changed, which hook, in what
+/// order -- and never hides WHAT runs, so a verdict never rests on the
+/// runner's own logic. Where a step needs more than the tool call itself,
+/// the extra lives in `scripts/hk/*.sh` or in the tool's own output
+/// (`scripts:C21`), never in an inline `|| { echo ...; }`: shell inlined
+/// here is shell that shellcheck, shfmt and bats never see -- which is the
+/// exact defect this project exists to find in other people's files.
+///
+/// CI calls this same set (`hk check --all`) rather than restating it, so a
+/// step exists in one place and a local pass means what a CI pass means.
+///
+/// The schema is VENDORED at `pkl/Config.pkl` rather than fetched from a
+/// `package://` URL at eval time: offline is the default, not a flag
+/// (`.:C3`), and a gate that needs a network is a gate that goes soft on a
+/// plane. The file is upstream hk's, verbatim, and `typos` excludes it so a
+/// "correction" cannot silently fork it from the pinned release.
+amends "pkl/Config.pkl"
+
+/// Success is silence. Output that always appears is output nobody reads,
+/// which is how a real failure hides in noise everyone learned to scroll
+/// past.
+///
+/// `fail_fast` locally because the loop is cheap, so the FIRST failure is
+/// the most useful thing to surface; CI inverts it, where a round trip
+/// costs minutes and a complete list beats an early one.
+fail_fast = true
+
+env {
+  ["HK_HIDE_WHEN_DONE"] = "true"
+}
+
+/// LAYER ONE: what runs on every commit. Scoped by glob, so a SPEC-only
+/// commit never waits on a compiler and a shell-only commit never waits on
+/// cargo.
+///
+/// `depends` chains the cargo steps deliberately. Cargo takes a lock on the
+/// target directory, so two cargo jobs launched in parallel do not run in
+/// parallel -- the second blocks on "Blocking waiting for file lock on
+/// build directory", which READS AS A HANG. Chaining makes the
+/// serialization explicit and leaves the non-cargo checks free to run
+/// concurrently.
+///
+/// No crate exists yet: the spec federates before the code (`.:C22`). The
+/// cargo steps are written now and match nothing, so the first `src/`
+/// commit arrives into a gate that already compiles, clippies and tests it
+/// -- rather than into one somebody has to remember to extend.
+local fast = new Mapping<String, Step> {
+  ["fmt"] {
+    glob = List("**/*.rs")
+    check = "cargo fmt --check"
+    fix = "cargo fmt"
+  }
+  ["clippy"] {
+    glob = List("**/*.rs")
+    depends = List("fmt")
+    check = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
+  }
+  ["test"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "tests/fixtures/**/*")
+    depends = List("clippy")
+    check = "cargo test --workspace --all-features"
+  }
+
+  // The shell in this repo is not incidental: every guardrail is a shell
+  // script, and embedded shell is the tool's own first subject. So the
+  // shell trio gates `scripts/` and `.github/scripts/` exactly as cargo
+  // gates `src/` (`scripts:C13`).
+  //
+  // `.envrc` is in the shellcheck glob on purpose -- it is shell that runs
+  // on every directory entry, and it is the file that brings the whole
+  // toolchain in.
+  ["shellcheck"] {
+    glob = List("**/*.sh", ".envrc")
+    check = "scripts/hk/run-tool.sh shellcheck --shell=bash {{files}}"
+  }
+  ["shfmt"] {
+    glob = List("**/*.sh")
+    check = "scripts/hk/run-tool.sh shfmt --indent 2 --diff {{files}}"
+    fix = "scripts/hk/run-tool.sh shfmt --indent 2 --write {{files}}"
+  }
+  // Runs the WHOLE suite rather than the mirrored file, and the glob says
+  // why: a change to a script must run its own test, but a change to any
+  // test must run beside the others it shares helpers with. The suite is
+  // seconds; splitting it would buy nothing and lose the cross-check.
+  ["bats"] {
+    glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
+    check = "scripts/hk/run-tool.sh bats --recursive tests/unit"
+  }
+
+  // Nix gates this repo's own toolchain: the flake decides what every other
+  // step runs with, so drift here is drift everywhere. statix and deadnix
+  // catch what a formatter cannot -- a dead `let` binding evaluates fine
+  // forever, and an anti-pattern stays legal nix.
+  ["nixfmt"] {
+    glob = List("**/*.nix")
+    check = "scripts/hk/run-tool.sh nixfmt --check {{files}}"
+    fix = "scripts/hk/run-tool.sh nixfmt {{files}}"
+  }
+  ["statix"] {
+    glob = List("**/*.nix")
+    // statix takes ONE target, not a file list, so this step is
+    // whole-tree by construction. That is cheap here and it is also more
+    // honest: an anti-pattern in an untouched file is still in the tree.
+    check = "scripts/hk/run-tool.sh statix check ."
+    fix = "scripts/hk/run-tool.sh statix fix ."
+  }
+  ["deadnix"] {
+    glob = List("**/*.nix")
+    check = "scripts/hk/run-tool.sh deadnix --fail {{files}}"
+    fix = "scripts/hk/run-tool.sh deadnix --edit {{files}}"
+  }
+
+  ["taplo"] {
+    glob = List("**/*.toml")
+    // taplo logs two INFO lines about its own config discovery on every
+    // run. Success is silence, and a line that always appears is a line
+    // nobody reads -- so its logger is turned down rather than its
+    // findings, which arrive on their own channel.
+    env {
+      ["RUST_LOG"] = "error"
+    }
+    check = "scripts/hk/run-tool.sh taplo format --check --diff {{files}}"
+    fix = "scripts/hk/run-tool.sh taplo format {{files}}"
+  }
+  ["typos"] {
+    glob = List("**/*")
+    check = "scripts/hk/run-tool.sh typos --force-exclude {{files}}"
+    fix = "scripts/hk/run-tool.sh typos --force-exclude --write-changes {{files}}"
+  }
+  // `.editorconfig` states the byte-level house style; this is what makes
+  // it a rule rather than a suggestion an editor may or may not honour.
+  ["editorconfig"] {
+    glob = List("**/*")
+    check = "scripts/hk/run-tool.sh editorconfig-checker {{files}}"
+  }
+
+  // The cheap hygiene family, all from `hk util`: no extra binary, no
+  // version to pin, and each does exactly one thing its name states.
+  ["trailing-whitespace"] {
+    glob = List("**/*")
+    check = "hk util trailing-whitespace {{files}}"
+    fix = "hk util trailing-whitespace --fix {{files}}"
+  }
+  ["final-newline"] {
+    glob = List("**/*")
+    check = "hk util end-of-file-fixer {{files}}"
+    fix = "hk util end-of-file-fixer --fix {{files}}"
+  }
+  ["line-endings"] {
+    glob = List("**/*")
+    check = "hk util mixed-line-ending {{files}}"
+    fix = "hk util mixed-line-ending --fix {{files}}"
+  }
+  ["no-large-files"] {
+    glob = List("**/*")
+    check = "hk util check-added-large-files {{files}}"
+  }
+  ["no-merge-conflict"] {
+    glob = List("**/*")
+    check = "hk util check-merge-conflict --assume-in-merge {{files}}"
+  }
+
+  // Secrets, in TWO steps rather than one, because they answer different
+  // questions. `detect-private-key` does exactly what its name says and
+  // nothing else -- an `AWS_SECRET_ACCESS_KEY=` line walks straight past
+  // it. ripsecrets covers the token shapes it cannot see.
+  //
+  // This matters more here than in most repos: the history itself is
+  // audited before the first public push (`scripts/guard:V117`), because a
+  // secret in git history outlives its deletion.
+  ["no-private-key"] {
+    glob = List("**/*")
+    check = "hk util detect-private-key {{files}}"
+  }
+  ["ripsecrets"] {
+    glob = List("**/*")
+    check = "scripts/hk/run-tool.sh ripsecrets {{files}}"
+  }
+}
+
+/// LAYER TWO: everything above, plus the steps too slow or too whole-tree
+/// to sit on every commit. Runs on push and in CI (`scripts:V22`).
+local all = (fast) {
+  // The supply chain, in ONE tool: cargo-audit and osv-scanner ask the
+  // advisory question this already answers.
+  ["deny"] {
+    glob = List("**/Cargo.toml", "Cargo.lock", "deny.toml")
+    depends = List("test")
+    check = "cargo deny check"
+  }
+  // Every language is a cargo feature (`nix:C8`), so a consumer can compile
+  // a binary with only the grammars they use. That means the feature
+  // POWERSET is a real build surface, and a module that reaches across a
+  // feature gate compiles fine in the default build and breaks in theirs.
+  // `--each-feature` is the cheap end of that check.
+  ["hack"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    depends = List("test")
+    check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature --no-dev-deps check"
+  }
+  // Relative links break when a file MOVES and nothing else notices.
+  // `--offline` so the gate never reaches the network (`.:C3`): someone
+  // else's 404 must not fail your push, but a path that stopped resolving
+  // must.
+  ["links"] {
+    glob = List("**/*.md")
+    check = "scripts/hk/run-tool.sh lychee --offline --no-progress ."
+  }
+}
+
+hooks {
+  /// `stash = "git"` is correctness, not speed: without it a partially
+  /// staged file (`git add -p`) is checked as it looks in the WORKTREE,
+  /// giving a verdict about code that is not being committed.
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = fast
+  }
+  ["pre-push"] {
+    steps = all
+  }
+  /// The entry point for CI and for a full run by hand: `hk check --all`.
+  ["check"] {
+    steps = all
+  }
+  ["fix"] {
+    fix = true
+    steps = all
+  }
+}

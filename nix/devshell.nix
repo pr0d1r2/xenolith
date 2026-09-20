@@ -48,7 +48,13 @@ pkgs.mkShell {
     pkgs.statix
     pkgs.deadnix
 
+    # Every language is a cargo feature (`nix:C8`), so the feature powerset
+    # is a real build surface: `cargo hack --each-feature` is what keeps a
+    # subset build from breaking in a consumer's tree and nowhere else.
+    pkgs.cargo-hack
+
     # Tools for steps that touch files no compiler reads.
+    pkgs.editorconfig-checker
     pkgs.taplo
     pkgs.typos
     pkgs.actionlint
