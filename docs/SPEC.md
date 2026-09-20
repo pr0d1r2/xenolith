@@ -23,6 +23,10 @@ V108: `docs/THIRD-PARTY-NOTICES.md` GENERATED, ⊥ hand-written: ∀ crate in th
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M3 | publication | T104-T107 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T104|.|write `LICENSE` (MIT), CoC, CONTRIBUTING (gate, TDD & commit rules), LLM-DISCLAIMER, mirroring the siblings' texts|V106
 T105|.|write `docs/SECURITY.md` per V107, incl. CI trust boundary (fork PRs take config from base branch)|V107

@@ -27,6 +27,11 @@ V117: before the FIRST public push: ∀ commit message & blob in every ref to be
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T5-T7, T29, T47 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T5|.|`scripts/guard/commit-msg.sh` + bats: Conventional Commits + `Why:`|V20,C12
 T6|.|`scripts/guard/bats-mirror.sh` + bats: 1-to-1 `.sh` ↔ `.bats`|V21,C13

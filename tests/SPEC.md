@@ -25,6 +25,12 @@ V119: lens laws fuzzed: `rewrite`/`inline` (`languages/api/src/lens:V34`), `esca
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T68 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M2 | language survey & corpus run | T117 | counts & failure shapes recorded, every finding filed as a fixture (`tests:V118`) |
+| M3 | publication | T118 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+
 id|status|task|cites
 T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
 T117|.|local corpus runner: `xnl check`/`extract --dry-run` over sibling repos, writes aggregate report only; finding → fixture checklist|V118
