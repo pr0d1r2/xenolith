@@ -113,6 +113,20 @@ local fast = new Mapping<String, Step> {
     fix = "scripts/hk/run-tool.sh deadnix --edit {{files}}"
   }
 
+  // The workflow is the ONE file no other local step exercises: a mistake
+  // in it is found by pushing. actionlint CHECKS its syntax and types;
+  // zizmor AUDITS its security posture. Neither replaces the other --
+  // actionlint knows nothing about token scope, zizmor does no type
+  // checking at all (`scripts:V114`).
+  ["actionlint"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "scripts/hk/run-tool.sh actionlint {{files}}"
+  }
+  ["zizmor"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "scripts/hk/run-tool.sh zizmor --no-progress --persona=pedantic -c .github/zizmor.yml {{files}}"
+  }
+
   ["taplo"] {
     glob = List("**/*.toml")
     // taplo logs two INFO lines about its own config discovery on every

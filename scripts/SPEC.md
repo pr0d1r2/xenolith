@@ -54,12 +54,12 @@ V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `
 id|status|task|cites
 T2|x|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
 T4|x|`hk.pkl`: fmt, clippy, deny, test, bats, cargo-hack, shellcheck, shfmt, nixfmt, statix, deadnix, taplo, typos, editorconfig, trailing-whitespace, final-newline, no-large-files, secret scan, link check; commit-msg & pre-push hooks|C9,V22,V122
-T27|.|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
+T27|x|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
 T33|x|hk steps `mth fmt --check` & `mth check` ∀ `SPEC.md`; `mth fmt` as fix|V25,C21
 T34|x|`.context-limits` ceilings + hk `itok check`|V26,C21
 T35|x|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget`; `sherd review` advisory ?|V27,C21
 T36|.|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1)|V28,C14
-T113|.|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
+T113|x|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
 T114|.|`github-settings.sh` + bats; runbook lists the intended settings|V115
 T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
 

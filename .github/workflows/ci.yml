@@ -1,0 +1,103 @@
+# The gate, run exactly the way it runs locally: `nix develop` supplies the
+# toolchain pinned in flake.lock, and `hk check` runs the ops defined in
+# hk.pkl. One definition (`scripts:V122`), one toolchain, no second install
+# path, and so no way for a runner and a laptop to disagree about a verdict.
+#
+# This file installs no linters. Every one of them -- shellcheck, nixfmt,
+# statix, typos, mth, itok, sherd -- arrives through the same dev shell a
+# contributor enters, which is the whole reason a local pass means
+# something here.
+#
+# PENDING, listed rather than silently absent, because a gap you can read
+# is not the same failure as a gap you cannot:
+#   * `nix build .#default` -- no package exists yet (`nix:T26`)
+#   * cargo steps -- no crate exists yet; the spec federates first (`.:C22`)
+#   * release and publish (`nix:T108`-`nix:T112`)
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# The token this workflow gets is the one it can leak. Nothing here writes
+# to the repository -- no tag, no comment, no commit -- so read is the whole
+# requirement. Stating it means a step that later needs more has to ask in
+# the diff, rather than inherit whatever a settings page grants
+# (`scripts:V115`).
+permissions:
+  contents: read
+
+# A second push to the same branch makes the first run's verdict worthless:
+# it reports on a tree nobody will merge while holding runners the new one
+# needs. Keyed on the ref, so main and each pull request cancel only their
+# own earlier runs.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Every platform reports, so one failure does not hide another that is
+      # specific to the other OS -- the same argument as --no-fail-fast one
+      # level down.
+      fail-fast: false
+      # One runner per tier-1 system (`nix:C7`):
+      #   ubuntu-latest    x86_64-linux
+      #   ubuntu-24.04-arm aarch64-linux
+      #   macos-latest     aarch64-darwin
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    steps:
+      # Pinned to commit SHAs, not tags. A tag is mutable: whoever controls
+      # the action can move `v7` to different code and every workflow
+      # trusting the tag runs it on the next push. The tag stays in the
+      # comment because a SHA alone tells a reader nothing about which
+      # version they are on.
+      #
+      # `fetch-depth: 0` because the TDD-order guard reads history
+      # (`scripts/guard:C11`): with a shallow clone it can see no RED commit
+      # before a GREEN one and would report a violation that is an artifact
+      # of the checkout.
+      #
+      # `persist-credentials: false` because checkout otherwise writes the
+      # job token into `.git/config`, where every later step can read it.
+      # Nothing here pushes; after the fetch the credential is liability
+      # with no use.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+
+      # Pushes from main only (`nix:C7`), and SKIPPED for fork pull
+      # requests, which receive no secrets: a fork still reads the cache, it
+      # simply cannot populate it. Without the guard the step fails on an
+      # outside contributor's PR, turning a cache into a gate only members
+      # can pass.
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+        with:
+          name: pr0d1r2
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush:
+            ${{ github.ref != 'refs/heads/main' || github.event_name ==
+            'pull_request' }}
+
+      # `--check` because `hk check` otherwise runs the FIX half of a step:
+      # CI reports, it never rewrites. `--all` because there is no staged
+      # set here. `--no-fail-fast` inverts the local default on purpose --
+      # locally the loop is cheap so the first failure is the most useful
+      # thing, while a round trip here costs minutes and whoever fixes it
+      # should get every problem in one pass.
+      - run: nix develop --command hk check --all --check --no-fail-fast
+
+      # The flake itself must evaluate on this platform. It is what every
+      # step above ran inside, so a flake that only evaluates on one system
+      # is a toolchain claim that holds for one machine.
+      - run: nix flake check
