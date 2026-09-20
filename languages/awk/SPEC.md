@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `xenolith-lang-awk` (feature `lang-awk`): tree-sitter awk grammar; guest (bash `awk` program arg).
+crate `xenolith-lang-awk` (feature `lang-awk`): vendored `Beaglefoot/tree-sitter-awk` (MIT, `languages:V121`); guest (bash `awk` program arg).
 
 ## §N NAV
 
