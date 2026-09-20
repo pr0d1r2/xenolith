@@ -31,6 +31,10 @@ V60: sql guest: `trivial` = single statement, ⊥ `;`-chained, within `[threshol
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M5 | data languages -- python, sql, jq, awk | T60 | each guest lands w/ its trivial rule, checks & fixtures |
+
 id|status|task|cites
 T60|.|sql `Guest` + fixtures (single SELECT inline, multi-statement flagged)|V60
 

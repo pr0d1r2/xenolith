@@ -31,6 +31,10 @@ V62: awk guest: `trivial` = single pattern-action, ⊥ `BEGIN`/`END`/`function`,
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M5 | data languages -- python, sql, jq, awk | T62 | each guest lands w/ its trivial rule, checks & fixtures |
+
 id|status|task|cites
 T62|.|awk `Guest` + fixtures (`{print $1}` inline, BEGIN block flagged)|V62
 

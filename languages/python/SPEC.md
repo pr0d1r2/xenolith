@@ -31,6 +31,10 @@ V59: python guest: `trivial` = single expression statement, ⊥ `import`, ⊥ `d
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M5 | data languages -- python, sql, jq, awk | T59 | each guest lands w/ its trivial rule, checks & fixtures |
+
 id|status|task|cites
 T59|.|python `Guest` + fixtures (trivial one-liner inline, multi-statement flagged)|V59
 

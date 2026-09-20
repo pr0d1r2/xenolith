@@ -36,6 +36,10 @@ V103: `claims`: `*.rs`.
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M7 | app languages -- rust, ruby | T18 | each host lands w/ fixtures |
+
 id|status|task|cites
 T18|.|host rust: `Command` shell `-c`, SQL literal ? + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 

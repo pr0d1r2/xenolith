@@ -37,6 +37,10 @@ V97: GH `${{ }}` holes → step `env:` entries `NAME: ${{ expr }}` (NAME per `la
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M4 | CI languages -- yaml, dockerfile, just | T14, T74, T100 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+
 id|status|task|cites
 T14|.|host yaml GH Actions `run:` + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|`languages:V74`,V75

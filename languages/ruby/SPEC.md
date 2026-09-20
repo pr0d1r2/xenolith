@@ -36,6 +36,10 @@ V104: `claims`: `*.rb`, `*.rake`, `Gemfile`, `Rakefile`, `*.gemspec`, shebang `r
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M7 | app languages -- rust, ruby | T19 | each host lands w/ fixtures |
+
 id|status|task|cites
 T19|.|host ruby: tagged heredocs, backticks, `system` + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 

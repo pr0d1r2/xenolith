@@ -31,6 +31,10 @@ V61: jq guest: `trivial` = filter ⊥ `def`, within `[threshold.jq]`; `prelude` 
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M5 | data languages -- python, sql, jq, awk | T61 | each guest lands w/ its trivial rule, checks & fixtures |
+
 id|status|task|cites
 T61|.|jq `Guest` + fixtures (`.foo` inline, filter w/ `def` flagged)|V61
 

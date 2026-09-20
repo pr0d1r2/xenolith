@@ -36,6 +36,10 @@ V58: `claims`: filename `justfile` (case-insensitive), `.justfile`, extension `.
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M4 | CI languages -- yaml, dockerfile, just | T16 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+
 id|status|task|cites
 T16|.|host just (tree-sitter-just): recipe sinks + fixtures|`languages/shell:V3`,`tests:V14`,`tests:V15`
 

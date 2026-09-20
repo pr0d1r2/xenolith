@@ -36,6 +36,10 @@ V105: `claims`: `*.html`, `*.htm`; templates (`*.erb`, `*.hbs`) ? later.
 
 ## §T TASKS
 
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M6 | web languages -- html (js & css guests) | T20 | inline `<script>`/`<style>` extraction w/ fixtures |
+
 id|status|task|cites
 T20|.|host html: inline `<script>`/`<style>` + fixtures|`languages:V2`,`tests:V14`,`tests:V15`
 
