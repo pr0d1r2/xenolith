@@ -137,6 +137,27 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-tool.sh editorconfig-checker {{files}}"
   }
 
+  // The SPEC toolchain (`scripts:C21`). microlith owns the format: `mth
+  // fmt` is whitespace-only and proves that before writing, `mth check` is
+  // the structural rule set. Both take ONE path per run, hence the
+  // per-file runner (`scripts/hk/run-per-file.sh`) -- handed the whole
+  // changed set they exit 2 with a usage error, which reads like a broken
+  // gate rather than a finding.
+  //
+  // Thirty-five SPEC.md files and no code yet: the spec IS the artifact
+  // here (`.:C22`), so these are the steps that run on nearly every
+  // commit.
+  ["spec-fmt"] {
+    glob = List("**/SPEC.md")
+    check = "scripts/hk/run-per-file.sh mth fmt --check -- {{files}}"
+    fix = "scripts/hk/run-per-file.sh mth fmt -- {{files}}"
+  }
+  ["spec-check"] {
+    glob = List("**/SPEC.md")
+    depends = List("spec-fmt")
+    check = "scripts/hk/run-per-file.sh mth check -- {{files}}"
+  }
+
   // The cheap hygiene family, all from `hk util`: no extra binary, no
   // version to pin, and each does exactly one thing its name states.
   ["trailing-whitespace"] {
