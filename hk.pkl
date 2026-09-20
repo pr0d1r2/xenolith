@@ -286,6 +286,18 @@ local all = (fast) {
     check = "scripts/guard/bats-mirror.sh"
   }
 
+  // The TDD order (`scripts/guard:C11`), checked over the range a push
+  // would publish. Push-side by nature: ordering is a property of
+  // history, and mid-branch the sequence is not finished yet.
+  //
+  // The glob is every file, because the range -- not the changed set --
+  // is what this reads; a push whose last commit touches only a doc can
+  // still be publishing a GREEN commit with no RED before it.
+  ["tdd-order"] {
+    glob = List("**/*")
+    check = "scripts/guard/tdd-order.sh"
+  }
+
   // Relative links break when a file MOVES and nothing else notices.
   // `--offline` so the gate never reaches the network (`.:C3`): someone
   // else's 404 must not fail your push, but a path that stopped resolving

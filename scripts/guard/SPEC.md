@@ -35,7 +35,7 @@ V117: before the FIRST public push: ∀ commit message & blob in every ref to be
 id|status|task|cites
 T5|x|`scripts/guard/commit-msg.sh` + bats: Conventional Commits + `Why:`|V20,C12
 T6|x|`scripts/guard/bats-mirror.sh` + bats: 1-to-1 `.sh` ↔ `.bats`|V21,C13
-T7|.|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs`, `.sh`)|V16,C11
+T7|x|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs`, `.sh`)|V16,C11
 T29|.|private-name denylist guard (gitignored list) + bats|V23,C17
 T47|.|`scripts/guard/crate-deps.sh` + bats: from `cargo metadata`, api ⊥ grammar dep & ⊥ features, language crate ⊥ depends on root \| other language crate; hk pre-push|`languages/api:V32`,C13
 T115|.|history audit script (`git log -p` over refs to push vs denylist) + bats; run once before first push|V117,V23
