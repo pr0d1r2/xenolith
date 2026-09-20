@@ -21,6 +21,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - json (`xnl lint --format json`): `{"schema": 1, "results": [{"file": "scripts/hk/fmt.sh", "kind": "extract", "guest": "shell", "dialect": "bash", "check": "shellcheck", "argv": ["shellcheck", "-s", "bash", "-f", "json", "scripts/hk/fmt.sh"], "source": "default", "status": "fail", "exit": 1, "findings": [{"line": 3, "col": 7, "code": "SC2086", "severity": "warning", "message": "…"}], "raw_tail": null}], "violations": [], "warnings": []}`; `status` ∈ `pass` \| `fail` \| `error` \| `skipped` (untrusted \| excluded); `kind` ∈ `extract` \| `host` \| `site`.
 - `[lint.<guest>]`: `checks = ["<cmd> {file}", …]`, `fixers = [...]`, `extend` (default `true`: append to guest defaults; `false`: replace).
 - `[lint] hosts` (default `true`): run `Host::checks` on host files; `[lint] all = ["<cmd> {file}", …]`: checks ∀ extract regardless of guest (e.g. `typos`, `editorconfig-checker`).
+- `[lint] timeout` (default 60s): per check \| fixer wall clock; 0 = no limit.
 
 ## §V INVARIANTS
 
@@ -28,12 +29,13 @@ V8: `lint`: ∀ extract run ∀ check of its guest & `[lint] all`, ∀ host file
 V91: config-defined commands run only w/ `--trust-config`; untrusted → skipped w/ warning `untrusted-command` naming each, built-in defaults still run.
 V92: findings parsed per `LintCmd.format` into `{line, col, code, severity, message}`; unparseable output → `raw_tail` (last 40 lines), ⊥ dropped; `fail` \| `error` → exit 1 \| 2 per `src` §I exit.
 V93: `xnl lint --sites` lints in-host sites BEFORE extraction: body materialised to temp file via `wrap`, checks run, finding positions mapped back to host `file:line:col` through `Delim.body` & `unescape`; `kind: site`.
+V126: ∀ check & fixer killed at `[lint] timeout` (default 60s) → `status: error`, exit 2, naming tool & limit; ⊥ hang. a gate that hangs is bypassed next commit.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T24, T87, T92, T93 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T24, T87, T92, T93, T125 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T94 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -42,6 +44,7 @@ T87|.|multi-check runner, per-check results, `--fix`; defaults table; fixture w/
 T92|.|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
 T93|.|findings parsers (shellcheck json, ruff json, sqlfluff json, SARIF) + raw fallback|V92
 T94|.|virtual-extract linting w/ source mapping; fixture: shellcheck finding in nix `script` reported at nix line|V93
+T125|.|timeout per check/fixer + fixture: a sleeping tool errors at the limit|V126
 
 ## §B BUGS
 
