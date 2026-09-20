@@ -24,6 +24,7 @@ ruby|ruby parser, ruby host sinks|sql, shell, js guest rules (their nodes)|-
 html|html parser, inline script/style sinks|js & css guest rules (future nodes)|-
 js|javascript grammar, guest rules|html sinks (`languages/html`)|-
 css|css grammar, guest rules|html sinks (`languages/html`)|-
+perl|perl grammar, guest rules|sinks holding perl (their host node)|-
 
 ## §N NAV
 
