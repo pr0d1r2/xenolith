@@ -65,10 +65,21 @@ path = "src/lib.rs"
 name = "xnl"
 path = "src/main.rs"
 
-# No dependencies yet, and that is the point of recording it: every crate
-# added here needs its justification in a comment beside it (`src:C5`), and
-# the network crates are banned outright in deny.toml (`src:V12`).
+# Two dependencies, each justified here (`src:C5`); the network crates are
+# banned outright in deny.toml (`src:V12`).
 [dependencies]
+# The contract every language crate implements. The root crate holds the
+# registry and the engines, so it depends on the api and on each language
+# crate -- never the reverse (`languages/api:V32`).
+xenolith-lang-api = { path = "languages/api", version = "0.1.0" }
+# JSON output (`src/cli` §I). serde_json rather than a hand-rolled writer:
+# escaping is the part everyone gets wrong, and its default map is a
+# BTreeMap, so keys come out sorted and the bytes are stable without a
+# second sort pass (`src:V11`). The derive half of serde is NOT a
+# dependency: the values here name foreign types like `DelimKind`, and a
+# derive would need a wrapper type per foreign type to say what this file
+# says in one match.
+serde_json = "1"
 
 [lints]
 workspace = true

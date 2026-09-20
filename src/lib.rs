@@ -19,6 +19,8 @@
 //! their own tests. This file is the crate root those land in, not a
 //! placeholder for them.
 
+pub mod model;
+
 /// The package version, from Cargo at compile time.
 ///
 /// One source, so the library and the `xnl` binary cannot disagree about
