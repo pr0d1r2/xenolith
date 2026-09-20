@@ -48,7 +48,7 @@ V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T2, T4, T27, T33-T36 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T2, T4, T27, T33-T36, T121 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T113, T114 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -61,6 +61,7 @@ T35|.|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd bud
 T36|.|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1)|V28,C14
 T113|.|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
 T114|.|`github-settings.sh` + bats; runbook lists the intended settings|V115
+T121|.|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
 
 ## §B BUGS
 
