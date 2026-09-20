@@ -173,6 +173,39 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-tool.sh itok check"
   }
 
+  // sherd owns the FEDERATION: the spec here is a DAG of node specs
+  // (`.:C22`), not one document, and these four steps check the four ways
+  // that DAG can be wrong (`scripts:V27`).
+  //
+  //   validate -- the node set and its state file agree
+  //   sync     -- every §N table matches the §F above it; §N is GENERATED
+  //               and hand-editing it IS the drift
+  //   check    -- structural rules: id monotonicity, row order, citations
+  //   budget   -- every chain against its ceiling
+  //
+  // Four steps rather than one, because four different things go wrong and
+  // a single pass/fail would name none of them.
+  ["federation"] {
+    glob = List("**/SPEC.md", ".sherd-state")
+    check = "scripts/hk/run-tool.sh sherd validate"
+  }
+  ["nav"] {
+    glob = List("**/SPEC.md")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd sync --check"
+    fix = "scripts/hk/run-tool.sh sherd sync"
+  }
+  ["spec-structure"] {
+    glob = List("**/SPEC.md")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd check"
+  }
+  ["budget"] {
+    glob = List("**/SPEC.md", ".context-limits", ".sherd-state")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd budget"
+  }
+
   // The cheap hygiene family, all from `hk util`: no extra binary, no
   // version to pin, and each does exactly one thing its name states.
   ["trailing-whitespace"] {
