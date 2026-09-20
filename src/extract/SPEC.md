@@ -45,12 +45,13 @@ V83: rendered extract path & path in load text ⊆ `[A-Za-z0-9._/-]`, ⊥ leadin
 V84: writes atomic per file: temp in same dir → fsync → rename; per host: extracts & companions written BEFORE host rewrite ∴ crash leaves orphan extract (`src/graph:V7` finds it), ⊥ dangling load.
 V99: `xnl extract --relocate [--write]` moves ∀ `misplaced-extract` to its expected path & rewrites the load, same atomicity & order as V84 (new file, host, then old file removed); companion moves along.
 V101: `xnl inline` = exact inverse of extract: removes extract & companion only after host rewrite written; result passes V5 (rerun extract = no-op for trivial body).
+V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advisory lock `.xenolith.lock` @ repo root; a 2nd run exits 2 naming the holder's pid & start time; stale lock (holder gone) reclaimed. ⊥ 2 writers: V64's all-or-nothing is per file & assumes one rewriter.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84, T85 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84-T85, T126 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T67, T101, T102 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 | M4 | CI languages -- yaml, dockerfile, just | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
@@ -70,6 +71,7 @@ T84|.|path charset guard; fixtures: rule template yielding space, quote, leading
 T85|.|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
+T126|.|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
 
 ## §B BUGS
 
