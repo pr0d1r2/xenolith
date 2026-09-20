@@ -32,3 +32,4 @@ languages/api/src        5000
 languages/api/src/site   5000
 languages/api/src/lens   5000
 languages/api/src/holes  5000
+languages/js             5000

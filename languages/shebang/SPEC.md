@@ -24,6 +24,7 @@ sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
 sib|languages/html|html parser, inline script/style sinks
+sib|languages/js|javascript grammar, guest rules
 
 ## §I INTERFACES
 
