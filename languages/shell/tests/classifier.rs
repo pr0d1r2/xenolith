@@ -16,7 +16,7 @@ use xenolith_lang_shell::{Construct, classify};
 
 fn constructs(body: &str) -> Vec<&'static str> {
     let found = classify(body).unwrap_or_else(|e| panic!("{body:?} did not parse: {e}"));
-    found.constructs.iter().map(Construct::as_str).collect()
+    found.constructs.iter().map(|c| c.as_str()).collect()
 }
 
 fn assert_simple(body: &str) {
@@ -27,7 +27,7 @@ fn assert_simple(body: &str) {
         found
             .constructs
             .iter()
-            .map(Construct::as_str)
+            .map(|c| c.as_str())
             .collect::<Vec<_>>()
     );
     assert!(found.constructs.is_empty());
@@ -42,7 +42,7 @@ fn assert_construct(body: &str, expected: &str) {
         found
             .constructs
             .iter()
-            .map(Construct::as_str)
+            .map(|c| c.as_str())
             .collect::<Vec<_>>()
     );
 }
@@ -166,7 +166,9 @@ fn a_body_that_does_not_parse_is_an_error_not_a_verdict() {
     // `languages:V77`: an unparseable body is its own finding. Reporting
     // it as "simple" would leave broken shell inline; reporting it as
     // "has control flow" would name a construct nobody wrote.
-    let err = classify("if then fi done )").expect_err("garbage must not classify");
+    let Err(err) = classify("if then fi done )") else {
+        panic!("garbage must not classify as anything");
+    };
     assert!(err.to_string().contains("shell"), "got {err}");
 }
 
