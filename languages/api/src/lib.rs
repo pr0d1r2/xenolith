@@ -31,6 +31,7 @@ pub mod site;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+pub use crate::shebang::{Prelude, Shebang};
 pub use crate::site::{Delim, DelimKind, GuestEnv, Site};
 
 /// Every language xenolith knows, whether or not this build compiled its
@@ -414,6 +415,28 @@ pub trait Guest {
     ///
     /// [`Error::Parse`] when `body` does not parse as this language.
     fn trivial(&self, body: &str) -> Result<bool>;
+
+    /// What goes above the body in an extract file, given the dialect and
+    /// options in force at the site.
+    ///
+    /// The guest's to decide, because only the guest knows it: bash
+    /// carries `set -euo pipefail`, sh cannot -- `pipefail` is not POSIX
+    /// -- and sql carries nothing, because a `.sql` file is read rather
+    /// than run. A host asked to decide this would be guessing about a
+    /// language it does not parse.
+    ///
+    /// Takes the env, so the prelude can reproduce the options the site
+    /// established (`languages/shell:V82`): a body that ran under
+    /// `set -e` inside its host must still run under it once extracted,
+    /// or extraction changed what the code does.
+    fn prelude(&self, env: &GuestEnv) -> Prelude;
+
+    /// Whether an extract of this language gets the executable bit.
+    ///
+    /// True for anything with a shebang, false for a file an interpreter
+    /// is pointed AT: `jq -f x.jq` reads its program, and marking it
+    /// executable would suggest `./x.jq` works.
+    fn executable(&self) -> bool;
 
     /// Default checks for extracts of this language, given the interpreter
     /// dialect and options in force at the site.
