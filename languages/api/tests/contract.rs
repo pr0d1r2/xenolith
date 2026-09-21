@@ -91,7 +91,7 @@ fn traits_are_object_safe_so_the_registry_can_hold_them() {
     let guest: &dyn Guest = &FakeGuest;
     assert_eq!(host.id(), LangId::Nix);
     assert_eq!(guest.id(), LangId::Shell);
-    assert_eq!(guest.extension(), "sh");
+    assert_eq!(guest.extension(&GuestEnv::default()), "sh");
     assert_eq!(guest.invoke(Path::new("x.sh")).argv, vec!["bash", "x.sh"]);
 }
 
@@ -225,7 +225,7 @@ impl Guest for FakeGuest {
     fn id(&self) -> LangId {
         LangId::Shell
     }
-    fn extension(&self) -> &'static str {
+    fn extension(&self, _env: &GuestEnv) -> &'static str {
         "sh"
     }
     fn invoke(&self, path: &Path) -> Invoke {

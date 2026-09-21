@@ -14,5 +14,7 @@
 #![forbid(unsafe_code)]
 
 pub mod classify;
+pub mod guest;
 
 pub use crate::classify::{Classification, Construct, classify};
+pub use crate::guest::ShellGuest;

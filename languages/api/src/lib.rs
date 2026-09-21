@@ -400,7 +400,12 @@ pub trait Guest {
     fn id(&self) -> LangId;
 
     /// The extension an extract of this language gets, without the dot.
-    fn extension(&self) -> &'static str;
+    ///
+    /// Takes the env because the dialect decides it
+    /// (`languages/shell:V51`): a zsh body extracted as `.sh` invites
+    /// shellcheck to report zsh syntax as errors, which are findings
+    /// about the wrong language.
+    fn extension(&self, env: &GuestEnv) -> &'static str;
 
     /// How to run a file of this language (`languages/api:V35`).
     fn invoke(&self, path: &Path) -> Invoke;

@@ -157,7 +157,11 @@ fn checks_follow_the_dialect() {
         .map(|cmd| cmd.argv)
         .collect();
     assert!(
-        argv.contains(&vec!["shellcheck".to_owned(), "--shell=bash".to_owned()]),
+        argv.contains(&vec![
+            "shellcheck".to_owned(),
+            "--shell=bash".to_owned(),
+            "--format=json".to_owned()
+        ]),
         "got {argv:?}"
     );
 
@@ -167,7 +171,11 @@ fn checks_follow_the_dialect() {
         .map(|cmd| cmd.argv)
         .collect();
     assert!(
-        argv.contains(&vec!["shellcheck".to_owned(), "--shell=sh".to_owned()]),
+        argv.contains(&vec![
+            "shellcheck".to_owned(),
+            "--shell=sh".to_owned(),
+            "--format=json".to_owned()
+        ]),
         "got {argv:?}"
     );
     assert!(
