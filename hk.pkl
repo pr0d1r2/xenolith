@@ -274,14 +274,24 @@ local all = (fast) {
     depends = List("test")
     check = "cargo deny check"
   }
-  // Every language is a cargo feature (`nix:C8`), so a consumer can compile
-  // a binary with only the grammars they use. That means the feature
-  // POWERSET is a real build surface, and a module that reaches across a
-  // feature gate compiles fine in the default build and breaks in theirs.
-  // `--each-feature` is the cheap end of that check.
-  ["hack"] {
+  // Every language is a cargo feature (`nix:C8`), so the feature
+  // POWERSET is a real build surface: a module that reaches across a
+  // feature gate compiles fine in the default build and breaks only in a
+  // consumer's subset build (`src:V30`).
+  //
+  // TWO steps, because cargo-hack refuses `--no-dev-deps` together with
+  // `test` and the two questions are different. `test` proves each
+  // subset actually works; `--no-dev-deps check` proves the subset
+  // compiles without dev-dependencies, which is what catches a dev-dep
+  // quietly enabling a feature the real build does not have.
+  ["hack-test"] {
     glob = List("**/*.rs", "**/Cargo.toml")
     depends = List("test")
+    check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature test"
+  }
+  ["hack-no-dev-deps"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    depends = List("hack-test")
     check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature --no-dev-deps check"
   }
   // The mirror rule is a property of the BRANCH, not of every commit on

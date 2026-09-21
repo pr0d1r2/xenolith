@@ -80,6 +80,25 @@ xenolith-lang-api = { path = "languages/api", version = "0.1.0" }
 # derive would need a wrapper type per foreign type to say what this file
 # says in one match.
 serde_json = "1"
+# Each language is an OPTIONAL dependency behind its own `lang-*` feature
+# (`src:C1`, `nix:C8`), so a consumer can compile a binary carrying only
+# the grammars they use -- a tree-sitter grammar is the largest thing in
+# this closure, and `xnl` with two languages should not ship eighteen.
+xenolith-lang-shell = { path = "languages/shell", version = "0.1.0", optional = true }
+
+# `default` = every language, so `xnl` works out of the box and a subset
+# is an explicit `default-features = false` choice (`src:C1`). A feature
+# is COMPILE time -- the grammar is absent from the binary -- while
+# `xenolith.toml` `[langs]` is the runtime toggle over what was compiled
+# in; the two are different questions and neither substitutes for the
+# other.
+#
+# `cargo hack --each-feature` builds and tests each subset in the gate
+# (`src:V30`), because a module that reaches across a feature gate
+# compiles fine in the default build and breaks only in a consumer's.
+[features]
+default = ["lang-shell"]
+lang-shell = ["dep:xenolith-lang-shell"]
 
 [lints]
 workspace = true
