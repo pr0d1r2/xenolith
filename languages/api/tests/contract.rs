@@ -9,6 +9,7 @@
 
 use std::path::Path;
 
+use xenolith_lang_api::shebang::Shebang;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd,
     LoadRef, Site, Span,
@@ -212,6 +213,15 @@ impl Host for FakeHost {
 struct FakeGuest;
 
 impl Guest for FakeGuest {
+    fn prelude(&self, env: &GuestEnv) -> xenolith_lang_api::shebang::Prelude {
+        xenolith_lang_api::shebang::Prelude {
+            shebang: Some(Shebang::env(env.dialect.as_deref().unwrap_or("bash"))),
+            strict: Some("set -euo pipefail"),
+        }
+    }
+    fn executable(&self) -> bool {
+        true
+    }
     fn id(&self) -> LangId {
         LangId::Shell
     }
@@ -232,4 +242,25 @@ impl Guest for FakeGuest {
     fn fixers(&self, _env: &GuestEnv) -> Vec<LintCmd> {
         Vec::new()
     }
+}
+
+#[test]
+fn a_guest_states_what_goes_above_an_extract_and_whether_it_runs() {
+    // `languages/api/src/site:T48`: the extract file is
+    // `shebang::wrap(body, guest.prelude(env))`, so the prelude is the
+    // guest's to decide -- bash carries `set -euo pipefail`, sh cannot
+    // (`pipefail` is not POSIX), and sql carries nothing because a .sql
+    // file is read rather than run.
+    let guest: &dyn Guest = &FakeGuest;
+    let env = GuestEnv {
+        dialect: Some("bash".into()),
+        options: vec!["errexit".into()],
+    };
+    let prelude = guest.prelude(&env);
+    assert_eq!(
+        prelude.shebang.as_ref().map(Shebang::line).as_deref(),
+        Some("#!/usr/bin/env bash")
+    );
+    assert_eq!(prelude.strict, Some("set -euo pipefail"));
+    assert!(guest.executable());
 }
