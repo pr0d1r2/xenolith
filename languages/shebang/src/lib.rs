@@ -113,7 +113,15 @@ pub struct Prelude {
     /// rather than run.
     pub shebang: Option<Shebang>,
     /// The strict-mode line, written exactly as it should appear.
-    pub strict: Option<&'static str>,
+    ///
+    /// Owned rather than `&'static str`: the line has to reproduce the
+    /// options in force at the site (`languages/shell:V82`), and an
+    /// arbitrary `set -o` state -- `set -eu`, `set -eo pipefail`,
+    /// `setopt err_exit`-- cannot be one of a fixed set of literals. A
+    /// prelude that could only say `set -euo pipefail` would either add
+    /// options the body never ran under or drop ones it did, and either
+    /// way extraction would change what the code does.
+    pub strict: Option<String>,
 }
 
 const ENV: &str = "/usr/bin/env";
@@ -193,7 +201,7 @@ pub fn strip_strict<'a>(text: &'a str, prelude: &Prelude) -> &'a str {
     } else {
         text
     };
-    match prelude.strict {
+    match prelude.strict.as_deref() {
         Some(strict) if first_line(body) == strict => rest_after_first_line(body),
         _ => body,
     }
@@ -228,7 +236,7 @@ pub fn wrap(body: &str, prelude: &Prelude) -> String {
         out.push_str(&shebang.line());
         out.push('\n');
     }
-    if let Some(strict) = prelude.strict {
+    if let Some(strict) = prelude.strict.as_deref() {
         out.push_str(strict);
         out.push('\n');
     }

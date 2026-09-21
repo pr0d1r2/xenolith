@@ -216,7 +216,7 @@ impl Guest for FakeGuest {
     fn prelude(&self, env: &GuestEnv) -> xenolith_lang_api::shebang::Prelude {
         xenolith_lang_api::shebang::Prelude {
             shebang: Some(Shebang::env(env.dialect.as_deref().unwrap_or("bash"))),
-            strict: Some("set -euo pipefail"),
+            strict: Some("set -euo pipefail".to_owned()),
         }
     }
     fn executable(&self) -> bool {
@@ -261,6 +261,6 @@ fn a_guest_states_what_goes_above_an_extract_and_whether_it_runs() {
         prelude.shebang.as_ref().map(Shebang::line).as_deref(),
         Some("#!/usr/bin/env bash")
     );
-    assert_eq!(prelude.strict, Some("set -euo pipefail"));
+    assert_eq!(prelude.strict.as_deref(), Some("set -euo pipefail"));
     assert!(guest.executable());
 }

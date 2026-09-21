@@ -16,7 +16,7 @@ fn the_shebang_functions_are_reachable_through_the_api_crate() {
 
     let prelude = Prelude {
         shebang: Some(Shebang::env("bash")),
-        strict: Some("set -euo pipefail"),
+        strict: Some("set -euo pipefail".to_owned()),
     };
     assert_eq!(shebang::strip_strict(text, &prelude), "echo hi\n");
     assert_eq!(shebang::wrap("echo hi\n", &prelude), text);

@@ -13,7 +13,7 @@ fn preludes() -> Vec<Prelude> {
         // bash, the common case
         Prelude {
             shebang: Some(Shebang::env("bash")),
-            strict: Some("set -euo pipefail"),
+            strict: Some("set -euo pipefail".to_owned()),
         },
         // sh, no strict line: `set -o pipefail` is not POSIX
         Prelude {
@@ -63,7 +63,7 @@ fn strip_strict_undoes_wrap_for_every_prelude_and_body() {
 fn wrap_puts_the_shebang_first_and_the_strict_line_second() {
     let prelude = Prelude {
         shebang: Some(Shebang::env("bash")),
-        strict: Some("set -euo pipefail"),
+        strict: Some("set -euo pipefail".to_owned()),
     };
     assert_eq!(
         wrap("echo hi\n", &prelude),

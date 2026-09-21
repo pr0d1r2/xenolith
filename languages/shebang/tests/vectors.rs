@@ -16,7 +16,7 @@ fn bash_strict() -> Prelude {
         // file carries; a prelude that declares one says "this file is
         // executable and the top line is mine".
         shebang: Some(Shebang::env("bash")),
-        strict: Some("set -euo pipefail"),
+        strict: Some("set -euo pipefail".to_owned()),
     }
 }
 
