@@ -23,6 +23,7 @@ sib|languages/python|python grammar, guest rules
 sib|languages/sql|sql grammar, guest rules
 sib|languages/jq|jq grammar, guest rules
 sib|languages/awk|awk grammar, guest rules
+sib|languages/bats|bats grammar (based-on shell), `@test` sinks, test-host rules
 sib|languages/yaml|yaml parser, GH Actions sinks, placement
 sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
@@ -42,6 +43,8 @@ sib|languages/perl|perl grammar, guest rules
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg, format: Json(parser) | Sarif | Raw }`, `Error`.
 - `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<String> }` (owned: `languages/shell:V82` wants the site's exact `set -o` state, ⊥ a fixed literal set) (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
 - `Host::checks() -> Vec<LintCmd>` & `Host::fixers()`: checks for host files themselves (nix `statix`, `deadnix`, `nixfmt --check`; GH `actionlint`, `zizmor`; Dockerfile `hadolint`; just `just --fmt --check --unstable`; pkl `pkl format --diff` ?).
+- kinship, beside `LangId` & ungated like it (V33): `base_of(LangId) -> Option<LangId>` (bats → shell) & `lookalikes(LangId) -> &'static [LangId]` (shell ~ awk, perl, jq) ∴ relation stated even when neither crate compiled in (`languages:V130`, `languages:V131`).
+- `Host::claims` ⊥ true ∀ file of a language based-on it (`.bats` ⊥ claimed by shell): parent grammar either MISREADS child syntax confidently or errors on it, & both are wrong answers (`languages:V130`).
 
 ## §V INVARIANTS
 
@@ -56,10 +59,12 @@ V37: missing capability = missing impl, ⊥ default method returning empty. ⊥ 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | T42, T44 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M2 | kinship & test hosts | T131 | parent ⊥ claims a based-on child, ∀ lookalike edge symmetric (`languages:V130`, `languages:V131`) |
 
 id|status|task|cites
 T42|x|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `LintCmd`, `Error`, `Host`, `Guest`; workspace member, ⊥ features|V33,V36,V37,C24
 T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|`languages/api/src/lens:V34`,V35
+T131|.|kinship table (`base_of`, `lookalikes`) + `claims` refusal ∀ based-on child; test: ∀ base pair parent ⊥ claims child's ext, ∀ lookalike pair both directions present|V33,`languages:V130`,`languages:V131`
 
 ## §B BUGS
 
