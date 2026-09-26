@@ -1,0 +1,11 @@
+module ci.Matrix
+
+/// Same shape as a hk step, in a module that does not amend hk's
+/// Config.pkl: the property names mean whatever this module says they mean.
+jobs {
+  ["lint"] {
+    check = """
+      if [ -f Makefile ]; then make lint; fi
+      """
+  }
+}

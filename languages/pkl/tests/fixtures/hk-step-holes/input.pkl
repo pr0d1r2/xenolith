@@ -1,0 +1,15 @@
+amends "pkl/Config.pkl"
+
+local tool = "shfmt"
+
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["format"] {
+        check = #"""
+          \#(tool) --diff {{files}} || \#(tool) --list {{files}}
+          """#
+      }
+    }
+  }
+}

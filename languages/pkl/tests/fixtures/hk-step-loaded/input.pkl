@@ -1,0 +1,20 @@
+amends "pkl/Config.pkl"
+
+local fast = new Mapping<String, Step> {
+  ["shellcheck"] {
+    glob = List("**/*.sh")
+    check = "bash scripts/hk/shellcheck.sh {{files}}"
+    fix = "bash scripts/hk/shellcheck-fix.sh"
+  }
+  ["fmt"] {
+    glob = List("**/*.rs")
+    // A single command that is not a load: no extract behind it.
+    check = "cargo fmt --check"
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    steps = fast
+  }
+}
