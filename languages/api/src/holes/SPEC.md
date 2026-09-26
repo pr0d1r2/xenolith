@@ -17,7 +17,7 @@ sib|languages/api/src/lens|rewrite/inline, escape, runtime base, laws harness
 
 ## §I INTERFACES
 
-- `Host::hole_advice(&Site) -> Vec<String>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40).
+- `Host::hole_advice(&Site) -> Result<Vec<String>>`: host's proposed strategies for holes (nix `replaceVars`, pass as arg, env var); root wraps each as `Judgment` direction (V40); default `Unsupported` (`languages/api:V37`).
 - `Guest::param(name) -> Option<String>`: guest's reference to named env param (shell `"$FOO_BIN"`, python `os.environ["FOO_BIN"]`); `Guest::param_refs(body, names) -> Vec<(Span, name)>`: parse-based finder for inverse; ⊥ → holes of that guest stay `Judgment`.
 
 ## §V INVARIANTS
