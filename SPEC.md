@@ -42,7 +42,7 @@ T28|.|dogfood: `xnl check`/`graph`/`lint` on own repo green|V19,C19
 T30|.|README: purpose, name origin, host matrix, `xenolith.toml` ref, consumer flake snippet w/ follows, `trusted-users` note for cachix, trust boundary note (`--trust-config` guards xnl only; CI on fork PRs must take workflow & hk config from base branch)|I.file,C8
 T31|.|consumer migration doc: replacing `.nix-embedded-shell-allowlist` / `.pkl-embedded-shell-allowlist` w/ `xenolith.toml`|C16
 T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
-T91|.|nested discovery & merge; `xenolith.toml` in ∀ node dir + guard script listing missing ones|V90,`src/config:V88`
+T91|x|nested discovery & merge; `xenolith.toml` in ∀ node dir + guard script listing missing ones|V90,`src/config:V88`
 T95|.|M2 language survey: aggregate language & embed counts over sibling local repos, ⊥ names in repo; propose M3+ groups|C25
 T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src` C1
 

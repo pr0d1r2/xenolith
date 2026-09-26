@@ -331,6 +331,16 @@ local all = (fast) {
     glob = List("**/*.rs", "**/Cargo.toml")
     check = "scripts/guard/rust-mirror.sh"
   }
+  // Every sherd node dir holds its own `xenolith.toml` (`.:V90`,
+  // `src/config:V88`), so a node checked on its own reads what its
+  // authors wrote rather than falling back to the defaults. Whole-repo
+  // and push-side like the mirrors: the rule is about the SET of node
+  // dirs, and the change that breaks it -- a new SPEC.md -- lands a node
+  // whose config may follow in the next commit.
+  ["node-config"] {
+    glob = List("**/SPEC.md", "**/xenolith.toml")
+    check = "scripts/guard/node-config.sh"
+  }
 
   // No private repo name in a tracked file (`scripts/guard:V23`,
   // `scripts/guard:C17`). Whole-repo and push-side: the denylist can
