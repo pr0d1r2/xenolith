@@ -30,6 +30,9 @@ use xenolith_lang_api::{
 
 use crate::{grammar, string};
 
+#[cfg(test)]
+mod tests;
+
 /// hk step properties that hold a command (`languages/pkl` §I), in name
 /// order.
 pub const SINKS: &[&str] = &["check", "check_diff", "check_list_files", "fix", "shell"];
