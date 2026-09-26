@@ -588,6 +588,81 @@ fn a_concatenation_outside_sink_position_is_data() {
     assert_eq!(sink_of(r#"{ shellHook = "a" - "b"; }"#, r#""a""#), None);
 }
 
+// --- order / priority wraps (`languages/nix:T161`) ----------------------
+
+#[test]
+fn a_wrapped_value_stands_where_the_wrap_does() {
+    for src in ["{ a = lib.mkBefore ''x''; }", "{ a = mkOrder 500 ''x''; }"] {
+        assert_eq!(
+            value_of(src, "''x''"),
+            at(&first(src, SyntaxKind::NODE_APPLY)),
+            "{src}"
+        );
+    }
+    // Around a concatenation, through the parentheses it needs.
+    let src = "{ a = mkAfter (''x'' + b); }";
+    assert_eq!(
+        value_of(src, "''x''"),
+        at(&first(src, SyntaxKind::NODE_APPLY))
+    );
+    // Parentheses around the wrap itself are not climbed.
+    let src = "f (mkForce ''x'')";
+    assert_eq!(
+        value_of(src, "''x''"),
+        at(&nth(src, SyntaxKind::NODE_APPLY, 1))
+    );
+}
+
+#[test]
+fn a_named_sink_value_wrapped_in_an_order_or_priority_is_that_sinks_site() {
+    for wrap in [
+        "lib.mkBefore",
+        "mkAfter",
+        "lib.mkOrder 500",
+        "lib.mkForce",
+        "mkDefault",
+    ] {
+        let src = format!("{{ shellHook = {wrap} ''a''; }}");
+        assert_eq!(sink_of(&src, "''a''"), Some(Sink::ShellHook), "{wrap}");
+    }
+    let src = "{ preCheck = lib.mkAfter (''a'' + x + \"b\"); }";
+    assert_eq!(sink_of(src, "''a''"), Some(Sink::Stdenv));
+    assert_eq!(sink_of(src, r#""b""#), Some(Sink::Stdenv));
+    assert_eq!(
+        sink_of(
+            "{ programs.zsh.initContent = lib.mkOrder 550 ''a''; }",
+            "''a''"
+        ),
+        Some(Sink::ShellInit { dialect: "zsh" })
+    );
+    assert_eq!(
+        path_of("{ shellHook = lib.mkBefore ''a''; }", "''a''"),
+        "shellHook"
+    );
+}
+
+#[test]
+fn a_wrap_counts_once_fully_applied_in_a_named_sink() {
+    for src in [
+        // `mkOrder`'s priority is not the body.
+        "{ shellHook = lib.mkOrder ''a'' x; }",
+        // Applied too far, applied to the wrapper, or wrapped twice.
+        "{ shellHook = mkBefore ''a'' x; }",
+        "{ shellHook = mkForce mkBefore ''a''; }",
+        "{ shellHook = mkForce (mkBefore ''a''); }",
+        // Not an order or priority, not a sink, not an attribute set.
+        "{ shellHook = lib.mkIf c ''a''; }",
+        "{ description = lib.mkForce ''a''; }",
+        "let shellHook = mkBefore ''a''; in shellHook",
+    ] {
+        assert_eq!(sink_of(src, "''a''"), None, "{src}");
+    }
+    // T157 reads a whole value only, and a wrap is not one.
+    let text = "\"#!/bin/sh\\na\"";
+    let src = format!("{{ environment.etc.x.text = lib.mkForce {text}; }}");
+    assert_eq!(sink_of(&src, text), None);
+}
+
 // --- string_text / shell_dialect / shebang_sink (`languages/nix:T157`) --
 
 #[test]

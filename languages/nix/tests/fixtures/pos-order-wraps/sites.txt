@@ -1,0 +1,7 @@
+# `languages/nix:T161`: `mkBefore`, `mkAfter`, `mkOrder N`, `mkForce` and
+# `mkDefault` only order or prioritise a value for the module system, so
+# the body they wrap is still the named sink's, under its dialect and
+# options.
+programs.zsh.initContent | '' | zsh | - | "\n    [ -r \"$HOME/.zshrc.local\" ] && source \"$HOME/.zshrc.local\"\n  "
+systemd.services.app.preStart | '' | bash errexit | - | "\n    mkdir -p /var/lib/app && chown app /var/lib/app\n  "
+devShells.default.shellHook | '' | bash | - | "\n    [ -f .env ] || cp .env.example .env\n  "

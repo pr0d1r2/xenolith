@@ -1,0 +1,4 @@
+# `languages/nix:T161` makes a wrap transparent only for a NAMED sink and
+# only once: prose stays prose, a shebang is read off a whole value
+# (T157) and a wrap is not one, `mkIf` is not an order or priority, and a
+# wrap inside another wrap is not unwound.
