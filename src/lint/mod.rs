@@ -14,7 +14,8 @@
 //! 3. commands -- [`plan`]: the language crate's defaults and the
 //!    config's own, which run only when trusted (`src/lint:V91`).
 //! 4. runs -- [`run`]: a tool not on PATH is an `error`, exit 2
-//!    (`src/lint:V8`).
+//!    (`src/lint:V8`). Under `--fix` an extract's fixers run first and
+//!    its checks judge the result; a host file is never rewritten.
 //!
 //! `src/cli` renders the [`LintReport`] and maps its exit code.
 
@@ -169,7 +170,11 @@ pub(crate) fn lint_with(
     for warning in candidates.warnings {
         report.warn(warning);
     }
-    let run = Run { root, tools };
+    let run = Run {
+        root,
+        tools,
+        fix: options.fix,
+    };
     for (file, name) in candidates.files.iter().zip(&names) {
         let config = tree.config_for(name);
         if config.excluded(Verb::Lint, name).is_some() {
@@ -284,6 +289,8 @@ fn unclaimed(
 struct Run<'a> {
     root: &'a Path,
     tools: &'a Tools,
+    /// `--fix`: fixers before checks, extracts only.
+    fix: bool,
 }
 
 impl Run<'_> {
@@ -301,7 +308,8 @@ impl Run<'_> {
         }
     }
 
-    /// An extract's checks: defaults and config (`src/lint:V8`).
+    /// An extract's checks, defaults and config (`src/lint:V8`); under
+    /// `--fix`, its fixers first, so the checks judge the fixed file.
     fn extract(
         &self,
         report: &mut LintReport,
@@ -319,6 +327,21 @@ impl Run<'_> {
             guest: Some(id),
             dialect: env.dialect.clone(),
         };
+        if self.fix {
+            let fixers: Vec<LintCmd> = guest.fixers(env);
+            let planned = plan::plan(&fixers, Configured::fixers(entry, extend), false);
+            for cmd in &planned.untrusted {
+                untrusted(report, &target, cmd, true);
+            }
+            for cmd in &planned.run {
+                // A fixer that did its job is not news; one that did not
+                // is (`src/lint` §I, status).
+                let outcome = self.one(&target, cmd, true);
+                if outcome.status != Status::Pass {
+                    report.push(outcome);
+                }
+            }
+        }
         let checks: Vec<LintCmd> = guest.checks(env);
         let planned = plan::plan(
             &checks,
@@ -326,7 +349,7 @@ impl Run<'_> {
             false,
         );
         for cmd in &planned.untrusted {
-            untrusted(report, &target, cmd);
+            untrusted(report, &target, cmd, false);
         }
         for cmd in &planned.run {
             report.push(self.one(&target, cmd, false));
@@ -363,7 +386,7 @@ struct Target<'a> {
 
 /// A config command held back (`src/lint:V91`): a `skipped` outcome, and
 /// one warning per distinct command naming it.
-fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd) {
+fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd, fixer: bool) {
     let argv = cmd.argv(target.name);
     report.warn(Warning {
         code: UNTRUSTED_COMMAND.to_owned(),
@@ -385,7 +408,7 @@ fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd) {
         status: Status::Skipped,
         exit: None,
         raw_tail: None,
-        fixer: false,
+        fixer,
     });
 }
 

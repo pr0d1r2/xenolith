@@ -42,9 +42,6 @@ pub fn run(
     out: &mut impl Write,
     err: &mut impl Write,
 ) -> u8 {
-    if flags.fix {
-        return not_yet(err, "lint --fix", "src/lint:T87");
-    }
     if flags.trust_config {
         return not_yet(err, "lint --trust-config", "src/lint:T92");
     }
