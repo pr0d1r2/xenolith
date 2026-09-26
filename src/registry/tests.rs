@@ -186,3 +186,100 @@ fn no_file_in_src_but_the_registry_reads_a_language_feature() {
         "lang-* feature read outside the registry: {leaks:?}"
     );
 }
+
+// ---------------------------------------------------------------------
+// `[langs] missing_guest` (`src:V42`, `src:T88`)
+// ---------------------------------------------------------------------
+
+mod missing_guest {
+    use std::path::Path;
+
+    use xenolith_lang_api::LangId;
+
+    use super::super::{MISSING_GUEST, on_missing_guest};
+    use crate::config::{self, Policy};
+
+    fn policy(toml: &str) -> Policy {
+        config::parse(toml)
+            .unwrap_or_else(|e| panic!("fixture config parses: {e}"))
+            .langs
+            .missing_guest
+    }
+
+    #[test]
+    fn the_default_policy_is_error() {
+        assert_eq!(policy("version = 1\n"), Policy::Error);
+    }
+
+    #[test]
+    fn error_refuses_with_exit_two_naming_the_feature_and_the_file() {
+        let Err(missing) = on_missing_guest(Policy::Error, LangId::Sql, Path::new("db/q.nix"))
+        else {
+            panic!("error refuses");
+        };
+        assert_eq!(missing.exit_code(), 2);
+        let text = missing.to_string();
+        assert!(text.starts_with("db/q.nix: "), "{text}");
+        assert!(text.contains("`lang-sql`"), "{text}");
+    }
+
+    #[test]
+    fn warn_returns_a_missing_guest_warning_about_the_file() {
+        let found = on_missing_guest(Policy::Warn, LangId::Sql, Path::new("db/q.nix"));
+        let Ok(Some(warning)) = found else {
+            panic!("warn warns: {found:?}");
+        };
+        assert_eq!(warning.code, MISSING_GUEST);
+        assert_eq!(warning.code, "missing-guest");
+        assert_eq!(warning.file.as_deref(), Some(Path::new("db/q.nix")));
+        assert!(
+            warning.message.contains("`lang-sql`"),
+            "{}",
+            warning.message
+        );
+    }
+
+    #[test]
+    fn ignore_says_nothing() {
+        let found = on_missing_guest(Policy::Ignore, LangId::Sql, Path::new("db/q.nix"));
+        assert_eq!(found, Ok(None));
+    }
+
+    /// The `src:T88` fixture: a nix host finding shell in a nix-only
+    /// build, under each policy as a `xenolith.toml` states it.
+    #[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
+    #[test]
+    fn a_nix_only_build_applies_each_policy_to_a_shell_site() {
+        let src = "{ systemd.services.a.script = ''\n  make && make install\n''; }\n";
+        let file = Path::new("service.nix");
+        let Some(nix) = super::host(LangId::Nix) else {
+            panic!("lang-nix is on in this build");
+        };
+        let sites = nix
+            .sites(src)
+            .unwrap_or_else(|e| panic!("fixture parses: {e}"));
+        let Some(site) = sites.first() else {
+            panic!("the fixture holds a site");
+        };
+        assert!(super::guest(site.guest).is_none(), "shell is compiled out");
+
+        let error = policy("version = 1\n");
+        let Err(missing) = on_missing_guest(error, site.guest, file) else {
+            panic!("the default refuses");
+        };
+        assert!(missing.to_string().contains("`lang-shell`"), "{missing}");
+
+        let warn = policy("version = 1\n[langs]\nmissing_guest = \"warn\"\n");
+        let Ok(Some(warning)) = on_missing_guest(warn, site.guest, file) else {
+            panic!("warn warns");
+        };
+        assert!(
+            warning.message.contains("`lang-shell`"),
+            "{}",
+            warning.message
+        );
+
+        let ignore = policy("version = 1\n[langs]\nmissing_guest = \"ignore\"\n");
+        assert_eq!(on_missing_guest(ignore, site.guest, file), Ok(None));
+    }
+}

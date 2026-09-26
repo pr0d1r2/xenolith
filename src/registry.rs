@@ -15,14 +15,19 @@
 //! (`src:V42`): [`require_guest`] says which feature would bring it.
 
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use xenolith_lang_api::{Guest, Host, LangId};
 
 use crate::cli::EXIT_USAGE;
+use crate::config::Policy;
+use crate::model::Warning;
 
 #[cfg(test)]
 mod tests;
+
+/// The warning code for a site whose guest is compiled out (`src:V42`).
+pub const MISSING_GUEST: &str = "missing-guest";
 
 /// Every compiled-in host, sorted by [`LangId`].
 const HOSTS: &[&dyn Host] = &[
@@ -125,4 +130,18 @@ pub fn require_guest(id: LangId) -> Result<&'static dyn Guest, MissingGuest> {
         guest: id,
         file: None,
     })
+}
+
+/// `[langs] missing_guest` applied to a compiled-out guest (`src:T88`).
+/// RED stub: says nothing under every policy.
+///
+/// # Errors
+///
+/// None yet.
+pub fn on_missing_guest(
+    _policy: Policy,
+    _id: LangId,
+    _file: &Path,
+) -> Result<Option<Warning>, MissingGuest> {
+    Ok(None)
 }
