@@ -10,9 +10,12 @@
 # check engine lands in `src` (`src:V152`, `src:T153`) -- `src/extract` sat
 # at 4982 before it. Same ~12% headroom rule. RETIRED when `src/extract`
 # splits into sub-nodes (`.:C22`) & `src` sheds rows to its children.
+# BRIDGE 2026-09-26: `languages/api` crosses 5000 (5016) when `Guest::constructs`
+# joins §I -- the engine needs construct NAMES to apply `[threshold]`
+# (`src/config:V55`). Same ~12% rule. RETIRED with `languages:T137`.
 SPEC.md                  5000
 languages                5000
-languages/api            5000
+languages/api            5620
 languages/awk            5000
 languages/jq             5000
 languages/just           5000
