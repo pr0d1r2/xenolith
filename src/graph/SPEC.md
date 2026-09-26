@@ -41,7 +41,7 @@ V100: extract whose body is trivial for its guest (incl. threshold) → warning 
 
 id|status|task|cites
 T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
-T52|.|extract roots from rules, layout & host dirs; orphan scan over roots only|V50,V7
+T52|x|extract roots from rules, layout & host dirs; orphan scan over roots only|V50,V7
 
 ## §B BUGS
 
