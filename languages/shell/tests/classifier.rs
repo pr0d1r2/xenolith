@@ -12,7 +12,8 @@
 //! substring matching separates those, and getting it wrong means either
 //! a false positive on every quoted pipe or a miss on every real one.
 
-use xenolith_lang_shell::{Construct, classify};
+use xenolith_lang_api::GuestEnv;
+use xenolith_lang_shell::{Construct, classify, classify_in};
 
 fn constructs(body: &str) -> Vec<&'static str> {
     let found = classify(body).unwrap_or_else(|e| panic!("{body:?} did not parse: {e}"));
@@ -196,5 +197,31 @@ fn an_allowed_construct_stops_being_a_violation() {
             Construct::from_name(name).is_some(),
             "{name} is not a construct name the config could use"
         );
+    }
+}
+
+fn zsh() -> GuestEnv {
+    GuestEnv {
+        dialect: Some("zsh".to_owned()),
+        options: Vec::new(),
+    }
+}
+
+#[test]
+fn a_zsh_setopt_is_one_simple_command() {
+    // `languages/shell:T136`: the bash grammar reads it, so it stays
+    // inline like any other single command.
+    let found = classify_in("setopt err_exit", &zsh()).unwrap_or_else(|e| panic!("{e}"));
+    assert!(found.simple && !found.unsupported, "{found:?}");
+}
+
+#[test]
+fn zsh_flags_anon_functions_and_qualifiers_are_unsupported() {
+    // `languages/shell:V138`: valid zsh the bash grammar cannot parse is
+    // a gap in OUR grammar, reported as a judgement -- never as broken
+    // shell, which it is not.
+    for body in ["print -rl -- ${(f)\"$(ls)\"}", "() { print hi }", "ls *(.)"] {
+        let found = classify_in(body, &zsh()).unwrap_or_else(|e| panic!("{body:?}: {e}"));
+        assert!(found.unsupported && !found.simple, "{body:?}: {found:?}");
     }
 }

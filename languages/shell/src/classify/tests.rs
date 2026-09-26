@@ -10,8 +10,10 @@
 
 use tree_sitter::{Node, Parser, Tree};
 
+use xenolith_lang_api::GuestEnv;
+
 use super::{
-    ALLOWED_SUBSTITUTION, Classification, Construct, classify, collect, construct_of,
+    ALLOWED_SUBSTITUTION, Classification, Construct, classify, classify_in, collect, construct_of,
     top_level_statements,
 };
 
@@ -386,5 +388,79 @@ fn an_unparseable_body_is_a_parse_error_for_shell() {
             }
             other => panic!("expected a parse error for {body:?}, got {other:?}"),
         }
+    }
+}
+
+// --- classify_in: the dialect (`languages/shell:V138`) -------------------
+
+fn dialect(name: Option<&str>) -> GuestEnv {
+    GuestEnv {
+        dialect: name.map(str::to_owned),
+        options: Vec::new(),
+    }
+}
+
+fn ok_in(body: &str, env: &GuestEnv) -> Classification {
+    match classify_in(body, env) {
+        Ok(found) => found,
+        Err(err) => panic!("expected a classification of {body:?}, got: {err:?}"),
+    }
+}
+
+/// zsh the bash grammar rejects: flags, qualifiers, an anon function,
+/// the short `for`.
+const ZSH_ONLY: &[&str] = &[
+    "print -rl -- ${(f)\"$(ls)\"}",
+    "source ~/.zsh/*.zsh(N)",
+    "print -rl -- *(.)",
+    "() { print hi }",
+    "for x (a b) print $x",
+];
+
+#[test]
+fn zsh_only_syntax_under_zsh_is_unsupported_not_an_error() {
+    for body in ZSH_ONLY {
+        let found = ok_in(body, &dialect(Some("zsh")));
+        assert!(found.unsupported, "{body:?}: {found:?}");
+        assert!(!found.simple, "{body:?}");
+        // Spans in an ERROR tree are unreliable (`languages:V78`), so a
+        // construct named from one would be something nobody wrote.
+        assert!(found.constructs.is_empty(), "{body:?}");
+    }
+}
+
+#[test]
+fn the_same_text_outside_zsh_is_still_a_parse_error() {
+    // `languages:V77`: for sh and bash the grammar IS the language.
+    for name in [None, Some("bash"), Some("sh"), Some("dash")] {
+        for body in ZSH_ONLY {
+            assert!(
+                matches!(
+                    classify_in(body, &dialect(name)),
+                    Err(xenolith_lang_api::Error::Parse { .. })
+                ),
+                "{name:?} {body:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn zsh_the_bash_grammar_reads_is_classified_as_usual() {
+    let zsh = dialect(Some("zsh"));
+    for body in ["setopt err_exit", "print hi", "autoload -Uz compinit"] {
+        let found = ok_in(body, &zsh);
+        assert!(found.simple && !found.unsupported, "{body:?}: {found:?}");
+    }
+    let found = ok_in("autoload -Uz compinit && compinit", &zsh);
+    assert!(!found.unsupported);
+    assert_eq!(found.constructs, vec![Construct::AndOr]);
+}
+
+#[test]
+fn classify_is_classify_in_with_no_dialect() {
+    for body in ["echo hi", "a | b", "if a; then b; fi"] {
+        assert_eq!(ok(body), ok_in(body, &GuestEnv::default()), "{body:?}");
+        assert!(!ok(body).unsupported, "{body:?}");
     }
 }

@@ -12,8 +12,8 @@ use std::path::Path;
 use xenolith_lang_api::{FileArg, Format, Guest, GuestEnv, LintCmd};
 
 use super::{
-    DEFAULT_STRICT, Family, SET_FLAGS, ShellGuest, ZSH_OPTIONS, dialect_name, family, raw,
-    set_line, shellcheck, strict_line, zsh_setopt,
+    DEFAULT_STRICT, Family, SET_FLAGS, ShellGuest, ZSH_OPTIONS, ZSH_UNSUPPORTED, dialect_name,
+    family, raw, set_line, shellcheck, strict_line, zsh_setopt,
 };
 
 fn env(dialect: Option<&str>, options: &[&str]) -> GuestEnv {
@@ -373,5 +373,36 @@ fn fixers_per_family() {
     for cmd in ShellGuest.fixers(&env(None, &[])) {
         assert_eq!(cmd.format, Format::Raw);
         assert_eq!(cmd.file_arg, FileArg::Append);
+    }
+}
+
+// --- unsupported: the judgement the engine owes (`languages/shell:V138`) --
+
+#[test]
+fn zsh_only_syntax_under_zsh_is_a_judgment_with_its_why() {
+    assert_eq!(ZSH_UNSUPPORTED, "zsh construct unsupported");
+    let zsh = env(Some("zsh"), &[]);
+    for body in ["print -rl -- ${(f)\"$(ls)\"}", "source ~/.zsh/*.zsh(N)"] {
+        assert_eq!(
+            ShellGuest.unsupported(body, &zsh),
+            Some(ZSH_UNSUPPORTED),
+            "{body:?}"
+        );
+    }
+}
+
+#[test]
+fn what_the_bash_grammar_decides_is_no_judgment() {
+    // A trivial zsh one-liner stays trivial; a script stays a script.
+    let zsh = env(Some("zsh"), &[]);
+    for body in ["setopt err_exit", "print hi", "a && b"] {
+        assert_eq!(ShellGuest.unsupported(body, &zsh), None, "{body:?}");
+    }
+    assert_eq!(ShellGuest.trivial("setopt err_exit").ok(), Some(true));
+    // Outside zsh a body the grammar rejects is unparseable
+    // (`languages:V77`), which `trivial` already reports.
+    for name in [None, Some("bash"), Some("sh")] {
+        let site = env(name, &[]);
+        assert_eq!(ShellGuest.unsupported("() { print hi }", &site), None);
     }
 }
