@@ -65,6 +65,14 @@ pub const POLICIES: &[&str] = &["ignore", "warn", "error"];
 pub const LAYOUTS: &[&str] = &["host", "mirror", "sibling", "central"];
 /// `[extract.shell] strict` choices (`languages/shell` §I).
 pub const STRICTNESS: &[&str] = &["preserve", "enforce"];
+/// `[threshold.shell] allow` choices (`src/config` §I, `src/config:V55`):
+/// the constructs `languages/shell:V3` flags, in the order §I lists
+/// them. Here rather than in the shell crate so the config validates the
+/// same with `lang-shell` compiled out (`src:V30`).
+pub const SHELL_CONSTRUCTS: &[&str] = &[
+    "pipe", "and", "or", "seq", "subst", "backtick", "redirect", "if", "for", "while", "case",
+    "heredoc", "subshell", "function",
+];
 
 /// A default's value, as the table states it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

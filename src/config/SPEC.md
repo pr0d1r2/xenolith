@@ -60,7 +60,7 @@ id|status|task|cites
 T10|x|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
 T25|x|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
-T56|.|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
+T56|x|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
 T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
 T80|.|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79

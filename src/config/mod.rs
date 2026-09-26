@@ -303,8 +303,9 @@ pub struct GuestThreshold {
     pub max_bytes: Option<u64>,
 }
 
-/// `[threshold.*]` (`src/config:V55`). Parsed here; the construct and
-/// guest validation V55 asks for is `src/config:T56`.
+/// `[threshold.*]` (`src/config:V55`), validated at parse: every guest
+/// a known language, every construct one of
+/// [`defaults::SHELL_CONSTRUCTS`], every count non-negative.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Threshold {
     /// `[threshold.shell] allow`: constructs tolerated inline.
@@ -867,6 +868,39 @@ fn parse_parse(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// `[threshold.shell] allow`: each item one of
+/// [`defaults::SHELL_CONSTRUCTS`], exactly (`src/config:V55`). A name
+/// outside the set would tolerate nothing while reading as a rule.
+fn constructs(key: &str, value: &Value) -> Result<Vec<String>, ConfigError> {
+    let items = value
+        .as_array()
+        .ok_or_else(|| wrong(key, "an array of strings", value))?;
+    items
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+            let key = format!("{key}[{i}]");
+            let name = string(&key, item)?;
+            if defaults::SHELL_CONSTRUCTS.contains(&name.as_str()) {
+                Ok(name)
+            } else {
+                Err(ConfigError::new(
+                    key,
+                    format!(
+                        "`{name}` is not a shell construct; expected one of: {} \
+                         (src/config:V55)",
+                        defaults::SHELL_CONSTRUCTS.join(", ")
+                    ),
+                ))
+            }
+        })
+        .collect()
+}
+
+/// `[threshold.*]`, validated per `src/config:V55`: an unknown guest,
+/// construct or key, or a negative value, is refused. A threshold only
+/// RELAXES; nothing here can make a guest-trivial body flagged, because
+/// every value is a tolerance, never a requirement.
 fn parse_threshold(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
     let th = &mut config.threshold;
     for (section, value) in t {
@@ -875,7 +909,7 @@ fn parse_threshold(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
         for (leaf, value) in fields {
             let key = format!("{at}.{leaf}");
             match (section.as_str(), leaf.as_str()) {
-                ("shell", "allow") => th.shell_allow = strings(&key, value)?,
+                ("shell", "allow") => th.shell_allow = constructs(&key, value)?,
                 ("exec", "max_args") => th.exec_max_args = count(&key, value)?,
                 ("exec", "max_len") => th.exec_max_len = count(&key, value)?,
                 ("load", "max_params") => th.load_max_params = count(&key, value)?,
