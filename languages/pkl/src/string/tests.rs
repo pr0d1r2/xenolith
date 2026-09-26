@@ -9,7 +9,9 @@
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result, Span};
 
-use super::{decode, find_kind, holes_in, indentation, multiline, pounds_for, unescape};
+use super::{
+    decode, find_kind, holes_in, indentation, line_breaks, multiline, pounds_for, unescape,
+};
 use crate::grammar;
 
 fn delim(kind: DelimKind) -> Delim {
@@ -347,6 +349,14 @@ fn indentation_ranges_cover_a_crlf_whole() {
         indentation("\r\n  a\r\n  ", &[]),
         Ok(vec![(0, 2), (5, 9), (2, 4)])
     );
+}
+
+#[test]
+fn line_breaks_reads_crlf_cr_and_lf_as_one_break_each() {
+    assert_eq!(line_breaks("a\r\nb\rc\nd"), [(1, 3), (4, 5), (6, 7)]);
+    assert_eq!(line_breaks("\n\r"), [(0, 1), (1, 2)]);
+    assert_eq!(line_breaks("\r\r\n"), [(0, 1), (1, 3)]);
+    assert!(line_breaks("no break, zażółć").is_empty());
 }
 
 #[test]

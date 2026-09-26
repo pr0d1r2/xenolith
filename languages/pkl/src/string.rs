@@ -7,7 +7,9 @@
 //!
 //! Pkl's rules, which is all this module encodes:
 //!
-//! - the opening `"""` is followed by a newline, which is not content;
+//! - a line break is `\r\n`, a lone `\r` or `\n`, and each evaluates to
+//!   `\n` (`languages/pkl:B1`); ranges stay on the host's own bytes;
+//! - the opening `"""` is followed by a line break, which is not content;
 //! - the closing `"""` sits on its own line, and that line's whitespace
 //!   is the indent stripped from every content line;
 //! - `\` starts an escape (`\n`, `\t`, `\r`, `\"`, `\\`, `\u{…}`) or an
@@ -79,8 +81,14 @@ pub fn unescape(delim: &Delim, raw: &str) -> Result<String> {
             _ => {
                 for (offset, ch) in text.char_indices() {
                     let at = start + offset;
-                    if !deleted.iter().any(|&(from, to)| from <= at && at < to) {
-                        out.push(ch);
+                    if deleted.iter().any(|&(from, to)| from <= at && at < to) {
+                        continue;
+                    }
+                    match ch {
+                        // The `\n` after it is this break's one `\n`.
+                        '\r' if raw.as_bytes().get(at + 1) == Some(&b'\n') => {}
+                        '\r' => out.push('\n'),
+                        _ => out.push(ch),
                     }
                 }
             }
@@ -162,34 +170,50 @@ fn holes_in(literal: Node<'_>, shift: usize) -> Vec<(usize, usize)> {
         .collect()
 }
 
+/// The line breaks of `raw` as byte ranges, as pkl reads them inside a
+/// string: `\r\n`, a lone `\r` and `\n` are one break each.
+fn line_breaks(raw: &str) -> Vec<(usize, usize)> {
+    let bytes = raw.as_bytes();
+    let mut out = Vec::new();
+    let mut at = 0;
+    while let Some(&byte) = bytes.get(at) {
+        let len = match (byte, bytes.get(at + 1)) {
+            (b'\r', Some(b'\n')) => 2,
+            (b'\r' | b'\n', _) => 1,
+            _ => 0,
+        };
+        if len > 0 {
+            out.push((at, at + len));
+        }
+        at += len.max(1);
+    }
+    out
+}
+
 /// The byte ranges of `raw` that are delimiter layout rather than
-/// content: the newline after the opening `"""`, the closing line, and
-/// the closing line's indent at the start of every content line.
+/// content: the line break after the opening `"""`, the closing line,
+/// and the closing line's indent at the start of every content line.
 ///
-/// Newlines inside an interpolation are pkl expression text, not string
-/// lines, so they are skipped.
+/// Line breaks inside an interpolation are pkl expression text, not
+/// string lines, so they are skipped.
 fn indentation(raw: &str, holes: &[(usize, usize)]) -> Result<Vec<(usize, usize)>> {
     let bad = |why: &str| Error::parse(LangId::Pkl, format!("multi-line string: {why}"));
-    if !raw.starts_with('\n') {
+    let breaks = line_breaks(raw);
+    let (Some(&(0, first)), Some(&(last, closing))) = (breaks.first(), breaks.last()) else {
         return Err(bad("content starts on the delimiter line"));
-    }
-    let last = raw.rfind('\n').unwrap_or_default();
-    let indent = raw.get(last + 1..).unwrap_or_default();
+    };
+    let indent = raw.get(closing..).unwrap_or_default();
     if !indent.chars().all(|ch| ch == ' ' || ch == '\t') {
         return Err(bad("the closing delimiter is not on its own line"));
     }
 
-    let mut deleted = vec![(0, 1), (last, raw.len())];
+    let mut deleted = vec![(0, first), (last, raw.len())];
     let in_hole = |at: usize| holes.iter().any(|&(from, to)| from <= at && at < to);
-    for (newline, _) in raw.match_indices('\n') {
+    for (index, &(newline, start)) in breaks.iter().enumerate() {
         if newline >= last || in_hole(newline) {
             continue;
         }
-        let start = newline + 1;
-        let end = raw
-            .get(start..)
-            .and_then(|rest| rest.find('\n'))
-            .map_or(raw.len(), |len| start + len);
+        let end = breaks.get(index + 1).map_or(raw.len(), |&(next, _)| next);
         let line = raw.get(start..end).unwrap_or_default();
         if line.starts_with(indent) {
             deleted.push((start, start + indent.len()));

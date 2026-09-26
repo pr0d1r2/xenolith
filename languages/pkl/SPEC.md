@@ -26,3 +26,4 @@ T147|x|`src:C139` backfill: `languages/pkl/src/host/tests.rs`, `languages/pkl/sr
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|`unescape` required `\n` after opening `"""` ∴ CRLF hk.pkl → every step `unparseable pkl string`|`string::line_breaks`: `\r\n`\|`\r`\|`\n` = 1 break → `\n`, as Pkl; spans on host bytes; LF≡CRLF fixture
