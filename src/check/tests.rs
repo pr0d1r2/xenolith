@@ -20,6 +20,7 @@ use xenolith_lang_api::{
 
 use super::{
     CheckError, HOLE, Langs, Options, body_hash, check_with, guest_text, head, position, repo_name,
+    under_root,
 };
 use crate::config::{self, Config};
 use crate::discover::{Sandbox, write};
@@ -1190,6 +1191,19 @@ fn head_is_the_first_line_only() {
 fn repo_name_drops_dot_components_and_uses_slashes() {
     assert_eq!(repo_name(Path::new("./a/./b.nix")), "a/b.nix");
     assert_eq!(repo_name(Path::new("a.nix")), "a.nix");
+}
+
+#[test]
+fn under_root_resolves_dots_and_refuses_a_climb_out() {
+    let root = Path::new("/r");
+    let named = |p: &str| under_root(root, Path::new(p)).ok();
+    assert_eq!(named("./a/../b.nix"), Some(PathBuf::from("b.nix")));
+    assert_eq!(named("."), Some(PathBuf::from(".")));
+    assert_eq!(named("/r/sub/./c.nix"), Some(PathBuf::from("sub/c.nix")));
+    assert_eq!(named("/r"), Some(PathBuf::from(".")));
+    assert_eq!(named("../x.nix"), None);
+    assert_eq!(named("/r/../x.nix"), None);
+    assert_eq!(named("/rr/x.nix"), None);
 }
 
 // ---------------------------------------------------------------------

@@ -101,6 +101,14 @@ pub enum CheckError {
         /// language's host (`src:V30`: say which feature would bring it).
         missing: Option<LangId>,
     },
+    /// A path named on the command line lies outside the root, so no
+    /// config, allow or exclude of this run can speak about it.
+    Outside {
+        /// The path as it was named.
+        path: PathBuf,
+        /// The root the run checks.
+        root: PathBuf,
+    },
 }
 
 impl CheckError {
@@ -117,6 +125,13 @@ impl fmt::Display for CheckError {
             CheckError::Discover(e) => e.fmt(f),
             CheckError::Config(e) => e.fmt(f),
             CheckError::MissingGuest(e) => e.fmt(f),
+            CheckError::Outside { path, root } => write!(
+                f,
+                "{}: outside the root {}: xnl checks the tree it runs in; name files \
+                 under it, or run xnl from a directory that holds this one",
+                path.display(),
+                root.display()
+            ),
             CheckError::Unclaimed { file, missing } => {
                 write!(
                     f,
@@ -208,7 +223,12 @@ pub(crate) fn check_with(
     langs: &Langs<'_>,
     git: &dyn Fn() -> Command,
 ) -> Result<Report, CheckError> {
-    let candidates = discover_with(root, &options.paths, git)?;
+    let paths = options
+        .paths
+        .iter()
+        .map(|path| under_root(root, path))
+        .collect::<Result<Vec<_>, _>>()?;
+    let candidates = discover_with(root, &paths, git)?;
     let names: Vec<String> = candidates.files.iter().map(|f| repo_name(f)).collect();
     let tree = Tree::load(
         root,
@@ -716,6 +736,66 @@ fn head(path: &Path) -> String {
     }
     let first = buf.split(|b| *b == b'\n').next().unwrap_or_default();
     String::from_utf8_lossy(first).into_owned()
+}
+
+/// A named `path` as the root spells it (`src:B4`): relative to `root`,
+/// `.` and `..` resolved lexically, `.` for the root itself. An absolute
+/// path is matched against the root as given (made absolute from the
+/// working directory) and as the filesystem resolves it, so `/tmp/r/a`
+/// and `/private/tmp/r/a` name one file on a system where one is a link
+/// to the other.
+///
+/// # Errors
+///
+/// [`CheckError::Outside`] when `path` is not under `root`.
+fn under_root(root: &Path, path: &Path) -> Result<PathBuf, CheckError> {
+    let outside = || CheckError::Outside {
+        path: path.to_path_buf(),
+        root: root.to_path_buf(),
+    };
+    let rel = if path.is_absolute() {
+        let lexical = lexical(path).ok_or_else(outside)?;
+        let given = std::env::current_dir()
+            .map(|cwd| cwd.join(root))
+            .ok()
+            .and_then(|root| lexical_root(&root));
+        let resolved = fs::canonicalize(root).ok();
+        [given, resolved]
+            .into_iter()
+            .flatten()
+            .find_map(|root| lexical.strip_prefix(root).ok().map(Path::to_path_buf))
+            .ok_or_else(outside)?
+    } else {
+        lexical(path).ok_or_else(outside)?
+    };
+    if rel.as_os_str().is_empty() {
+        Ok(PathBuf::from("."))
+    } else {
+        Ok(rel)
+    }
+}
+
+/// `path` with `.` dropped and `..` taken back, or `None` when a `..`
+/// climbs above the path's start.
+fn lexical(path: &Path) -> Option<PathBuf> {
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                if !out.pop() {
+                    return None;
+                }
+            }
+            other => out.push(other),
+        }
+    }
+    Some(out)
+}
+
+/// An absolute root, lexically resolved.
+fn lexical_root(root: &Path) -> Option<PathBuf> {
+    lexical(root).filter(|root| root.is_absolute())
 }
 
 /// A candidate's name as config and reports spell it: repo-root
