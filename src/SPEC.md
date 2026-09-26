@@ -77,3 +77,4 @@ T153|x|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single com
 id|date|cause|fix
 B1|2026-09-26|`Report::push` keyed (file,line,col,rule), `warn` (code,file): ties w/ differing rendered fields kept arrival order ∴ parallel scan (V95) → bytes vary run to run|key extended to ∀ rendered field (`report_order`, + message); V11 ⊇ ties
 B2|2026-09-26|file marked scanned before its host parsed it ∴ parse error (syntax, ⊥ UTF-8) → its `[[allow]]` all `stale-allow`|staleness ⊥ judged ∀ file ⊥ parsed
+B3|2026-09-26|whole-tree run judged ∀ `[[allow]]` ∴ allow for file ⊥ scanned (host compiled out, excluded) → `stale-allow`|judge allow only ∀ scanned file \| ⊥ candidate
