@@ -1041,6 +1041,33 @@ mod nix_shell {
         );
     }
 
+    /// The one violation's `why`, after asserting it is a xenolith one
+    /// on `line`.
+    fn flagged_at(text: &str, line: usize) -> String {
+        let report = check_nix(text, &Config::default());
+        assert_eq!(
+            rules(&report),
+            vec![("service.nix".to_owned(), line, Rule::Xenolith)],
+            "{text}"
+        );
+        report
+            .violations()
+            .first()
+            .map(|v| v.why.clone())
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn a_concatenated_shell_hook_is_flagged_in_its_literal() {
+        // `languages/nix:T155`: the literal half of `''…'' + extra`.
+        let why = flagged_at(
+            "{ pkgs, extra }:\npkgs.mkShell {\n  shellHook = ''\n    [ -f x ] || cmd\n  ''\n  \
+             + extra;\n}\n",
+            3,
+        );
+        assert!(why.contains("and-or"), "{why}");
+    }
+
     #[test]
     fn an_allowed_nix_script_is_clean_and_a_stale_allow_is_flagged() {
         let raw = "\n    make && make install\n  ";

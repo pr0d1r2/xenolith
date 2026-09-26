@@ -1,0 +1,3 @@
+# `languages/nix:T155` is about SINK position: a concatenation bound by
+# `let`, under a key that is not a sink, or handed to a function that is
+# not a builder is data, however shell-shaped its operands are.

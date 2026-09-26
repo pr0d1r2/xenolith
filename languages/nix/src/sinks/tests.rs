@@ -7,12 +7,13 @@
 //! sits at, the one context in which `text` is shell, and the dotted name
 //! a report points back to (`languages/api/src/site:V43`).
 
-use rnix::{Root, SyntaxKind, SyntaxNode};
+use rnix::{Root, SyntaxKind, SyntaxNode, TextRange};
 use xenolith_lang_api::GuestEnv;
 
 use super::{
     Sink, TEXT_BUILDER, apply_chain, attr_name, attr_segments, attr_sink, attr_value_sink,
     call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, sink_path,
+    sink_value,
 };
 
 /// The tree for `src`, or a panic naming the parse errors. The workspace
@@ -382,6 +383,106 @@ fn a_string_with_no_sink_context_is_not_classified() {
     assert_eq!(sink_of(r#""x""#, r#""x""#), None);
     assert_eq!(sink_of(r#"let a = "x"; in a"#, r#""x""#), None);
     assert_eq!(sink_of(r#"{ script = ("x"); }"#, r#""x""#), None);
+}
+
+// --- sink_value (`languages/nix:T155`) ---------------------------------
+
+/// A node by kind and range: each helper here parses its own tree, and
+/// nodes of two trees never compare equal.
+fn at(node: &SyntaxNode) -> (SyntaxKind, TextRange) {
+    (node.kind(), node.text_range())
+}
+
+/// The node standing in sink position for the string `text`.
+fn value_of(src: &str, text: &str) -> (SyntaxKind, TextRange) {
+    at(&sink_value(&string(src, text)))
+}
+
+/// The kind of node standing in sink position for the string `text`.
+fn value_kind(src: &str, text: &str) -> SyntaxKind {
+    value_of(src, text).0
+}
+
+#[test]
+fn a_lone_string_stands_in_its_own_sink_position() {
+    let src = "{ a = ''x''; }";
+    assert_eq!(value_of(src, "''x''"), at(&string(src, "''x''")));
+    // Parentheses around a lone string are not climbed: `script = ("x")`
+    // stays what it was before concatenation was understood.
+    assert_eq!(value_kind("f (''x'')", "''x''"), SyntaxKind::NODE_STRING);
+}
+
+#[test]
+fn every_operand_of_a_concatenation_stands_where_the_whole_does() {
+    let src = r#"{ a = ''x'' + b + "y"; }"#;
+    let whole = at(&first(src, SyntaxKind::NODE_BIN_OP));
+    assert_eq!(value_of(src, "''x''"), whole);
+    assert_eq!(value_of(src, r#""y""#), whole);
+}
+
+#[test]
+fn parentheses_inside_and_around_a_concatenation_are_climbed() {
+    let src = "f (''x'' + b)";
+    assert_eq!(
+        value_of(src, "''x''"),
+        at(&first(src, SyntaxKind::NODE_PAREN))
+    );
+    // `a + (b + ''x'')`: the inner chain is itself an operand.
+    let src = "{ v = a + (b + ''x''); }";
+    assert_eq!(
+        value_of(src, "''x''"),
+        at(&first(src, SyntaxKind::NODE_BIN_OP))
+    );
+}
+
+#[test]
+fn only_plus_concatenates() {
+    for src in [
+        "{ a = ''x'' - b; }",
+        "{ a = ''x'' == b; }",
+        "{ a = ''x'' // b; }",
+        "{ a = ''x'' ++ b; }",
+    ] {
+        assert_eq!(value_kind(src, "''x''"), SyntaxKind::NODE_STRING, "{src}");
+    }
+}
+
+#[test]
+fn a_concatenation_inside_a_hole_stops_at_the_hole() {
+    let src = r#"{ a = "${''x'' + b}"; }"#;
+    assert_eq!(value_kind(src, "''x''"), SyntaxKind::NODE_BIN_OP);
+    assert_eq!(
+        sink_value(&string(src, "''x''")).parent().map(|p| p.kind()),
+        Some(SyntaxKind::NODE_INTERPOL)
+    );
+}
+
+#[test]
+fn every_string_operand_of_a_concatenated_sink_value_is_in_the_sink() {
+    let src = r#"{ shellHook = ''a'' + x + "b"; }"#;
+    assert_eq!(sink_of(src, "''a''"), Some(Sink::ShellHook));
+    assert_eq!(sink_of(src, r#""b""#), Some(Sink::ShellHook));
+    let src = r#"writeShellScript "n" ("a" + "b")"#;
+    assert_eq!(sink_of(src, r#""n""#), None);
+    assert_eq!(sink_of(src, r#""a""#), Some(Sink::WriteShellScript));
+    assert_eq!(sink_of(src, r#""b""#), Some(Sink::WriteShellScript));
+    let src = r#"{ ExecStartPre = [ ("a" + "b") ]; }"#;
+    assert_eq!(sink_of(src, r#""b""#), Some(Sink::ExecStart));
+}
+
+#[test]
+fn a_concatenation_outside_sink_position_is_data() {
+    assert_eq!(sink_of("{ description = ''a'' + ''b''; }", "''a''"), None);
+    assert_eq!(
+        sink_of("let shellHook = ''a'' + ''b''; in shellHook", "''b''"),
+        None
+    );
+    assert_eq!(sink_of(r#"{ shellHook = f ("a" + "b"); }"#, r#""a""#), None);
+    assert_eq!(
+        sink_of(r#"{ shellHook = "${"a" + "b"}"; }"#, r#""a""#),
+        None
+    );
+    assert_eq!(sink_of(r#"{ shellHook = "a" - "b"; }"#, r#""a""#), None);
 }
 
 // --- is_function_of_parent_apply ---------------------------------------
