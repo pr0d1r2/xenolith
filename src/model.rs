@@ -165,6 +165,29 @@ impl Violation {
         (&self.file, self.line, self.col, self.rule)
     }
 
+    /// The report order: [`Violation::sort_key`], then every other field
+    /// the output renders (`src:B1`).
+    ///
+    /// The key alone is not a TOTAL order. Two findings can share a
+    /// position and a rule and still differ in `why`, `sink` or a
+    /// direction, and a tie left to arrival order is a race under the
+    /// parallel scan (`src:V95`) -- different bytes for the same tree
+    /// (`src:V11`). Findings that tie here render identically, so their
+    /// relative order cannot show.
+    fn report_order(&self, other: &Violation) -> Ordering {
+        fn directions(v: &Violation) -> impl Iterator<Item = (Fix, &str)> {
+            v.directions.iter().map(|d| (d.kind, d.action.as_str()))
+        }
+        self.sort_key()
+            .cmp(&other.sort_key())
+            .then_with(|| self.host.cmp(&other.host))
+            .then_with(|| self.guest.cmp(&other.guest))
+            .then_with(|| self.sink.cmp(&other.sink))
+            .then_with(|| delim_kind_name(&self.site).cmp(delim_kind_name(&other.site)))
+            .then_with(|| self.why.cmp(&other.why))
+            .then_with(|| directions(self).cmp(directions(other)))
+    }
+
     fn to_value(&self) -> Value {
         json!({
             "rule": self.rule.as_str(),
@@ -242,13 +265,15 @@ impl Report {
     pub fn push(&mut self, violation: Violation) {
         let at = self
             .violations
-            .partition_point(|existing| existing.sort_key() < violation.sort_key());
+            .partition_point(|existing| existing.report_order(&violation) == Ordering::Less);
         self.violations.insert(at, violation);
     }
 
-    /// Add a warning, keeping the list sorted by code then file.
+    /// Add a warning, keeping the list sorted by code, then file, then
+    /// message -- the message too, so two warnings about one file never
+    /// fall back on arrival order (`src:B1`).
     pub fn warn(&mut self, warning: Warning) {
-        let key = |w: &Warning| (w.code.clone(), w.file.clone());
+        let key = |w: &Warning| (w.code.clone(), w.file.clone(), w.message.clone());
         let at = self
             .warnings
             .partition_point(|existing| key(existing).cmp(&key(&warning)) == Ordering::Less);

@@ -68,8 +68,9 @@ T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 T119|.|benchmark harness + recorded budget file|V120,V95
 T127|.|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
-T142|.|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
+T142|x|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
 
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|`Report::push` keyed (file,line,col,rule), `warn` (code,file): ties w/ differing rendered fields kept arrival order ∴ parallel scan (V95) → bytes vary run to run|key extended to ∀ rendered field (`report_order`, + message); V11 ⊇ ties
