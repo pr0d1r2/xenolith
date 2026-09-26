@@ -569,6 +569,49 @@ fn an_excluded_file_is_never_read() {
 }
 
 #[test]
+fn an_absolute_or_dotted_path_under_the_root_is_named_repo_relative() {
+    // Allow paths, exclude globs and nested configs all speak
+    // repo-relative; a path named `/abs/root/sub/a.fake` or `./a.fake` is
+    // the same file and must meet them.
+    let sandbox = Sandbox::new();
+    let body = "make && make install";
+    let sub_toml = format!(
+        "version = 1\n[[allow]]\npath = \"a.fake\"\nsink = \"build\"\nhash = \"{}\"\n\
+         reason = \"fixture\"\n",
+        body_hash(body)
+    );
+    let root = tree(
+        &sandbox,
+        &[
+            ("sub/a.fake", "build=shell: make && make install\n"),
+            ("sub/xenolith.toml", &sub_toml),
+            ("gen/b.fake", SCRIPT),
+        ],
+    );
+    let skip = config("version = 1\n[[exclude]]\nglob = \"gen\"\nreason = \"generated\"\n");
+    let abs = root.join("sub/a.fake").display().to_string();
+    let abs_gen = root.join("gen/b.fake").display().to_string();
+    for paths in [vec![abs.as_str(), abs_gen.as_str()], vec!["./sub/a.fake"]] {
+        let report = run(&root, &skip, &paths);
+        assert_eq!(report, Report::new(), "{paths:?}");
+    }
+}
+
+#[test]
+fn an_absolute_path_outside_the_root_is_refused() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", SCRIPT)]);
+    let other = sandbox.plain("elsewhere");
+    write(&other, "b.fake", SCRIPT);
+    let outside = other.join("b.fake").display().to_string();
+    let e = refused(&root, &Config::default(), &[&outside], &fakes());
+    assert_eq!(e.exit_code(), 2);
+    let text = e.to_string();
+    assert!(text.contains(&outside), "{text}");
+    assert!(text.contains("outside"), "{text}");
+}
+
+#[test]
 fn an_unclaimed_file_is_neither_scanned_nor_reported_by_default() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[("notes.md", "build=shell: a && b\n")]);
