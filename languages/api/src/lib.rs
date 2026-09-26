@@ -335,11 +335,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// A language that can ENCLOSE foreign code.
 ///
-/// Every function is required. A capability a language lacks is a missing
-/// impl, never a default method returning an empty vector
+/// Every function but one is required. A capability a language lacks is
+/// a missing impl, never a default method returning an empty vector
 /// (`languages/api:V37`): an empty result reads as "nothing here", and a
 /// host that silently finds no sites is indistinguishable from a clean
-/// file.
+/// file. The one default, [`Host::guest_by_shebang`], answers a yes/no
+/// question whose `false` is the TRUE answer for every host that never
+/// reads a shebang to pick a guest.
 ///
 /// Implementations are pure (`languages/api:V36`) and return `Vec`s sorted
 /// by span, so the engines can merge results from a parallel scan and
@@ -406,6 +408,19 @@ pub trait Host {
 
     /// Fixers for the same.
     fn fixers(&self) -> Vec<LintCmd>;
+
+    /// Whether `site`, one of [`Host::sites`] over `src`, has its guest
+    /// named by a shebang in its body rather than decided by its sink
+    /// (`languages/api` §I) -- nix's shebang-led attribute value
+    /// (`languages/nix:T157`). The engine needs to know: a guest the
+    /// build lacks is a warning when a shebang named it, and follows
+    /// `[langs] missing_guest` when the sink did (`src:V42`).
+    ///
+    /// `false` unless a host overrides it, which is the answer for every
+    /// host that never picks a guest by shebang.
+    fn guest_by_shebang(&self, _src: &str, _site: &Site) -> bool {
+        false
+    }
 }
 
 /// A language that can BE enclosed.

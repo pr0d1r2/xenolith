@@ -47,6 +47,29 @@ fn sites(src: &str) -> Vec<Site> {
         .unwrap_or_else(|e| panic!("{src:?} did not parse: {e}"))
 }
 
+// --- guest_by_shebang ---------------------------------------------------
+
+#[test]
+fn only_a_site_its_shebang_made_is_guest_by_shebang() {
+    // `languages/nix:T157` against a named sink: `script` is shell by its
+    // sink even when its body starts with `#!`.
+    let src = "{\n  environment.etc.\"x\".text = ''\n    #!/usr/bin/env python3\n    \
+               print(1)\n  '';\n  systemd.services.a.script = ''\n    #!/bin/sh\n    \
+               a && b\n  '';\n}\n";
+    let found = sites(src);
+    let by_shebang: Vec<(LangId, bool)> = found
+        .iter()
+        .map(|site| (site.guest, NixHost.guest_by_shebang(src, site)))
+        .collect();
+    assert_eq!(
+        by_shebang,
+        vec![(LangId::Python, true), (LangId::Shell, false)]
+    );
+    // Source that no longer parses has no shebang site to point at.
+    let first = found.first().unwrap_or_else(|| panic!("two sites"));
+    assert!(!NixHost.guest_by_shebang("{ broken", first));
+}
+
 // --- span --------------------------------------------------------------
 
 #[test]

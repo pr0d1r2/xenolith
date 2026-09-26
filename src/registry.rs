@@ -85,6 +85,29 @@ pub fn feature(id: LangId) -> String {
     format!("lang-{id}")
 }
 
+/// Every language with a crate, and so a `lang-<id>` feature, whether
+/// or not this build turned it on. Names, not `cfg`s: the one list of
+/// which features EXIST, kept equal to `Cargo.toml`'s `[features]` by a
+/// test, so a message never sends anyone after a feature no crate
+/// provides (`src:V42`, `src:B8`).
+const FEATURED: &[LangId] = &[LangId::Nix, LangId::Pkl, LangId::Shell];
+
+/// [`feature`] for `id` when that feature exists, else `None`: no crate
+/// provides the language yet, and no build can have it.
+#[must_use]
+pub fn existing_feature(id: LangId) -> Option<String> {
+    FEATURED.contains(&id).then(|| feature(id))
+}
+
+/// How a message says a build lacks `id`: the feature to rebuild with,
+/// or that no build supports it yet.
+fn lacking(id: LangId) -> String {
+    match existing_feature(id) {
+        Some(feature) => format!("this build has no {id} guest: rebuild with feature `{feature}`"),
+        None => format!("xenolith has no support for {id} in this build: no crate provides it yet"),
+    }
+}
+
 /// A site's guest this build does not carry (`src:V42`). Exit 2 under
 /// the default `[langs] missing_guest = "error"`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -110,11 +133,10 @@ impl fmt::Display for MissingGuest {
         }
         write!(
             f,
-            "a site holds {guest} code, but this build has no {guest} guest: rebuild \
-             with feature `{feature}`, or set `[langs] missing_guest` to `warn` or \
+            "a site holds {} code, but {}; or set `[langs] missing_guest` to `warn` or \
              `ignore` (src:V42)",
-            guest = self.guest,
-            feature = feature(self.guest),
+            self.guest,
+            lacking(self.guest),
         )
     }
 }
@@ -133,6 +155,24 @@ pub fn require_guest(id: LangId) -> Result<&'static dyn Guest, MissingGuest> {
         guest: id,
         file: None,
     })
+}
+
+/// The warning for a site whose guest a SHEBANG named -- `interpreter`,
+/// when the body's `#!` line gave one -- and this build lacks: always a
+/// warning, whatever `[langs] missing_guest` says (`src:V42`). The line
+/// is the file saying what it is, and a language xenolith cannot check
+/// yet must not stop the run or hide the rest of the report.
+#[must_use]
+pub fn missing_shebang_guest(id: LangId, file: &Path, interpreter: Option<&str>) -> Warning {
+    let named = interpreter.map_or_else(String::new, |i| format!(" (`{i}`)"));
+    Warning {
+        code: MISSING_GUEST.to_owned(),
+        file: Some(file.to_path_buf()),
+        message: format!(
+            "a shebang{named} names {id}, but {}; the site was not checked (src:V42)",
+            lacking(id)
+        ),
+    }
 }
 
 /// `[langs] missing_guest` applied to a site in `file` whose guest `id`
@@ -158,9 +198,8 @@ pub fn on_missing_guest(
             code: MISSING_GUEST.to_owned(),
             file: Some(file.to_path_buf()),
             message: format!(
-                "a site holds {id} code, but this build has no {id} guest (feature \
-                 `{}`); the site was not checked (src:V42)",
-                feature(id)
+                "a site holds {id} code, but {}; the site was not checked (src:V42)",
+                lacking(id)
             ),
         })),
         Policy::Ignore => Ok(None),

@@ -12,7 +12,10 @@ use std::path::{Path, PathBuf};
 
 use xenolith_lang_api::{Guest, Host, LangId};
 
-use super::{compiled_in, feature, guest, guests, host, hosts, require_guest};
+use super::{
+    compiled_in, existing_feature, feature, guest, guests, host, hosts, missing_shebang_guest,
+    require_guest,
+};
 
 /// What the build says, stated independently of the code under test.
 fn built_with(id: LangId) -> bool {
@@ -112,16 +115,57 @@ fn a_compiled_in_guest_is_handed_back() {
 }
 
 #[test]
-fn a_compiled_out_guest_is_refused_naming_its_feature_with_exit_two() {
-    // Sql has no crate in any build, so this runs everywhere.
+fn a_guest_no_crate_provides_is_refused_with_exit_two_naming_no_feature() {
+    // Sql has no crate in any build, so this runs everywhere -- and
+    // there is no `lang-sql` to rebuild with (`src:B8`).
     let Err(missing) = require_guest(LangId::Sql) else {
         panic!("sql is never compiled in");
     };
     assert_eq!(missing.guest, LangId::Sql);
     assert_eq!(missing.exit_code(), 2);
     let text = missing.to_string();
-    assert!(text.contains("`lang-sql`"), "{text}");
+    assert!(!text.contains("lang-sql"), "{text}");
+    assert!(text.contains("no support for sql"), "{text}");
     assert!(text.contains("src:V42"), "{text}");
+}
+
+#[test]
+fn a_feature_exists_exactly_for_the_languages_cargo_toml_declares() {
+    // The root manifest's `lang-*` features, read as text: the list the
+    // messages trust must not drift from the one cargo builds.
+    let manifest = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
+        .unwrap_or_else(|e| panic!("read Cargo.toml: {e}"));
+    let declared: Vec<String> = manifest
+        .lines()
+        .filter_map(|line| line.split_once(" = ").map(|(key, _)| key.trim()))
+        .filter(|key| key.starts_with("lang-"))
+        .map(str::to_owned)
+        .collect();
+    let existing: Vec<String> = LangId::ALL
+        .iter()
+        .filter_map(|id| existing_feature(*id))
+        .collect();
+    assert_eq!(existing, declared);
+}
+
+#[test]
+fn a_shebang_named_guest_is_a_warning_naming_the_interpreter() {
+    let python = missing_shebang_guest(LangId::Python, Path::new("m.nix"), Some("python3"));
+    assert_eq!(python.code, "missing-guest");
+    assert_eq!(python.file.as_deref(), Some(Path::new("m.nix")));
+    assert!(python.message.contains("`python3`"), "{}", python.message);
+    assert!(
+        python.message.contains("no support for python"),
+        "{}",
+        python.message
+    );
+    assert!(
+        !python.message.contains("lang-python"),
+        "{}",
+        python.message
+    );
+    let shell = missing_shebang_guest(LangId::Shell, Path::new("m.nix"), None);
+    assert!(shell.message.contains("`lang-shell`"), "{}", shell.message);
 }
 
 /// The nix-only build `src:T46` names: a nix host finding shell, with no
@@ -213,14 +257,14 @@ mod missing_guest {
 
     #[test]
     fn error_refuses_with_exit_two_naming_the_feature_and_the_file() {
-        let Err(missing) = on_missing_guest(Policy::Error, LangId::Sql, Path::new("db/q.nix"))
+        let Err(missing) = on_missing_guest(Policy::Error, LangId::Shell, Path::new("db/q.nix"))
         else {
             panic!("error refuses");
         };
         assert_eq!(missing.exit_code(), 2);
         let text = missing.to_string();
         assert!(text.starts_with("db/q.nix: "), "{text}");
-        assert!(text.contains("`lang-sql`"), "{text}");
+        assert!(text.contains("`lang-shell`"), "{text}");
     }
 
     #[test]
@@ -232,11 +276,14 @@ mod missing_guest {
         assert_eq!(warning.code, MISSING_GUEST);
         assert_eq!(warning.code, "missing-guest");
         assert_eq!(warning.file.as_deref(), Some(Path::new("db/q.nix")));
+        // Sql has no crate: the warning says so rather than name a
+        // feature nobody can turn on (`src:B8`).
         assert!(
-            warning.message.contains("`lang-sql`"),
+            warning.message.contains("no support for sql"),
             "{}",
             warning.message
         );
+        assert!(!warning.message.contains("lang-sql"), "{}", warning.message);
     }
 
     #[test]

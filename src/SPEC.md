@@ -82,3 +82,4 @@ B4|2026-09-26|`repo_name` kept absolute path absolute ∴ ⊥ met allow, exclude
 B5|2026-09-26|engine ⊥ called `stale_excludes` ∴ stale exclude ⊥ reported (`src/config:V79`)|whole-tree run: warning `stale-exclude` ∀ layer; violation shape open (V1)
 B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:T22` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until T22
 B7|2026-09-26|direction command printed path unquoted ∴ space \| quote → pastes as ≠ words|path quoted as 1 POSIX shell word
+B8|2026-09-26|`languages/nix:T157` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)

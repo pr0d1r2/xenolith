@@ -122,6 +122,22 @@ impl Host for NixHost {
             cmd(&["nixfmt"], Format::Raw),
         ]
     }
+
+    /// Whether the string at `site` is a site only by its shebang
+    /// (`languages/nix:T157`): the string starting at the site's opening
+    /// quote, classified again. A named sink whose body happens to start
+    /// with `#!` is the sink's, and says no.
+    fn guest_by_shebang(&self, src: &str, site: &Site) -> bool {
+        let Ok(root) = parse(src) else {
+            return false;
+        };
+        let at = site.delim.open.start;
+        root.descendants()
+            .filter(|node| node.kind() == SyntaxKind::NODE_STRING)
+            .find(|string| usize::from(string.text_range().start()) == at)
+            .and_then(|string| sinks::classify(&string))
+            .is_some_and(|sink| matches!(sink, sinks::Sink::Shebang { .. }))
+    }
 }
 
 /// A command taking its file as the last argument.

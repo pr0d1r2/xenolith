@@ -35,7 +35,7 @@ use std::io::Read as _;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site};
+use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site, shebang};
 
 use crate::cli::EXIT_USAGE;
 use crate::config::tree::file_in;
@@ -368,6 +368,22 @@ fn judge_site(
         at: at.clone(),
     });
     let Some(guest) = langs.guests.iter().find(|g| g.id() == site.guest) else {
+        if host.guest_by_shebang(src, site) {
+            // The file's own `#!` line named a language this build
+            // cannot check: said once, never a refusal (`src:V42`,
+            // `src:B8`), and the rest of the report stands.
+            let interpreter = host
+                .unescape(&site.delim, &guest_text(src, site))
+                .ok()
+                .and_then(|body| shebang::parse(&body))
+                .map(|line| line.resolved_interpreter().to_owned());
+            report.warn(registry::missing_shebang_guest(
+                site.guest,
+                Path::new(name),
+                interpreter.as_deref(),
+            ));
+            return Ok(());
+        }
         let warning =
             registry::on_missing_guest(config.langs.missing_guest, site.guest, Path::new(name))?;
         if let Some(warning) = warning {

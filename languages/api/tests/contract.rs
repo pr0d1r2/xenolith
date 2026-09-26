@@ -99,6 +99,15 @@ fn traits_are_object_safe_so_the_registry_can_hold_them() {
 }
 
 #[test]
+fn a_host_that_never_reads_a_shebang_says_so_by_default() {
+    // `languages/api` §I: the one default method, answered through the
+    // object like the rest (`src:V42` asks it of every host).
+    let host: &dyn Host = &FakeHost;
+    let site = fake_site();
+    assert!(!host.guest_by_shebang("{ script = ''#!/bin/sh\n''; }", &site));
+}
+
+#[test]
 fn a_site_carries_what_the_host_found() {
     let site = fake_site();
     assert_eq!(site.guest, LangId::Shell);
