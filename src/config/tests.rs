@@ -382,8 +382,18 @@ fn a_langs_value_outside_its_choices_is_refused_listing_them() {
 /// §I spells them. Written out here rather than read from the module, so
 /// a name dropped from the code is a failing test, not a shorter loop.
 const CONSTRUCTS: &[&str] = &[
-    "pipe", "and", "or", "seq", "subst", "backtick", "redirect", "if", "for", "while", "case",
-    "heredoc", "subshell", "function",
+    "and-or",
+    "case",
+    "command-substitution",
+    "for",
+    "function-definition",
+    "heredoc",
+    "if",
+    "pipeline",
+    "redirect",
+    "sequence",
+    "subshell",
+    "while",
 ];
 
 #[test]
@@ -409,11 +419,23 @@ fn every_shell_construct_in_the_schema_is_accepted() {
 }
 
 #[test]
+fn the_old_spec_names_are_refused_the_classifier_never_emits_them() {
+    // `src/config:B1`: `pipe`, `and`, `subst` & co. were §I names no
+    // classifier produces, so an `allow` holding one tolerated nothing.
+    for stale in ["pipe", "and", "or", "seq", "subst", "backtick", "function"] {
+        let e = err(&format!(
+            "version = 1\n[threshold.shell]\nallow = [\"{stale}\"]\n"
+        ));
+        assert_eq!(e.key, "threshold.shell.allow[0]", "{stale}");
+    }
+}
+
+#[test]
 fn an_unknown_shell_construct_is_refused_naming_it_and_the_choices() {
     // Fixture "unknown construct exits 2": the CLI maps a `ConfigError`
     // to exit 2 (`src/cli` §I). Accepting the name would tolerate
     // nothing while the user believes `loop` is tolerated.
-    let e = err("version = 1\n[threshold.shell]\nallow = [\"pipe\", \"loop\"]\n");
+    let e = err("version = 1\n[threshold.shell]\nallow = [\"pipeline\", \"loop\"]\n");
     assert_eq!(e.key, "threshold.shell.allow[1]");
     assert!(e.message.contains("`loop`"), "{e}");
     for construct in CONSTRUCTS {
@@ -560,8 +582,8 @@ fn override_for(entry: &super::defaults::Entry) -> Option<(String, Effective)> {
         Setting::Int(n) => Some(((n + 1).to_string(), Effective::Int(n + 1))),
         Setting::Bool(b) => Some(((!b).to_string(), Effective::Bool(!b))),
         Setting::List(_) => Some((
-            "[\"pipe\"]".to_owned(),
-            Effective::List(vec!["pipe".to_owned()]),
+            "[\"pipeline\"]".to_owned(),
+            Effective::List(vec!["pipeline".to_owned()]),
         )),
         Setting::Str(default) => {
             let value = entry
