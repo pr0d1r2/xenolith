@@ -41,8 +41,8 @@ fn guest_ids() -> Vec<LangId> {
 
 #[test]
 fn hosts_are_exactly_the_compiled_in_hosts() {
-    // nix and pkl are hosts; shell is a guest only, so far.
-    let expected: Vec<LangId> = [LangId::Nix, LangId::Pkl]
+    // nix, pkl and shell are hosts; shell is a guest as well.
+    let expected: Vec<LangId> = [LangId::Nix, LangId::Pkl, LangId::Shell]
         .into_iter()
         .filter(|id| built_with(*id))
         .collect();
@@ -56,6 +56,32 @@ fn guests_are_exactly_the_compiled_in_guests() {
         .filter(|id| built_with(*id))
         .collect();
     assert_eq!(guest_ids(), expected);
+}
+
+/// The shell HOST is the one the registry hands out for a shell file:
+/// it claims `.sh` and a shell shebang, and leaves `.bats` to the bats
+/// host (`languages/shell:V137`), so an engine iterating [`hosts`]
+/// scans this repo's scripts at all.
+#[cfg(feature = "lang-shell")]
+#[test]
+fn the_shell_host_claims_scripts_and_not_bats_files() {
+    let Some(shell) = host(LangId::Shell) else {
+        panic!("lang-shell is on in this build");
+    };
+    let claiming = |path: &str, head: &str| {
+        hosts()
+            .iter()
+            .filter(|h| h.claims(Path::new(path), head))
+            .map(|h| h.id())
+            .collect::<Vec<_>>()
+    };
+    assert!(shell.claims(Path::new("scripts/a.sh"), "#!/usr/bin/env bash"));
+    assert_eq!(
+        claiming("scripts/a.sh", "#!/usr/bin/env bash"),
+        [LangId::Shell]
+    );
+    assert_eq!(claiming("bin/run", "#!/bin/sh"), [LangId::Shell]);
+    assert!(!claiming("tests/a.bats", "#!/usr/bin/env bats").contains(&LangId::Shell));
 }
 
 #[test]
