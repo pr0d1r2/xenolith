@@ -70,6 +70,18 @@ const ZSH_OPTIONS: &[(&str, &str)] = &[
 /// failed command, and the failure surfaces somewhere else entirely.
 const DEFAULT_STRICT: &str = "set -euo pipefail";
 
+/// shfmt as a check, with NO parser or printer flag
+/// (`languages/shell:B5`).
+///
+/// Any such flag -- `--language-dialect` included -- makes shfmt ignore
+/// `.editorconfig`, and a repo's indent then loses to shfmt's tabs. The
+/// dialect needs no flag: shfmt reads it from the shebang, which every
+/// extract carries (`languages/shell:V51`).
+const SHFMT_DIFF: &[&str] = &["shfmt", "--diff"];
+
+/// shfmt as a fixer, flag-free for the same reason as [`SHFMT_DIFF`].
+const SHFMT_WRITE: &[&str] = &["shfmt", "--write"];
+
 impl ShellGuest {
     /// How to run a file of shell in a KNOWN dialect.
     ///
@@ -160,17 +172,14 @@ impl Guest for ShellGuest {
 
     fn checks(&self, env: &GuestEnv) -> Vec<LintCmd> {
         match family(env) {
-            Family::Bash => vec![
-                shellcheck("bash"),
-                raw(&["shfmt", "--diff", "--language-dialect", "bash"]),
-            ],
+            Family::Bash => vec![shellcheck("bash"), raw(SHFMT_DIFF)],
             Family::Posix => vec![
                 shellcheck("sh"),
                 // Bashisms in a file whose shebang says sh are the
                 // failure that only appears on the machine where /bin/sh
                 // is dash.
                 raw(&["checkbashisms"]),
-                raw(&["shfmt", "--diff", "--language-dialect", "posix"]),
+                raw(SHFMT_DIFF),
             ],
             // shellcheck does not read zsh at all, so offering it would
             // report syntax errors about a language it is not parsing.
@@ -181,8 +190,7 @@ impl Guest for ShellGuest {
 
     fn fixers(&self, env: &GuestEnv) -> Vec<LintCmd> {
         match family(env) {
-            Family::Bash => vec![raw(&["shfmt", "--write", "--language-dialect", "bash"])],
-            Family::Posix => vec![raw(&["shfmt", "--write", "--language-dialect", "posix"])],
+            Family::Posix | Family::Bash => vec![raw(SHFMT_WRITE)],
             // No formatter reads zsh. An empty list here is a statement,
             // not a gap: `xnl lint --fix` has nothing to run, and says so
             // rather than pretending it fixed something.
