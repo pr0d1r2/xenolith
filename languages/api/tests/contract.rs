@@ -245,6 +245,21 @@ impl Guest for FakeGuest {
 }
 
 #[test]
+fn a_guest_without_a_construct_vocabulary_says_so_rather_than_listing_none() {
+    // `languages/api:V37`: the default is a refusal naming the operation,
+    // never `Ok(vec![])`, which would read as "trivial" and keep a script
+    // inline.
+    let guest: &dyn Guest = &FakeGuest;
+    assert_eq!(
+        guest.constructs("a\nb"),
+        Err(Error::Unsupported {
+            lang: LangId::Shell,
+            operation: "constructs",
+        })
+    );
+}
+
+#[test]
 fn a_guest_states_what_goes_above_an_extract_and_whether_it_runs() {
     // `languages/api/src/site:T48`: the extract file is
     // `shebang::wrap(body, guest.prelude(env))`, so the prelude is the

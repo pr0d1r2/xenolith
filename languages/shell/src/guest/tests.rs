@@ -273,6 +273,45 @@ fn trivial_passes_the_classifier_error_through() {
     assert!(ShellGuest.trivial("a |").is_err());
 }
 
+#[test]
+fn constructs_are_the_classifier_names_sorted() {
+    // The names `[threshold.shell] allow` matches (`src/config` §I,
+    // `src/config:B1`): one vocabulary, the classifier's.
+    assert_eq!(
+        ShellGuest.constructs("make && make install"),
+        Ok(vec!["and-or"])
+    );
+    assert_eq!(
+        ShellGuest.constructs("b | c\na"),
+        Ok(vec!["pipeline", "sequence"])
+    );
+}
+
+#[test]
+fn constructs_are_empty_exactly_when_trivial() {
+    for body in [
+        "",
+        "echo hi",
+        "FOO=1 make -C x",
+        "a; b",
+        "x > y",
+        "for i in 1; do :; done",
+    ] {
+        let names = ShellGuest
+            .constructs(body)
+            .unwrap_or_else(|e| panic!("{body}: {e}"));
+        assert_eq!(Ok(names.is_empty()), ShellGuest.trivial(body), "{body:?}");
+    }
+}
+
+#[test]
+fn constructs_pass_the_classifier_error_through() {
+    assert!(matches!(
+        ShellGuest.constructs("a |"),
+        Err(xenolith_lang_api::Error::Parse { .. })
+    ));
+}
+
 // --- checks / fixers / the LintCmd builders -----------------------------
 
 #[test]

@@ -424,6 +424,31 @@ pub trait Guest {
     /// [`Error::Parse`] when `body` does not parse as this language.
     fn trivial(&self, body: &str) -> Result<bool>;
 
+    /// The named constructs that make `body` more than trivial, sorted
+    /// and deduplicated, in the vocabulary `[threshold.<guest>] allow`
+    /// matches (`src/config` §I) -- for shell, `pipeline`, `and-or`,
+    /// `sequence` and the rest (`languages/shell:V3`). Empty exactly
+    /// when [`Guest::trivial`] is true.
+    ///
+    /// The engine needs the NAMES, not only the verdict, because a
+    /// threshold relaxes per construct (`src/config:V55`): `allow =
+    /// ["pipeline"]` keeps `a | b` inline and still flags `a && b`.
+    ///
+    /// The default is [`Error::Unsupported`], never an empty list
+    /// (`languages/api:V37`): a guest with no construct vocabulary is
+    /// judged by `[threshold.<guest>] max_lines` / `max_bytes` instead,
+    /// and an empty list would read as "trivial" to a caller that did not
+    /// check.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Parse`] when `body` does not parse as this language, and
+    /// [`Error::Unsupported`] when this guest names no constructs.
+    fn constructs(&self, body: &str) -> Result<Vec<&'static str>> {
+        let _ = body;
+        Err(Error::unsupported(self.id(), "constructs"))
+    }
+
     /// What goes above the body in an extract file, given the dialect and
     /// options in force at the site.
     ///
