@@ -1057,6 +1057,31 @@ mod nix_shell {
             .unwrap_or_default()
     }
 
+    fn clean(text: &str) {
+        let report = check_nix(text, &Config::default());
+        assert!(report.violations().is_empty(), "{text}\n{report:?}");
+    }
+
+    #[test]
+    fn a_three_command_pre_check_is_flagged() {
+        // `languages/nix:T156`: a phase hook is shell like a phase.
+        let why = flagged_at(
+            "{ stdenv }:\nstdenv.mkDerivation {\n  name = \"d\";\n  preCheck = ''\n    \
+             export HOME=$TMPDIR\n    mkdir -p \"$HOME/.cache\"\n    patchShebangs tests\n  \
+             '';\n}\n",
+            4,
+        );
+        assert!(why.contains("sequence"), "{why}");
+    }
+
+    #[test]
+    fn a_single_command_post_install_is_clean() {
+        clean(
+            "{ stdenv }:\nstdenv.mkDerivation {\n  name = \"d\";\n  \
+             postInstall = \"installManPage d.1\";\n}\n",
+        );
+    }
+
     #[test]
     fn a_concatenated_shell_hook_is_flagged_in_its_literal() {
         // `languages/nix:T155`: the literal half of `''…'' + extra`.

@@ -105,8 +105,50 @@ fn an_exec_line_establishes_no_dialect() {
 
 #[test]
 fn service_attributes_are_service_scripts() {
-    for name in ["script", "preStart", "postStart"] {
+    // `preStop` / `postStop` go through the same NixOS job script as
+    // `preStart` (`languages/nix:T156`).
+    for name in ["script", "preStart", "postStart", "preStop", "postStop"] {
         assert_eq!(attr_sink(name), Some(Sink::ServiceScript), "{name}");
+    }
+}
+
+#[test]
+fn phase_hooks_are_stdenv() {
+    // `languages/nix:T156`: stdenv runs every `pre<Phase>` / `post<Phase>`
+    // hook string through `runHook`, under the same options as a phase.
+    for name in [
+        "preCheck",
+        "postInstall",
+        "preBuild",
+        "postPatch",
+        "preConfigure",
+        "postFixup",
+        "preInstallCheck",
+        "postUnpack",
+    ] {
+        assert_eq!(attr_sink(name), Some(Sink::Stdenv), "{name}");
+    }
+}
+
+#[test]
+fn a_pre_or_post_word_is_not_a_hook() {
+    // A hook name continues with a capital: `preferLocalBuild` is a flag
+    // and `prefix` a path. `*Phases` names LIST phases, it does not hold
+    // one. The bare prefixes are nobody's hook.
+    for name in [
+        "pre",
+        "post",
+        "prefix",
+        "preferLocalBuild",
+        "postgresql",
+        "pre_check",
+        "pre1",
+        "prePhases",
+        "postPhases",
+        "preInstallPhases",
+        "PreCheck",
+    ] {
+        assert_eq!(attr_sink(name), None, "{name}");
     }
 }
 
@@ -141,7 +183,7 @@ fn any_named_phase_is_stdenv_but_a_bare_phase_is_not() {
 fn other_names_are_not_attribute_sinks() {
     // `text` is a sink only in one builder's argument set, decided by
     // `attr_value_sink`, never by the name alone.
-    for name in ["text", "description", "Script", "postStop", "", "shellhook"] {
+    for name in ["text", "description", "Script", "stop", "", "shellhook"] {
         assert_eq!(attr_sink(name), None, "{name:?}");
     }
 }

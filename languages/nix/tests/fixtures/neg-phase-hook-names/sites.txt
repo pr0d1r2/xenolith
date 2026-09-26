@@ -1,0 +1,4 @@
+# `languages/nix:T156` matches a HOOK name -- `pre` or `post` and then a
+# capital -- not every word that starts that way: `prefix` is a path,
+# `preferLocalBuild` a flag, `postgresql` a package, and `prePhases` a
+# list of phase names rather than a phase.
