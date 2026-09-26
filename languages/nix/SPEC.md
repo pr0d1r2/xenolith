@@ -31,7 +31,7 @@ sib|languages/perl|perl grammar, guest rules
 
 ## §I INTERFACES
 
-- sinks: `script`, `preStart`, `postStart`, `preStop`, `postStop`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase`, phase hooks `pre`\|`post` + capital ⊥ `*Phases` (T156) → guest shell; `programs.<zsh|bash>` init options (home-manager `initContent`/`initExtra*`/`envExtra`/`bashrcExtra`/`profileExtra`/`loginExtra`/`logoutExtra`, NixOS `shellInit`/`loginShellInit`/`interactiveShellInit`/`promptInit`; closed list per program) → shell, dialect = program, ⊥ options (T159); value built w/ `+` → ∀ string operand = site (T155); whole attr value w/ shebang 1st line (after dedent) → guest by `shebang::guest_of`, dialect = interpreter ∈ sh\|bash\|zsh, unknown → ⊥ site (T157); load after extract: per `languages/nix:V53`.
+- sinks: `script`, `preStart`, `postStart`, `preStop`, `postStop`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase`, phase hooks `pre`\|`post` + capital ⊥ `*Phases` (T156) → guest shell; `programs.<zsh|bash>` init options (home-manager `initContent`/`initExtra*`/`envExtra`/`bashrcExtra`/`profileExtra`/`loginExtra`/`logoutExtra`, NixOS `shellInit`/`loginShellInit`/`interactiveShellInit`/`promptInit`; closed list per program) → shell, dialect = program, ⊥ options (T159); value built w/ `+` → ∀ string operand = site (T155); whole attr value w/ shebang 1st line (after dedent) → guest by `shebang::guest_of`, dialect = interpreter ∈ sh\|bash\|zsh, unknown → ⊥ site (T157, T160); `mk*` order/priority wrap transparent (T161); load after extract: per `languages/nix:V53`.
 
 ## §V INVARIANTS
 
@@ -43,7 +43,7 @@ V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshol
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T159 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T161 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
@@ -55,6 +55,8 @@ T156|x|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = 
 T157|x|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
 T158|x|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
 T159|x|home-manager shell init attrs (`initContent`, `initExtra`, `profileExtra`, `bashrcExtra` …) → shell, dialect per program (zsh/bash); fixture|B1,`tests:V118`
+T160|.|T157 ∀ WHOLE text arg of `writeScript`/`writeText` (`writeTextFile { text }` = T157 already); ⊥ shebang → ⊥ site; fixture|B1,`tests:V118`
+T161|.|named sink value wrapped ONCE in `mkBefore`/`mkAfter`/`mkOrder N`/`mkForce`/`mkDefault` = that sink's site; T157 ⊥ unwraps; fixture|B1,`tests:V118`
 
 ## §B BUGS
 
