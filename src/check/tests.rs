@@ -764,6 +764,25 @@ fn a_compiled_out_guest_refuses_by_default_naming_its_feature() {
 }
 
 #[test]
+fn a_guest_no_crate_provides_is_named_without_a_feature_that_does_not_exist() {
+    // Python has no crate yet, so no `lang-python`: the refusal names
+    // the language and says this build cannot check it.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "p=python: print(1)\n")]);
+    let e = refused(&root, &Config::default(), &["a.fake"], &shell_only_host());
+    let text = e.to_string();
+    assert!(!text.contains("lang-python"), "{text}");
+    assert!(text.contains("python"), "{text}");
+    assert!(text.contains("no support"), "{text}");
+    let warn = config("version = 1\n[langs]\nmissing_guest = \"warn\"\n");
+    let report = run_with(&root, &warn, &["a.fake"], &shell_only_host());
+    for w in report.warnings() {
+        assert!(!w.message.contains("lang-python"), "{}", w.message);
+        assert!(w.message.contains("no support"), "{}", w.message);
+    }
+}
+
+#[test]
 fn a_compiled_out_guest_under_warn_is_a_warning_and_under_ignore_nothing() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[("a.fake", "build=shell: a && b\n")]);
@@ -1433,6 +1452,43 @@ mod nix_shell {
         // `languages/nix:T157`: five commands under `#!/bin/sh`.
         let why = flagged_at(XINITRC, 2);
         assert!(why.contains("sequence"), "{why}");
+    }
+
+    /// A python-shebang `etc` text beside a shell script: python has no
+    /// guest in any build yet.
+    const PYTHON_AND_SHELL: &str = "{\n  environment.etc.\"hello\".text = ''\n    \
+                                    #!/usr/bin/env python3\n    import sys\n    \
+                                    print(sys.argv)\n  '';\n  systemd.services.a.script = ''\n    \
+                                    make && make install\n  '';\n}\n";
+
+    #[test]
+    fn a_shebang_named_guest_this_build_lacks_is_a_warning_whatever_the_policy() {
+        // `src:V42`: the interpreter line picked the guest, not the
+        // sink; the run goes on and still reports the shell script.
+        for policy in ["error", "warn", "ignore"] {
+            let config = config::parse(&format!(
+                "version = 1\n[langs]\nmissing_guest = \"{policy}\"\n"
+            ))
+            .unwrap_or_else(|e| panic!("{e}"));
+            let report = check_nix(PYTHON_AND_SHELL, &config);
+            assert_eq!(
+                rules(&report),
+                vec![("service.nix".to_owned(), 7, Rule::Xenolith)],
+                "{policy}"
+            );
+            let warned: Vec<&crate::model::Warning> = report.warnings().iter().collect();
+            match warned.as_slice() {
+                [w] => {
+                    assert_eq!(w.code, "missing-guest", "{policy}");
+                    assert!(w.message.contains("python"), "{}", w.message);
+                    assert!(w.message.contains("no support"), "{}", w.message);
+                    assert!(!w.message.contains("lang-python"), "{}", w.message);
+                }
+                other => panic!("{policy}: expected one warning, got {other:?}"),
+            }
+        }
+        let defaults = check_nix(PYTHON_AND_SHELL, &Config::default());
+        assert_eq!(defaults.exit_code(), 1);
     }
 
     #[test]
