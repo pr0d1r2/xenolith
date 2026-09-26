@@ -25,10 +25,11 @@ use std::path::{Path, PathBuf};
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
-    Delim, DelimKind, Error, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site, Span,
+    Delim, DelimKind, Error, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef, Placement, Result,
+    Site, Span,
 };
 
-use crate::{grammar, string};
+use crate::{grammar, placement, string};
 
 #[cfg(test)]
 mod tests;
@@ -335,5 +336,11 @@ impl Host for PklHost {
     /// None yet, for the same reason as [`PklHost::checks`].
     fn fixers(&self) -> Vec<LintCmd> {
         Vec::new()
+    }
+
+    /// `scripts/hk/<step>`, the step key kebab-cased
+    /// (`languages/pkl:V52`); `rewrite` then forwards `{{files}}` to it.
+    fn placement(&self, site: &Site) -> Result<Placement> {
+        Ok(placement::placement(site))
     }
 }

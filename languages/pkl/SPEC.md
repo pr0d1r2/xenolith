@@ -20,7 +20,7 @@ V52: pkl host placement: hk step site → name = step key (kebab), dir = `script
 
 id|status|task|cites
 T13|x|host pkl (vendored `apple/tree-sitter-pkl`, Apache-2.0, `languages:V121`): hk step sinks, fixtures|`languages:V2`,`languages/shell:V3`,`tests:V14`,`tests:V15`
-T54|.|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52
+T54|x|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52
 T147|x|`src:C139` backfill: `languages/pkl/src/host/tests.rs`, `languages/pkl/src/string/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
