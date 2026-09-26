@@ -12,7 +12,8 @@
 //! hosts in is the same in every subset build (`src:V11`).
 //!
 //! A guest a host names but this build lacks is never guessed about
-//! (`src:V42`): [`require_guest`] says which feature would bring it.
+//! (`src:V42`): [`require_guest`] says which feature would bring it, and
+//! [`on_missing_guest`] applies `[langs] missing_guest` to that answer.
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -26,7 +27,9 @@ use crate::model::Warning;
 #[cfg(test)]
 mod tests;
 
-/// The warning code for a site whose guest is compiled out (`src:V42`).
+/// The warning code for a site whose guest is compiled out, under
+/// `[langs] missing_guest = "warn"` (`src:V42`). Stable, matched like a
+/// rule id.
 pub const MISSING_GUEST: &str = "missing-guest";
 
 /// Every compiled-in host, sorted by [`LangId`].
@@ -132,16 +135,34 @@ pub fn require_guest(id: LangId) -> Result<&'static dyn Guest, MissingGuest> {
     })
 }
 
-/// `[langs] missing_guest` applied to a compiled-out guest (`src:T88`).
-/// RED stub: says nothing under every policy.
+/// `[langs] missing_guest` applied to a site in `file` whose guest `id`
+/// is compiled out (`src:V42`, `src:T88`): `error` refuses, `warn`
+/// returns the warning to report, `ignore` returns nothing. Either way
+/// the site is not judged -- the body is neither flagged nor passed.
 ///
 /// # Errors
 ///
-/// None yet.
+/// [`MissingGuest`] under [`Policy::Error`].
 pub fn on_missing_guest(
-    _policy: Policy,
-    _id: LangId,
-    _file: &Path,
+    policy: Policy,
+    id: LangId,
+    file: &Path,
 ) -> Result<Option<Warning>, MissingGuest> {
-    Ok(None)
+    let missing = MissingGuest {
+        guest: id,
+        file: Some(file.to_path_buf()),
+    };
+    match policy {
+        Policy::Error => Err(missing),
+        Policy::Warn => Ok(Some(Warning {
+            code: MISSING_GUEST.to_owned(),
+            file: Some(file.to_path_buf()),
+            message: format!(
+                "a site holds {id} code, but this build has no {id} guest (feature \
+                 `{}`); the site was not checked (src:V42)",
+                feature(id)
+            ),
+        })),
+        Policy::Ignore => Ok(None),
+    }
 }

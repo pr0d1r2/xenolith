@@ -65,7 +65,7 @@ T40|x|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in de
 T46|x|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,V30
 T58|x|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
-T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
+T88|x|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 T119|.|benchmark harness + recorded budget file|V120,V95
 T127|x|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
