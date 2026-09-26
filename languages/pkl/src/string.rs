@@ -25,6 +25,9 @@ use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result};
 
 use crate::grammar;
 
+#[cfg(test)]
+mod tests;
+
 /// The string pkl evaluates the multi-line literal `raw` to, where `raw`
 /// is the text between the delimiters of `delim`.
 ///
