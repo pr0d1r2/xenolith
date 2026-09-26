@@ -1111,6 +1111,23 @@ mod nix_shell {
         );
     }
 
+    const XINITRC: &str = "{\n  environment.etc.\"xinitrc\".text = ''\n    #!/bin/sh\n    \
+                           xrdb -merge \"$HOME/.Xresources\"\n    xsetroot -solid black\n    \
+                           setxkbmap -option ctrl:nocaps\n    xset r rate 200 40\n    \
+                           exec i3\n  '';\n}\n";
+
+    #[test]
+    fn a_shebang_led_etc_text_is_flagged() {
+        // `languages/nix:T157`: five commands under `#!/bin/sh`.
+        let why = flagged_at(XINITRC, 2);
+        assert!(why.contains("sequence"), "{why}");
+    }
+
+    #[test]
+    fn a_plain_etc_text_is_not_a_site() {
+        clean(&XINITRC.replace("#!/bin/sh", "# sh"));
+    }
+
     #[test]
     fn an_indented_heredoc_is_judged_by_construct_not_as_unparseable() {
         // `languages/nix:T158`: nix strips the common indent before bash

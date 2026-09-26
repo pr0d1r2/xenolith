@@ -8,12 +8,12 @@
 //! a report points back to (`languages/api/src/site:V43`).
 
 use rnix::{Root, SyntaxKind, SyntaxNode, TextRange};
-use xenolith_lang_api::GuestEnv;
+use xenolith_lang_api::{GuestEnv, LangId};
 
 use super::{
     Sink, TEXT_BUILDER, apply_chain, attr_name, attr_segments, attr_sink, attr_value_sink,
-    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, sink_path,
-    sink_value,
+    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, shebang_sink,
+    shell_dialect, sink_path, sink_value, string_text,
 };
 
 /// The tree for `src`, or a panic naming the parse errors. The workspace
@@ -92,6 +92,47 @@ fn env_is_what_nix_wraps_each_sink_in() {
     let strict = bash(&["errexit", "nounset", "pipefail"]);
     assert_eq!(Sink::WriteShellApplication.env(), strict);
     assert_eq!(Sink::Stdenv.env(), strict);
+}
+
+#[test]
+fn a_shebang_sink_declares_its_dialect_and_nothing_more() {
+    // `languages/nix:T157`: the interpreter line is all the host knows;
+    // options a `#!/bin/sh -e` would set are not read off it.
+    let sh = Sink::Shebang {
+        guest: LangId::Shell,
+        dialect: Some("sh"),
+    };
+    assert_eq!(
+        sh.env(),
+        GuestEnv {
+            dialect: Some("sh".to_owned()),
+            options: Vec::new(),
+        }
+    );
+    let python = Sink::Shebang {
+        guest: LangId::Python,
+        dialect: None,
+    };
+    assert_eq!(python.env(), GuestEnv::default());
+}
+
+#[test]
+fn a_shebang_sink_names_its_guest_and_every_other_sink_shell() {
+    let python = Sink::Shebang {
+        guest: LangId::Python,
+        dialect: None,
+    };
+    assert_eq!(python.guest(), LangId::Python);
+    for sink in [
+        Sink::ServiceScript,
+        Sink::ExecStart,
+        Sink::ShellHook,
+        Sink::WriteShellScript,
+        Sink::WriteShellApplication,
+        Sink::Stdenv,
+    ] {
+        assert_eq!(sink.guest(), LangId::Shell, "{sink:?}");
+    }
 }
 
 #[test]
@@ -525,6 +566,120 @@ fn a_concatenation_outside_sink_position_is_data() {
         None
     );
     assert_eq!(sink_of(r#"{ shellHook = "a" - "b"; }"#, r#""a""#), None);
+}
+
+// --- string_text / shell_dialect / shebang_sink (`languages/nix:T157`) --
+
+#[test]
+fn string_text_is_the_unescaped_body_with_each_hole_a_word() {
+    let text = |src: &str| string_text(&first(src, SyntaxKind::NODE_STRING));
+    assert_eq!(
+        text("''\n  #!${pkgs.bash}/bin/bash\n  a ''${b}\n''"),
+        "#!HOLE/bin/bash\na ${b}\n"
+    );
+    assert_eq!(text(r##""#!/bin/sh\n\${x}""##), "#!/bin/sh\n${x}");
+    assert_eq!(text(r#""""#), "");
+}
+
+#[test]
+fn shell_dialect_is_the_interpreter_when_the_api_has_it() {
+    for name in ["sh", "bash", "zsh"] {
+        assert_eq!(shell_dialect(name), Some(name), "{name}");
+    }
+    // `languages/shell:V82` leaves the rest of the sh family undecided.
+    for name in ["dash", "ksh", "ash", "fish", ""] {
+        assert_eq!(shell_dialect(name), None, "{name:?}");
+    }
+}
+
+/// The shebang sink of the first string in `src`.
+fn shebang_of(src: &str) -> Option<Sink> {
+    shebang_sink(&first(src, SyntaxKind::NODE_STRING))
+}
+
+/// The shebang sink of a shell interpreter of `dialect`.
+fn shell_in(dialect: Option<&'static str>) -> Sink {
+    Sink::Shebang {
+        guest: LangId::Shell,
+        dialect,
+    }
+}
+
+#[test]
+fn a_shebang_first_line_names_the_guest() {
+    assert_eq!(
+        shebang_of("''\n  #!/bin/sh\n  a\n''"),
+        Some(shell_in(Some("sh")))
+    );
+    assert_eq!(
+        shebang_of(r##""#!/usr/bin/env bash\nset -e""##),
+        Some(shell_in(Some("bash")))
+    );
+    assert_eq!(
+        shebang_of("''\n  #!${pkgs.zsh}/bin/zsh\n''"),
+        Some(shell_in(Some("zsh")))
+    );
+    assert_eq!(shebang_of(r##""#!/bin/dash\na""##), Some(shell_in(None)));
+    assert_eq!(
+        shebang_of(r##""#!/usr/bin/env python3\nprint(1)""##),
+        Some(Sink::Shebang {
+            guest: LangId::Python,
+            dialect: None,
+        })
+    );
+}
+
+#[test]
+fn no_shebang_or_an_unknown_interpreter_is_no_sink() {
+    // Not guessing (`languages/api` shebang `guest_of`): an interpreter
+    // the api does not know, or one hidden in a hole, is nobody's guest.
+    assert_eq!(shebang_of(r##""#!/usr/bin/env tclsh\nputs 1""##), None);
+    assert_eq!(shebang_of("''\n  #!${pkgs.runtimeShell}\n  a\n''"), None);
+    assert_eq!(shebang_of("''\n  a\n  #!/bin/sh\n''"), None);
+    assert_eq!(shebang_of(r##""# !/bin/sh""##), None);
+    assert_eq!(shebang_of(r#""""#), None);
+}
+
+#[test]
+fn a_shebang_led_attribute_value_is_a_site_wherever_it_is() {
+    let src = "{ environment.etc.\"xinitrc\".text = ''\n  #!/bin/sh\n  a\n''; }";
+    assert_eq!(
+        sink_of(src, "''\n  #!/bin/sh\n  a\n''"),
+        Some(shell_in(Some("sh")))
+    );
+    assert_eq!(
+        path_of(src, "''\n  #!/bin/sh\n  a\n''"),
+        "environment.etc.xinitrc.text"
+    );
+    assert_eq!(
+        sink_of(r##"{ a.b = "#!/bin/bash\nx"; }"##, r##""#!/bin/bash\nx""##),
+        Some(shell_in(Some("bash")))
+    );
+}
+
+#[test]
+fn a_named_sink_outranks_the_shebang() {
+    // NixOS writes its own interpreter line above a `script`: the body
+    // is shell under the job script's options whatever it starts with.
+    assert_eq!(
+        sink_of(
+            r##"{ script = "#!/usr/bin/env python\nx"; }"##,
+            r##""#!/usr/bin/env python\nx""##
+        ),
+        Some(Sink::ServiceScript)
+    );
+}
+
+#[test]
+fn a_shebang_counts_only_as_a_whole_attribute_value() {
+    // A variable, an operand, a list element and an argument are not an
+    // attribute's value (`languages:V2`).
+    let body = r##""#!/bin/sh\na""##;
+    assert_eq!(sink_of(&format!("let t = {body}; in t"), body), None);
+    assert_eq!(sink_of(&format!("{{ t = {body} + x; }}"), body), None);
+    assert_eq!(sink_of(&format!("{{ t = [ {body} ]; }}"), body), None);
+    assert_eq!(sink_of(&format!("{{ t = f {body}; }}"), body), None);
+    assert_eq!(sink_of(&format!("writeText \"n\" {body}"), body), None);
 }
 
 // --- is_function_of_parent_apply ---------------------------------------

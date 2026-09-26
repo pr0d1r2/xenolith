@@ -159,6 +159,22 @@ fn site_takes_env_and_guest_from_the_sink_and_path_from_the_tree() {
 }
 
 #[test]
+fn site_takes_the_guest_a_shebang_names() {
+    // `languages/nix:T157`: a shebang-led value is the guest its
+    // interpreter names, not shell by default.
+    let src = r##"{ a.text = "#!/usr/bin/env python3\nprint(1)"; }"##;
+    let python = sinks::Sink::Shebang {
+        guest: LangId::Python,
+        dialect: None,
+    };
+    let found = site_of(src, r##""#!/usr/bin/env python3\nprint(1)""##, python);
+    assert_eq!(found.guest, LangId::Python);
+    assert_eq!(found.env, python.env());
+    assert_eq!(found.sink, "a.text");
+    assert_eq!(sites(src), vec![found]);
+}
+
+#[test]
 fn site_holes_are_each_interpolation_whole() {
     let src = "{ script = ''a ${x} b ${y.z} c''; }";
     let found = site_of(src, "''a ${x} b ${y.z} c''", sinks::Sink::ServiceScript);
