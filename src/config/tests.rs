@@ -538,6 +538,27 @@ fn guest_thresholds_parse_per_guest() {
     );
 }
 
+#[test]
+fn the_engine_reads_thresholds_resolved_per_guest() {
+    // `src:V152` stage 5 asks these two, never raw keys (`src/config:V73`).
+    let config = ok("version = 1\n[threshold.shell]\nallow = [\"pipeline\"]\n\
+                     [threshold.python]\nmax_bytes = 200\n");
+    assert_eq!(config.construct_allow(LangId::Shell), ["pipeline"]);
+    assert!(config.construct_allow(LangId::Python).is_empty());
+    assert_eq!(config.size_ceiling(LangId::Shell), None);
+    assert_eq!(
+        config.size_ceiling(LangId::Python),
+        Some((super::defaults::THRESHOLD_GUEST_MAX_LINES, 200))
+    );
+    assert_eq!(
+        ok("version = 1\n").size_ceiling(LangId::Sql),
+        Some((
+            super::defaults::THRESHOLD_GUEST_MAX_LINES,
+            super::defaults::THRESHOLD_GUEST_MAX_BYTES
+        ))
+    );
+}
+
 // ---------------------------------------------------------------------
 // resolution against the defaults table (`src/config:V73`)
 // ---------------------------------------------------------------------

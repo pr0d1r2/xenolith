@@ -32,9 +32,9 @@ fn binary_prints_the_same_version_the_library_reports() {
 }
 
 #[test]
-fn a_verb_that_does_not_exist_yet_exits_two_and_says_so() {
+fn a_verb_whose_engine_has_not_landed_exits_two_and_says_so() {
     let out = Command::new(XNL)
-        .arg("check")
+        .arg("graph")
         .output()
         .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
     assert_eq!(
@@ -44,7 +44,7 @@ fn a_verb_that_does_not_exist_yet_exits_two_and_says_so() {
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("check"),
+        stderr.contains("graph"),
         "the refusal must name the verb asked for; got {stderr:?}"
     );
 }
@@ -76,8 +76,8 @@ fn langs_exits_zero_and_lists_languages_on_stdout() {
 fn a_path_that_is_not_utf8_is_read_not_a_panic() {
     // `std::env::args` panics on such an argument; the binary must read
     // its arguments as `OsString`s, because hk hands over whatever names
-    // the tree holds. `check` still refuses (no engine yet), but as the
-    // refusal, naming the task, not as a panic.
+    // the tree holds. The file does not exist, so `check` refuses -- as
+    // discovery's refusal naming the path (`src:V57`), not as a panic.
     use std::ffi::OsString;
     use std::os::unix::ffi::OsStringExt;
 
@@ -89,5 +89,5 @@ fn a_path_that_is_not_utf8_is_read_not_a_panic() {
     assert_eq!(out.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(!stderr.contains("panicked"), "got {stderr:?}");
-    assert!(stderr.contains("src:T153"), "got {stderr:?}");
+    assert!(stderr.contains("no such file"), "got {stderr:?}");
 }

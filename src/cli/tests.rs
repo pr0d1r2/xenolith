@@ -166,8 +166,6 @@ fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
     // Refusing matters more than it looks: `xnl check` exiting 0 having
     // scanned nothing is, in a gate, a clean tree.
     for (args, task) in [
-        (&["check"][..], "src:T153"),
-        (&["check", "--format", "json", "a.nix"][..], "src:T153"),
         (&["extract", "a.nix:3"][..], "src/extract:T22"),
         (&["extract", "--write", "a.nix"][..], "src/extract:T22"),
         (&["graph", "--verbose"][..], "src/graph:T21"),
@@ -184,6 +182,21 @@ fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
 }
 
 #[test]
+fn check_is_routed_to_its_engine_not_refused() {
+    // `src:T153`: the arm runs the engine. A named path that does not
+    // exist is the engine's refusal (`src:V57`), not the not-yet one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["check", "nope.nix"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
 fn sarif_is_refused_naming_its_own_task() {
     for verb in ["check", "graph", "lint"] {
         let err = refused(&[verb, "--format", "sarif"]);
@@ -194,7 +207,7 @@ fn sarif_is_refused_naming_its_own_task() {
 
 #[test]
 fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
-    let args = vec!["check".to_owned()];
+    let args = vec!["graph".to_owned()];
     let mut out = Vec::new();
     assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);
     assert!(out.is_empty());

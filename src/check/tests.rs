@@ -1,0 +1,775 @@
+//! The check engine: the mirror of `src/check.rs` (`src:C139`).
+//!
+//! Two kinds of case. Most run the pipeline through [`check_with`] with
+//! a FAKE host and fake guests, so they hold in every feature subset
+//! `cargo hack --each-feature` builds (`src:V30`) and pin the engine's
+//! own rules -- stage order, threshold, allow, staleness, policies --
+//! rather than any one grammar's. The `src:T153` fixtures that need real
+//! languages (nix and pkl finding shell) are gated on the features they
+//! need and go through [`check`] and the registry, as `xnl` does.
+//!
+//! Every tree lives in a [`Sandbox`], and every git these tests run is
+//! the sandbox's (`tests:V150`, `tests:B1`).
+
+use std::path::{Path, PathBuf};
+
+use xenolith_lang_api::{
+    Delim, DelimKind, Error, Guest, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef, Prelude,
+    Result, Site, Span,
+};
+
+use super::{
+    CheckError, HOLE, Langs, Options, body_hash, check_with, guest_text, head, position, repo_name,
+};
+use crate::config::{self, Config};
+use crate::discover::{Sandbox, write};
+use crate::model::{Fix, Report, Rule, Violation};
+
+// ---------------------------------------------------------------------
+// fakes
+// ---------------------------------------------------------------------
+
+/// A host that claims `*.fake` and reads one site per line,
+/// `<sink>=<guest>: <body>`. `{{…}}` in a body is a hole; a line `!` is
+/// a parse error.
+struct FakeHost;
+
+impl Host for FakeHost {
+    fn id(&self) -> LangId {
+        LangId::Just
+    }
+
+    fn claims(&self, path: &Path, _head: &str) -> bool {
+        path.extension().is_some_and(|ext| ext == "fake")
+    }
+
+    fn sites(&self, src: &str) -> Result<Vec<Site>> {
+        let mut sites = Vec::new();
+        let mut offset = 0;
+        for line in src.split_inclusive('\n') {
+            let start = offset;
+            offset += line.len();
+            let line = line.trim_end_matches('\n');
+            if line == "!" {
+                return Err(Error::parse(LangId::Just, "a fake syntax error"));
+            }
+            let Some((head, body)) = line.split_once(": ") else {
+                continue;
+            };
+            let Some((sink, guest)) = head.split_once('=') else {
+                continue;
+            };
+            let Some(guest) = LangId::from_name(guest) else {
+                continue;
+            };
+            let open = start + head.len();
+            let body_start = open + 2;
+            let body_end = start + line.len();
+            let holes = body
+                .match_indices("{{")
+                .filter_map(|(at, _)| {
+                    let close = body.get(at..)?.find("}}")?;
+                    Some(Span::new(body_start + at, body_start + at + close + 2))
+                })
+                .collect();
+            sites.push(Site {
+                sink: sink.to_owned(),
+                guest,
+                env: GuestEnv::default(),
+                delim: Delim {
+                    kind: DelimKind::JustRecipe,
+                    open: Span::new(open, body_start),
+                    body: Span::new(body_start, body_end),
+                    close: Span::new(body_end, body_end),
+                },
+                holes,
+            });
+        }
+        Ok(sites)
+    }
+
+    fn loads(&self, _src: &str) -> Result<Vec<LoadRef>> {
+        Err(Error::unsupported(LangId::Just, "loads"))
+    }
+
+    fn rewrite(&self, _: &str, _: &Site, _: &Invoke, _: &Path) -> Result<String> {
+        Err(Error::unsupported(LangId::Just, "rewrite"))
+    }
+
+    fn inline(&self, _: &str, _: &LoadRef, _: &str) -> Result<String> {
+        Err(Error::unsupported(LangId::Just, "inline"))
+    }
+
+    fn checks(&self) -> Vec<LintCmd> {
+        Vec::new()
+    }
+
+    fn fixers(&self) -> Vec<LintCmd> {
+        Vec::new()
+    }
+}
+
+/// A guest with a construct vocabulary, like shell: `&&` is `and-or`,
+/// `|` is `pipeline`, `BAD` does not parse, and a body holding
+/// [`HOLE`]'s text records that the engine replaced a hole.
+struct FakeShell;
+
+/// A guest without one, like python so far: never trivial unless
+/// `pass`, judged by `max_lines` / `max_bytes`.
+struct FakePython;
+
+fn fake_constructs(body: &str) -> Result<Vec<&'static str>> {
+    if body.contains("BAD") || body.contains("{{") {
+        return Err(Error::parse(
+            LangId::Shell,
+            "fake shell does not parse this",
+        ));
+    }
+    let mut names = Vec::new();
+    if body.contains("&&") {
+        names.push("and-or");
+    }
+    if body.contains('|') {
+        names.push("pipeline");
+    }
+    Ok(names)
+}
+
+macro_rules! fake_guest_parts {
+    ($id:expr) => {
+        fn id(&self) -> LangId {
+            $id
+        }
+        fn extension(&self, _: &GuestEnv) -> &'static str {
+            "x"
+        }
+        fn invoke(&self, path: &Path) -> Invoke {
+            Invoke {
+                argv: vec![path.display().to_string()],
+            }
+        }
+        fn prelude(&self, _: &GuestEnv) -> Prelude {
+            Prelude {
+                shebang: None,
+                strict: None,
+            }
+        }
+        fn executable(&self) -> bool {
+            false
+        }
+        fn checks(&self, _: &GuestEnv) -> Vec<LintCmd> {
+            Vec::new()
+        }
+        fn fixers(&self, _: &GuestEnv) -> Vec<LintCmd> {
+            Vec::new()
+        }
+    };
+}
+
+impl Guest for FakeShell {
+    fake_guest_parts!(LangId::Shell);
+
+    fn trivial(&self, body: &str) -> Result<bool> {
+        fake_constructs(body).map(|names| names.is_empty())
+    }
+
+    fn constructs(&self, body: &str) -> Result<Vec<&'static str>> {
+        fake_constructs(body)
+    }
+}
+
+impl Guest for FakePython {
+    fake_guest_parts!(LangId::Python);
+
+    fn trivial(&self, body: &str) -> Result<bool> {
+        Ok(body.trim() == "pass")
+    }
+}
+
+const HOSTS: &[&dyn Host] = &[&FakeHost];
+const GUESTS: &[&dyn Guest] = &[&FakePython, &FakeShell];
+
+fn fakes() -> Langs<'static> {
+    Langs {
+        hosts: HOSTS,
+        guests: GUESTS,
+    }
+}
+
+// ---------------------------------------------------------------------
+// driving it
+// ---------------------------------------------------------------------
+
+fn config(toml: &str) -> Config {
+    config::parse(toml).unwrap_or_else(|e| panic!("fixture config parses: {e}"))
+}
+
+/// A plain directory holding `files`, and `xenolith.toml` when given.
+fn tree(sandbox: &Sandbox, files: &[(&str, &str)]) -> PathBuf {
+    let root = sandbox.plain("t");
+    for (rel, text) in files {
+        write(&root, rel, text);
+    }
+    root
+}
+
+fn run_with(root: &Path, config: &Config, paths: &[&str], langs: &Langs<'_>) -> Report {
+    let options = Options {
+        paths: paths.iter().map(PathBuf::from).collect(),
+    };
+    let sandbox_git = || {
+        // Paths are named, so discovery only runs git for a directory;
+        // none of these name one. A git that fails loudly proves it.
+        std::process::Command::new("false")
+    };
+    check_with(root, config, &options, langs, &sandbox_git)
+        .unwrap_or_else(|e| panic!("expected a report, got: {e}"))
+}
+
+fn run(root: &Path, config: &Config, paths: &[&str]) -> Report {
+    run_with(root, config, paths, &fakes())
+}
+
+fn refused(root: &Path, config: &Config, paths: &[&str], langs: &Langs<'_>) -> CheckError {
+    let options = Options {
+        paths: paths.iter().map(PathBuf::from).collect(),
+    };
+    match check_with(root, config, &options, langs, &|| {
+        std::process::Command::new("false")
+    }) {
+        Ok(report) => panic!("expected a refusal, got {report:?}"),
+        Err(e) => e,
+    }
+}
+
+fn rules(report: &Report) -> Vec<(String, usize, Rule)> {
+    report
+        .violations()
+        .iter()
+        .map(|v| (v.file.display().to_string(), v.line, v.rule))
+        .collect()
+}
+
+fn only(report: &Report) -> &Violation {
+    match report.violations() {
+        [one] => one,
+        other => panic!("expected one violation, got {other:#?}"),
+    }
+}
+
+// ---------------------------------------------------------------------
+// the verdict (`src:V152` stages 4-5, `src/config:V55`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_script_is_a_violation_carrying_every_field() {
+    // `src:V1`: rule, position, both languages, sink, delimiter kind, a
+    // reason naming what makes it a script, and directions.
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[("a.fake", "# top\nbuild=shell: make && make install\n")],
+    );
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    let v = only(&report);
+    assert_eq!(v.rule, Rule::Xenolith);
+    assert_eq!(v.file, PathBuf::from("a.fake"));
+    assert_eq!((v.line, v.col), (2, 12));
+    assert_eq!((v.host, v.guest), (LangId::Just, LangId::Shell));
+    assert_eq!(v.sink, "build");
+    assert_eq!(v.site, DelimKind::JustRecipe);
+    assert!(v.why.contains("and-or"), "{}", v.why);
+    let kinds: Vec<Fix> = v.directions.iter().map(|d| d.kind).collect();
+    assert_eq!(kinds, vec![Fix::Mechanical, Fix::Judgment]);
+    let allow = v
+        .directions
+        .last()
+        .map(|d| d.action.clone())
+        .unwrap_or_default();
+    assert!(
+        allow.contains(&body_hash("make && make install")),
+        "the allow direction carries the key to paste: {allow}"
+    );
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn a_single_command_is_clean() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: make install\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    assert!(report.violations().is_empty(), "{report:?}");
+    assert_eq!(report.exit_code(), 0);
+}
+
+#[test]
+fn an_unparseable_body_is_flagged_not_passed() {
+    // `languages:V77`: calling it trivial would leave broken code inline.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: BAD\n")]);
+    let v = run(&root, &Config::default(), &["a.fake"]);
+    assert!(only(&v).why.starts_with("unparseable shell"), "{v:?}");
+}
+
+#[test]
+fn a_threshold_relaxes_exactly_the_constructs_it_lists() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[("a.fake", "one=shell: a && b\ntwo=shell: a && b | c\n")],
+    );
+    let relaxed = config("version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n");
+    let report = run(&root, &relaxed, &["a.fake"]);
+    let v = only(&report);
+    assert_eq!(v.sink, "two");
+    assert!(v.why.contains("pipeline"), "{}", v.why);
+    assert!(
+        !v.why.contains("and-or"),
+        "a relaxed construct is not the reason: {}",
+        v.why
+    );
+}
+
+#[test]
+fn a_threshold_never_flags_a_trivial_body() {
+    // `src/config:V55`: a threshold only relaxes. The strictest ceiling
+    // there is still leaves a trivial body alone.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "a=shell: ls\nb=python: pass\n")]);
+    let strict = config("version = 1\n[threshold.python]\nmax_lines = 0\nmax_bytes = 0\n");
+    assert!(run(&root, &strict, &["a.fake"]).violations().is_empty());
+}
+
+#[test]
+fn a_guest_without_constructs_is_judged_by_its_size_ceiling() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "p=python: print(1)\n")]);
+    // Default ceiling: one line, 80 bytes. `print(1)` fits.
+    assert!(
+        run(&root, &Config::default(), &["a.fake"])
+            .violations()
+            .is_empty()
+    );
+    let tight = config("version = 1\n[threshold.python]\nmax_bytes = 4\n");
+    let report = run(&root, &tight, &["a.fake"]);
+    let why = &only(&report).why;
+    assert!(why.contains("max_bytes = 4"), "{why}");
+}
+
+#[test]
+fn a_hole_reaches_the_guest_as_a_plain_word_and_makes_extraction_a_judgement() {
+    // The fake shell refuses `{{`, so a clean verdict proves the hole was
+    // replaced; the `&&` then makes it a script with a hole in it.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "a=shell: {{x}} && y\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    let v = only(&report);
+    assert!(v.why.contains("and-or"), "{}", v.why);
+    assert_eq!(v.directions.first().map(|d| d.kind), Some(Fix::Judgment));
+}
+
+// ---------------------------------------------------------------------
+// allow (`src/config:V9`, `src/config:V10`)
+// ---------------------------------------------------------------------
+
+fn allow(path: &str, sink: &str, hash: &str) -> String {
+    format!(
+        "version = 1\n\n[[allow]]\npath = \"{path}\"\nsink = \"{sink}\"\nhash = \"{hash}\"\n\
+         reason = \"fixture\"\n"
+    )
+}
+
+#[test]
+fn an_allowed_site_is_clean() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[("a.fake", "build=shell: make && make install\n")],
+    );
+    let allowed = config(&allow(
+        "a.fake",
+        "build",
+        &body_hash("make && make install"),
+    ));
+    let report = run(&root, &allowed, &["a.fake"]);
+    assert!(report.violations().is_empty(), "{report:?}");
+}
+
+#[test]
+fn an_allow_whose_body_changed_is_stale_at_the_site() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: make && make check\n")]);
+    let old = config(&allow(
+        "a.fake",
+        "build",
+        &body_hash("make && make install"),
+    ));
+    let report = run(&root, &old, &["a.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![
+            ("a.fake".to_owned(), 1, Rule::StaleAllow),
+            ("a.fake".to_owned(), 1, Rule::Xenolith),
+        ]
+    );
+}
+
+#[test]
+fn an_allow_whose_site_is_gone_is_stale_at_its_entry() {
+    let sandbox = Sandbox::new();
+    let text = allow("a.fake", "gone", "0000000000000000");
+    let root = tree(
+        &sandbox,
+        &[("a.fake", "build=shell: ls\n"), ("xenolith.toml", &text)],
+    );
+    let report = run(&root, &config(&text), &["a.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("xenolith.toml".to_owned(), 3, Rule::StaleAllow)]
+    );
+    assert!(only(&report).why.contains("gone"), "{report:?}");
+}
+
+#[test]
+fn an_allow_for_a_file_this_run_did_not_scan_is_not_judged() {
+    // hk passes the changed files; an allow about another file says
+    // nothing about this run.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: ls\n"), ("b.fake", "")]);
+    let other = config(&allow("b.fake", "gone", "0000000000000000"));
+    assert!(run(&root, &other, &["a.fake"]).violations().is_empty());
+}
+
+// ---------------------------------------------------------------------
+// candidates and claims (`src:V57`, `src/config:V79`, `src:V13`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn an_excluded_file_is_never_read() {
+    // Not UTF-8 and claimed: read, it would be a host parse warning.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("t");
+    std::fs::create_dir_all(root.join("vendor")).unwrap_or_else(|e| panic!("mkdir vendor: {e}"));
+    std::fs::write(root.join("vendor/x.fake"), [0xff, 0xfe])
+        .unwrap_or_else(|e| panic!("write: {e}"));
+    let skip = config("version = 1\n[[exclude]]\nglob = \"vendor\"\nreason = \"third party\"\n");
+    let report = run(&root, &skip, &["vendor/x.fake"]);
+    assert_eq!(report, Report::new());
+    let read = run(&root, &Config::default(), &["vendor/x.fake"]);
+    assert_eq!(read.warnings().len(), 1, "{read:?}");
+}
+
+#[test]
+fn an_unclaimed_file_is_neither_scanned_nor_reported_by_default() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("notes.md", "build=shell: a && b\n")]);
+    assert_eq!(run(&root, &Config::default(), &["notes.md"]), Report::new());
+}
+
+#[test]
+fn without_paths_the_tracked_files_are_checked() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "a.fake", "build=shell: a && b\n");
+    write(&root, "untracked.fake", "build=shell: a && b\n");
+    sandbox.run_git(&root, &["add", "a.fake"]);
+    let report = check_with(
+        &root,
+        &Config::default(),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
+fn outside_git_without_paths_is_refused_with_exit_two() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    let e = check_with(
+        &root,
+        &Config::default(),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .err()
+    .unwrap_or_else(|| panic!("outside git, no paths: refused"));
+    assert!(matches!(e, CheckError::Discover(_)), "{e:?}");
+    assert_eq!(e.exit_code(), 2);
+}
+
+#[test]
+fn violations_come_out_sorted_whatever_the_order_named() {
+    // `src:V11`: file, then line, then column.
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            ("b.fake", "x=shell: a | b\n"),
+            ("a.fake", "y=shell: a | b\nz=shell: a && b\n"),
+        ],
+    );
+    let report = run(&root, &Config::default(), &["b.fake", "a.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![
+            ("a.fake".to_owned(), 1, Rule::Xenolith),
+            ("a.fake".to_owned(), 2, Rule::Xenolith),
+            ("b.fake".to_owned(), 1, Rule::Xenolith),
+        ]
+    );
+    assert_eq!(
+        report.to_json(),
+        run(&root, &Config::default(), &["a.fake", "b.fake"]).to_json()
+    );
+}
+
+// ---------------------------------------------------------------------
+// policies: `[langs] missing_guest` (`src:V42`), `[parse] host_errors`
+// ---------------------------------------------------------------------
+
+fn shell_only_host() -> Langs<'static> {
+    Langs {
+        hosts: HOSTS,
+        guests: &[],
+    }
+}
+
+#[test]
+fn a_compiled_out_guest_refuses_by_default_naming_its_feature() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: ls\n")]);
+    let e = refused(&root, &Config::default(), &["a.fake"], &shell_only_host());
+    assert!(matches!(e, CheckError::MissingGuest(_)), "{e:?}");
+    assert_eq!(e.exit_code(), 2);
+    assert!(e.to_string().contains("`lang-shell`"), "{e}");
+}
+
+#[test]
+fn a_compiled_out_guest_under_warn_is_a_warning_and_under_ignore_nothing() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "build=shell: a && b\n")]);
+    let warn = config("version = 1\n[langs]\nmissing_guest = \"warn\"\n");
+    let report = run_with(&root, &warn, &["a.fake"], &shell_only_host());
+    assert!(report.violations().is_empty(), "never guessed about");
+    let codes: Vec<&str> = report.warnings().iter().map(|w| w.code.as_str()).collect();
+    assert_eq!(codes, vec!["missing-guest"]);
+    let ignore = config("version = 1\n[langs]\nmissing_guest = \"ignore\"\n");
+    let report = run_with(&root, &ignore, &["a.fake"], &shell_only_host());
+    assert_eq!(report, Report::new());
+}
+
+#[test]
+fn a_host_parse_error_follows_parse_host_errors() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "!\n")]);
+    let warned = run(&root, &Config::default(), &["a.fake"]);
+    let codes: Vec<&str> = warned.warnings().iter().map(|w| w.code.as_str()).collect();
+    assert_eq!(codes, vec!["host-parse-error"]);
+    assert_eq!(warned.exit_code(), 0);
+    let error = config("version = 1\n[parse]\nhost_errors = \"error\"\n");
+    assert_eq!(
+        rules(&run(&root, &error, &["a.fake"])),
+        vec![("a.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+    let ignore = config("version = 1\n[parse]\nhost_errors = \"ignore\"\n");
+    assert_eq!(run(&root, &ignore, &["a.fake"]), Report::new());
+}
+
+// ---------------------------------------------------------------------
+// the parts
+// ---------------------------------------------------------------------
+
+#[test]
+fn body_hash_is_fnv1a_64_in_hex() {
+    // Published FNV-1a 64 vectors: the key in a committed `[[allow]]`
+    // must mean the same thing on every machine and in every release.
+    assert_eq!(body_hash(""), "cbf29ce484222325");
+    assert_eq!(body_hash("a"), "af63dc4c8601ec8c");
+    assert_eq!(body_hash("foobar"), "85944171f73967e8");
+}
+
+#[test]
+fn position_is_one_based_and_counts_characters() {
+    assert_eq!(position("abc", 0), (1, 1));
+    assert_eq!(position("ab\ncd", 3), (2, 1));
+    assert_eq!(position("ab\n\u{e9}d", 5), (2, 2));
+    assert_eq!(position("x", 99), (1, 2));
+}
+
+#[test]
+fn guest_text_replaces_every_hole_inside_the_body() {
+    let src = "<<a {{x}} b {{y}}>>";
+    let site = Site {
+        sink: "s".to_owned(),
+        guest: LangId::Shell,
+        env: GuestEnv::default(),
+        delim: Delim {
+            kind: DelimKind::JustRecipe,
+            open: Span::new(0, 2),
+            body: Span::new(2, 17),
+            close: Span::new(17, 19),
+        },
+        holes: vec![Span::new(12, 17), Span::new(4, 9)],
+    };
+    assert_eq!(guest_text(src, &site), format!("a {HOLE} b {HOLE}"));
+}
+
+#[test]
+fn head_is_the_first_line_only() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("s", "#!/bin/sh\necho hi\n")]);
+    assert_eq!(head(&root.join("s")), "#!/bin/sh");
+    assert_eq!(head(&root.join("missing")), "");
+}
+
+#[test]
+fn repo_name_drops_dot_components_and_uses_slashes() {
+    assert_eq!(repo_name(Path::new("./a/./b.nix")), "a/b.nix");
+    assert_eq!(repo_name(Path::new("a.nix")), "a.nix");
+}
+
+// ---------------------------------------------------------------------
+// the `src:T153` fixtures, with the real languages
+// ---------------------------------------------------------------------
+
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+mod nix_shell {
+    use super::{Sandbox, rules, tree};
+    use crate::check::{Options, body_hash, check};
+    use crate::config::{self, Config};
+    use crate::model::Rule;
+
+    const SCRIPT: &str =
+        "{\n  systemd.services.a.script = ''\n    make && make install\n  '';\n}\n";
+    const COMMAND: &str = "{\n  systemd.services.a.script = \"make install\";\n}\n";
+
+    fn check_nix(text: &str, config: &Config) -> crate::model::Report {
+        let sandbox = Sandbox::new();
+        let root = tree(&sandbox, &[("service.nix", text)]);
+        let options = Options {
+            paths: vec!["service.nix".into()],
+        };
+        check(&root, config, &options).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    #[test]
+    fn a_nix_and_and_script_is_flagged() {
+        let report = check_nix(SCRIPT, &Config::default());
+        assert_eq!(
+            rules(&report),
+            vec![("service.nix".to_owned(), 2, Rule::Xenolith)]
+        );
+        let human = report
+            .violations()
+            .first()
+            .map(crate::model::Violation::to_human)
+            .unwrap_or_default();
+        assert!(
+            human.starts_with(
+                "service.nix:2:31 xenolith: shell in nix systemd.services.a.script \
+                 (non-trivial shell: and-or"
+            ),
+            "{human}"
+        );
+    }
+
+    #[test]
+    fn a_single_nix_command_is_clean() {
+        assert!(
+            check_nix(COMMAND, &Config::default())
+                .violations()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn an_allowed_nix_script_is_clean_and_a_stale_allow_is_flagged() {
+        let raw = "\n    make && make install\n  ";
+        let entry = |hash: &str| {
+            config::parse(&format!(
+                "version = 1\n[[allow]]\npath = \"service.nix\"\n\
+                 sink = \"systemd.services.a.script\"\nhash = \"{hash}\"\nreason = \"legacy\"\n"
+            ))
+            .unwrap_or_else(|e| panic!("{e}"))
+        };
+        assert!(
+            check_nix(SCRIPT, &entry(&body_hash(raw)))
+                .violations()
+                .is_empty()
+        );
+        let stale = check_nix(SCRIPT, &entry("0000000000000000"));
+        assert_eq!(
+            rules(&stale),
+            vec![
+                ("service.nix".to_owned(), 2, Rule::StaleAllow),
+                ("service.nix".to_owned(), 2, Rule::Xenolith),
+            ]
+        );
+    }
+}
+
+#[cfg(all(feature = "lang-pkl", feature = "lang-shell"))]
+#[test]
+fn a_pkl_hk_step_holding_a_script_is_flagged() {
+    // One line per element keeps the fixture readable within the 100-column
+    // limit; the joined text is the same bytes the hk file would hold.
+    let hk = [
+        "amends \"package://github.com/jdx/hk/releases/download/\
+         v1.2.0/hk@1.2.0#/Config.pkl\"",
+        "",
+        "hooks {",
+        "  [\"pre-commit\"] {",
+        "    steps {",
+        "      [\"lint\"] {",
+        "        check = \"\"\"",
+        "          cargo fmt --check && cargo clippy",
+        "        \"\"\"",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+        "",
+    ]
+    .join("\n");
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("hk.pkl", hk.as_str())]);
+    let options = Options {
+        paths: vec!["hk.pkl".into()],
+    };
+    let report =
+        super::check(&root, &Config::default(), &options).unwrap_or_else(|e| panic!("{e}"));
+    let v = only(&report);
+    assert_eq!((v.host, v.guest), (LangId::Pkl, LangId::Shell));
+    assert_eq!(v.sink, "lint.check");
+    assert!(v.why.contains("and-or"), "{}", v.why);
+}
+
+/// `src:T46`'s nix-only build, end to end: a nix site holding shell,
+/// with no shell guest, is exit 2 naming `lang-shell` (`src:V42`).
+#[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
+#[test]
+fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[(
+            "service.nix",
+            "{ systemd.services.a.script = ''\n  make && make install\n''; }\n",
+        )],
+    );
+    let options = Options {
+        paths: vec!["service.nix".into()],
+    };
+    let e = super::check(&root, &Config::default(), &options)
+        .err()
+        .unwrap_or_else(|| panic!("shell is compiled out"));
+    assert_eq!(e.exit_code(), 2);
+    assert!(e.to_string().contains("`lang-shell`"), "{e}");
+}

@@ -40,6 +40,11 @@ mod symlink;
 #[cfg(test)]
 mod tests;
 
+/// The git sandbox every test that builds a repository runs git through
+/// (`tests:V150`, `tests:B1`), shared rather than copied.
+#[cfg(test)]
+pub(crate) use self::tests::{Sandbox, write};
+
 /// The warning code for a candidate skipped because it is, or lies under,
 /// a symlink (`src:V128`). Stable, matched like a rule id.
 pub const SYMLINK_SKIPPED: &str = "symlink-skipped";
@@ -157,8 +162,9 @@ pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverEr
 }
 
 /// [`discover`], with the `git` command supplied by the caller -- the
-/// seam the tests use to run git sandboxed (`tests:V150`).
-fn discover_with(
+/// seam the tests use to run git sandboxed (`tests:V150`), here and
+/// through the check engine (`src:V152`).
+pub(crate) fn discover_with(
     root: &Path,
     paths: &[PathBuf],
     git: &dyn Fn() -> Command,

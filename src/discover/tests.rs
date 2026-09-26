@@ -24,7 +24,7 @@ use super::{DiscoverError, discover, discover_with};
 // ---------------------------------------------------------------------
 
 /// A temp directory removed on drop, and the one way to run git in it.
-pub(super) struct Sandbox {
+pub(crate) struct Sandbox {
     dir: PathBuf,
 }
 
@@ -32,7 +32,7 @@ impl Sandbox {
     /// A fresh, empty directory. Canonical, because the temp dir itself
     /// sits under a symlink on macOS (`/var` -> `/private/var`) and git's
     /// ceiling comparison is textual.
-    pub(super) fn new() -> Sandbox {
+    pub(crate) fn new() -> Sandbox {
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let base = fs::canonicalize(std::env::temp_dir())
             .unwrap_or_else(|e| panic!("temp dir not canonicalizable: {e}"));
@@ -49,7 +49,7 @@ impl Sandbox {
     }
 
     /// The sandbox root; fixtures live in subdirectories of it.
-    pub(super) fn path(&self) -> &Path {
+    pub(crate) fn path(&self) -> &Path {
         &self.dir
     }
 
@@ -57,7 +57,7 @@ impl Sandbox {
     /// variable this process inherited is removed (a hook's `GIT_DIR`
     /// among them), the global config is an empty file here, the system
     /// config is off, and repository discovery stops at the sandbox.
-    pub(super) fn git(&self) -> Command {
+    pub(crate) fn git(&self) -> Command {
         let mut cmd = Command::new("git");
         for (key, _) in std::env::vars_os() {
             if key.to_string_lossy().starts_with("GIT_") {
@@ -73,7 +73,7 @@ impl Sandbox {
     /// Run a sandboxed git in `cwd`, identity passed as flags (never
     /// `git config`, which is the write that corrupted `.git/config` in
     /// `tests:B1`), and panic with its stderr if it fails.
-    pub(super) fn run_git(&self, cwd: &Path, args: &[&str]) {
+    pub(crate) fn run_git(&self, cwd: &Path, args: &[&str]) {
         let out = self
             .git()
             .arg("-c")
@@ -96,7 +96,7 @@ impl Sandbox {
     }
 
     /// A new directory `name` in the sandbox, `git init`ed.
-    pub(super) fn repo(&self, name: &str) -> PathBuf {
+    pub(crate) fn repo(&self, name: &str) -> PathBuf {
         let root = self.dir.join(name);
         fs::create_dir_all(&root).unwrap_or_else(|e| panic!("mkdir {}: {e}", root.display()));
         self.run_git(&root, &["init", "-q"]);
@@ -104,7 +104,7 @@ impl Sandbox {
     }
 
     /// A new plain directory `name` in the sandbox, no repository.
-    pub(super) fn plain(&self, name: &str) -> PathBuf {
+    pub(crate) fn plain(&self, name: &str) -> PathBuf {
         let root = self.dir.join(name);
         fs::create_dir_all(&root).unwrap_or_else(|e| panic!("mkdir {}: {e}", root.display()));
         root
@@ -118,7 +118,7 @@ impl Drop for Sandbox {
 }
 
 /// Write `rel` under `root`, creating parent directories.
-pub(super) fn write(root: &Path, rel: &str, contents: &str) {
+pub(crate) fn write(root: &Path, rel: &str, contents: &str) {
     let path = root.join(rel);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap_or_else(|e| panic!("mkdir {}: {e}", parent.display()));

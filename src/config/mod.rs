@@ -468,6 +468,20 @@ impl Config {
         }
     }
 
+    /// The constructs `[threshold.<guest>] allow` tolerates inline for
+    /// `guest` (`src/config:V55`). RED stub: none.
+    #[must_use]
+    pub fn construct_allow(&self, _guest: LangId) -> &[String] {
+        &[]
+    }
+
+    /// `[threshold.<guest>]` `(max_lines, max_bytes)`, resolved. RED
+    /// stub: none.
+    #[must_use]
+    pub fn size_ceiling(&self, _guest: LangId) -> Option<(u64, u64)> {
+        None
+    }
+
     /// Whether `key` came from the file or the table; `None` for a key
     /// the table does not hold.
     #[must_use]

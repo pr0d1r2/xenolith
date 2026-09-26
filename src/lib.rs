@@ -19,11 +19,14 @@
 //! their own tests. This file is the crate root those land in, not a
 //! placeholder for them.
 
+pub mod check;
 pub mod cli;
 pub mod config;
 pub mod discover;
 pub mod model;
 pub mod registry;
+
+pub use check::check;
 
 /// The package version, from Cargo at compile time.
 ///
