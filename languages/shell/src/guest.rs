@@ -16,6 +16,9 @@ use xenolith_lang_api::{
 
 use crate::classify;
 
+#[cfg(test)]
+mod tests;
+
 /// Shell, as both a guest and (later) a host.
 ///
 /// A unit struct: everything it answers comes from the [`GuestEnv`] the
