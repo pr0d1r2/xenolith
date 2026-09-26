@@ -656,3 +656,37 @@ fn one_refused_site_leaves_its_whole_file_untouched_and_others_proceed() {
     assert!(!root.join("a/one.sh").exists());
     assert_eq!(read(&root, "b.toy"), "four< sh ./b/four.sh\n");
 }
+
+// ---------------------------------------------------------------------
+// hosts below the root (T66)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_host_in_a_subdirectory_loads_its_extract_relative_to_itself() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "nixos/foo.toy", "build=shell: make && make test\n");
+    let edit = plan(&sandbox, &root, &["nixos/foo.toy"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let got: Vec<(&str, &str)> = edit
+        .hosts
+        .iter()
+        .flat_map(|h| {
+            h.extracts
+                .iter()
+                .map(|e| (e.path.as_str(), h.after.as_str()))
+        })
+        .collect();
+    assert_eq!(got, [("nixos/foo/build.sh", "build< sh ./foo/build.sh\n")]);
+}
+
+#[test]
+fn an_extract_placed_outside_the_host_directory_is_loaded_through_dot_dot() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[[extract.rule]]\nhost = \"just\"\npath = \"scripts/{name}.{ext}\"\n";
+    put(&root, "nixos/foo.toy", "build=shell: make && make test\n");
+    let edit = plan_with(&sandbox, &root, toml, &["nixos/foo.toy"]);
+    let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
+    assert_eq!(after, ["build< sh ../scripts/build.sh\n"]);
+}

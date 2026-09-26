@@ -1,8 +1,8 @@
 use xenolith_lang_api::{LangId, Placement};
 
 use super::{
-    Ask, Field, Layer, Placed, RuleAt, Vars, disambiguate, fold, render, resolve, rules_for,
-    sink_matches, suffix,
+    Ask, Field, Layer, Placed, RuleAt, Vars, disambiguate, fold, load_path, render, resolve,
+    rules_for, sink_matches, suffix,
 };
 use crate::config::{Base, Config, ExtractRule, Layout, Tree};
 
@@ -427,4 +427,44 @@ fn paths_still_equal_after_the_suffix_are_returned_for_refusal() {
     ];
     assert_eq!(disambiguate(&mut paths), vec![0, 1]);
     assert_eq!(paths.first().map(|(p, _)| p.as_str()), Some("a/x-script"));
+}
+
+// ---------------------------------------------------------------------
+// the load path (T66)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_load_is_relative_to_the_host_file_by_default() {
+    // languages/api/src/lens:V66: never cwd relative, `./`-led.
+    let host = Base::Host;
+    assert_eq!(load_path("a.nix", "a/build.sh", &host), "./a/build.sh");
+    assert_eq!(
+        load_path("nixos/foo.nix", "nixos/foo/build.sh", &host),
+        "./foo/build.sh"
+    );
+    assert_eq!(
+        load_path("nixos/foo.nix", "scripts/x.sh", &host),
+        "../scripts/x.sh"
+    );
+    assert_eq!(load_path("a/b/c.nix", "a/x/y.sh", &host), "../x/y.sh");
+}
+
+#[test]
+fn a_rule_base_moves_what_the_load_is_relative_to() {
+    assert_eq!(
+        load_path("nixos/foo.nix", "scripts/x.sh", &Base::Root),
+        "./scripts/x.sh"
+    );
+    assert_eq!(
+        load_path(
+            "nixos/foo.nix",
+            "scripts/x.sh",
+            &Base::Dir("scripts".to_owned())
+        ),
+        "./x.sh"
+    );
+    assert_eq!(
+        load_path("h.nix", "a/x.sh", &Base::Dir("./b/".to_owned())),
+        "../a/x.sh"
+    );
 }
