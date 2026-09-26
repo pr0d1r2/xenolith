@@ -55,6 +55,7 @@ pub fn run(
     let options = Options {
         paths: scan.paths.clone(),
         strict_hosts: flags.strict_hosts,
+        fix: flags.fix,
     };
     match crate::lint::lint(root, &config, &options) {
         Ok(report) => render(&report, scan.format, flags.verbose, out, err),

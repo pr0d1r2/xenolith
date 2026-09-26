@@ -413,3 +413,106 @@ fn the_whole_tree_is_the_tracked_files_in_order() {
         .collect();
     assert_eq!(files, ["a.nx", "b.sh", "b.sh"]);
 }
+
+// ---------------------------------------------------------------------
+// T87: every check reported, `--fix`
+// ---------------------------------------------------------------------
+
+fn fixing(paths: &[&str]) -> Options {
+    Options {
+        fix: true,
+        ..named(paths)
+    }
+}
+
+#[test]
+fn two_failing_checks_are_both_reported() {
+    // `src/lint:V8`: each reported separately, never stopping at the first.
+    let fx = Fixture::all_pass();
+    fx.tool("alpha", "echo alpha-said\nexit 1");
+    fx.tool("beta", "echo beta-said\nexit 2");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    assert_eq!(
+        checks(&report),
+        [pair("alpha", Status::Fail), pair("beta", Status::Fail)]
+    );
+    assert_eq!(nth(&report, 0).raw_tail.as_deref(), Some("alpha-said"));
+    assert_eq!(nth(&report, 1).exit, Some(2));
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn fix_runs_the_fixers_then_checks_again() {
+    let fx = Fixture::all_pass();
+    fx.tool("fixit", "printf 'fixed\\n' > \"$1\"");
+    fx.tool("alpha", "read -r line < \"$2\"; test \"$line\" = fixed");
+    fx.file("a.sh", "broken\n");
+    let before = fx.report(&Config::default(), &["a.sh"]);
+    assert_eq!(nth(&before, 0).status, Status::Fail);
+    let after = fx
+        .lint(&Config::default(), &fixing(&["a.sh"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    // A fixer that passed is not listed (`src/lint` §I, status).
+    assert_eq!(
+        checks(&after),
+        [pair("alpha", Status::Pass), pair("beta", Status::Pass)]
+    );
+    let text = fs::read_to_string(fx.root.join("a.sh")).unwrap_or_default();
+    assert_eq!(text, "fixed\n");
+}
+
+#[test]
+fn a_fixer_that_fails_is_listed_and_the_checks_still_run() {
+    let fx = Fixture::all_pass();
+    fx.tool("fixit", "echo cannot\nexit 5");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx
+        .lint(&Config::default(), &fixing(&["a.sh"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        checks(&report),
+        [
+            pair("fixit", Status::Fail),
+            pair("alpha", Status::Pass),
+            pair("beta", Status::Pass),
+        ]
+    );
+    assert!(nth(&report, 0).fixer);
+    assert!(!nth(&report, 1).fixer);
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn fix_never_rewrites_a_host_file() {
+    // `src/lint:V8`: `--fix` touches extracts only.
+    let fx = Fixture::all_pass();
+    fx.tool("hostfix", ": > hostfix-ran");
+    fx.file("a.nx", "{}\n");
+    let report = fx
+        .lint(&Config::default(), &fixing(&["a.nx"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(checks(&report), [pair("hostcheck", Status::Pass)]);
+    assert!(!fx.root.join("hostfix-ran").exists());
+}
+
+#[test]
+fn an_untrusted_config_fixer_is_skipped_with_a_warning() {
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    let config = parsed("version = 1\n[lint.shell]\nfixers = [\"ownfix\"]\n");
+    let report = fx
+        .lint(&config, &fixing(&["a.sh"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(nth(&report, 0).check, "ownfix");
+    assert_eq!(nth(&report, 0).status, Status::Skipped);
+    assert!(nth(&report, 0).fixer);
+    assert!(
+        report
+            .warnings()
+            .iter()
+            .any(|w| w.code == "untrusted-command" && w.message.contains("`ownfix`")),
+        "{:?}",
+        report.warnings()
+    );
+}

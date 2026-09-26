@@ -56,6 +56,9 @@ pub struct Options {
     pub paths: Vec<PathBuf>,
     /// `--strict-hosts` (`src:V13`).
     pub strict_hosts: bool,
+    /// `--fix`: each extract's fixers first, then its checks; host
+    /// files are never rewritten (`src/lint:V8`).
+    pub fix: bool,
 }
 
 /// Why a run was refused rather than carried out; every variant exit 2.

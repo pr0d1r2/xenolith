@@ -155,14 +155,16 @@ fn a_config_that_does_not_parse_is_refused() {
 }
 
 #[test]
-fn fix_is_refused_until_its_task_lands() {
+fn fix_is_routed_to_the_engine() {
+    // `src/lint:T87`: `--fix` runs; a missing path is discovery's refusal.
     let flags = Flags {
         fix: true,
         ..Flags::default()
     };
-    let (code, _, err) = ran(flags, &["a.sh"]);
+    let (code, _, err) = ran(flags, &["nope.sh"]);
     assert_eq!(code, EXIT_USAGE);
-    assert!(err.contains("src/lint:T87"), "{err:?}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.sh"), "{err:?}");
 }
 
 #[test]
