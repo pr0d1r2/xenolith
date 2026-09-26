@@ -23,7 +23,10 @@ use std::fmt;
 use toml::{Table, Value};
 use xenolith_lang_api::LangId;
 
+mod allow;
 pub mod defaults;
+
+pub use allow::SiteKey;
 
 #[cfg(test)]
 mod tests;
