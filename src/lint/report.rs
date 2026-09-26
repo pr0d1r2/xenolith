@@ -5,11 +5,13 @@
 //! Only data and its rendering live here. The engine (`src/lint/mod.rs`)
 //! decides what ran; `src/cli/lint.rs` decides which stream it goes to.
 
+use std::cmp::Ordering;
 use std::path::PathBuf;
 
+use serde_json::{Map, Value, json};
 use xenolith_lang_api::LangId;
 
-use crate::model::Warning;
+use crate::model::{SCHEMA, Warning};
 
 #[cfg(test)]
 mod tests;
@@ -121,6 +123,24 @@ pub struct Outcome {
     pub fixer: bool,
 }
 
+impl Outcome {
+    fn to_value(&self) -> Value {
+        json!({
+            "file": self.file.display().to_string(),
+            "kind": self.kind.as_str(),
+            "guest": self.guest.map(LangId::as_str),
+            "dialect": self.dialect,
+            "check": self.check,
+            "argv": self.argv,
+            "source": self.source.as_str(),
+            "status": self.status.as_str(),
+            "exit": self.exit,
+            "findings": Vec::<Value>::new(),
+            "raw_tail": self.raw_tail,
+        })
+    }
+}
+
 /// Everything one `xnl lint` run has to say.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LintReport {
@@ -145,7 +165,13 @@ impl LintReport {
     /// Add a warning, sorted as `Report::warn` sorts (`src:B1`); an
     /// identical warning is kept once.
     pub fn warn(&mut self, warning: Warning) {
-        self.warnings.push(warning);
+        let key = |w: &Warning| (w.code.clone(), w.file.clone(), w.message.clone());
+        let at = self
+            .warnings
+            .partition_point(|existing| key(existing).cmp(&key(&warning)) == Ordering::Less);
+        if self.warnings.get(at) != Some(&warning) {
+            self.warnings.insert(at, warning);
+        }
     }
 
     /// The outcomes, in run order.
@@ -164,13 +190,38 @@ impl LintReport {
     /// failed, 2 one could not run (`src/lint:V92`, `src/cli` §I).
     #[must_use]
     pub fn exit_code(&self) -> u8 {
-        0
+        self.outcomes
+            .iter()
+            .map(|o| o.status.exit_code())
+            .max()
+            .unwrap_or(0)
     }
 
     /// The JSON envelope (`src/lint` §I), pretty-printed and
     /// newline-terminated, keys sorted by `serde_json`'s map.
     #[must_use]
     pub fn to_json(&self) -> String {
-        String::new()
+        let envelope = json!({
+            "schema": SCHEMA,
+            "results": self.outcomes.iter().map(Outcome::to_value).collect::<Vec<Value>>(),
+            "violations": Vec::<Value>::new(),
+            "warnings": self.warnings.iter().map(warning_value).collect::<Vec<Value>>(),
+        });
+        let mut out = serde_json::to_string_pretty(&envelope)
+            .unwrap_or_else(|_| String::from("{\"schema\": 1}"));
+        out.push('\n');
+        out
     }
+}
+
+/// A warning in the envelope's shape (`src/cli` §I): `code`, `message`,
+/// and `file` when there is one.
+fn warning_value(warning: &Warning) -> Value {
+    let mut map = Map::new();
+    map.insert("code".to_owned(), Value::String(warning.code.clone()));
+    map.insert("message".to_owned(), Value::String(warning.message.clone()));
+    if let Some(file) = &warning.file {
+        map.insert("file".to_owned(), Value::String(file.display().to_string()));
+    }
+    Value::Object(map)
 }

@@ -49,10 +49,15 @@ impl Cmd {
     /// path is appended.
     #[must_use]
     pub fn configured(text: &str) -> Cmd {
-        let _ = text;
+        let words: Vec<String> = text.split_whitespace().map(str::to_owned).collect();
+        let file_arg = if words.iter().any(|w| w == FILE) {
+            FileArg::Placeholder
+        } else {
+            FileArg::Append
+        };
         Cmd {
-            words: Vec::new(),
-            file_arg: FileArg::Append,
+            words,
+            file_arg,
             source: Source::Config,
         }
     }
@@ -61,8 +66,27 @@ impl Cmd {
     /// in config must not turn into "run the file".
     #[must_use]
     pub fn argv(&self, file: &str) -> Vec<String> {
-        let _ = file;
-        Vec::new()
+        if self.words.is_empty() {
+            return Vec::new();
+        }
+        match self.file_arg {
+            FileArg::Append => {
+                let mut argv = self.words.clone();
+                argv.push(file.to_owned());
+                argv
+            }
+            FileArg::Placeholder => self
+                .words
+                .iter()
+                .map(|w| {
+                    if w == FILE {
+                        file.to_owned()
+                    } else {
+                        w.clone()
+                    }
+                })
+                .collect(),
+        }
     }
 
     /// The tool's name, as results report it: the first word.
@@ -122,6 +146,27 @@ impl<'a> Configured<'a> {
 /// defaults run whatever `extend` says (`src/lint:V91`).
 #[must_use]
 pub fn plan(defaults: &[LintCmd], configured: Configured<'_>, trusted: bool) -> Plan {
-    let _ = (defaults, configured, trusted);
-    Plan::default()
+    let builtin = defaults.iter().map(Cmd::builtin);
+    let from_config: Vec<Cmd> = configured
+        .own
+        .iter()
+        .chain(configured.all)
+        .map(|text| Cmd::configured(text))
+        .collect();
+    if !trusted {
+        return Plan {
+            run: builtin.collect(),
+            untrusted: from_config,
+        };
+    }
+    let mut run: Vec<Cmd> = if configured.extend {
+        builtin.collect()
+    } else {
+        Vec::new()
+    };
+    run.extend(from_config);
+    Plan {
+        run,
+        untrusted: Vec::new(),
+    }
 }

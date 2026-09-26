@@ -19,13 +19,18 @@
 //! `src/cli` renders the [`LintReport`] and maps its exit code.
 
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::io::Read as _;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-use crate::check::Langs;
+use xenolith_lang_api::{Guest, GuestEnv, Host, LangId, LintCmd, shebang};
+
+use crate::check::{Langs, UNCLAIMED, repo_name};
 use crate::cli::EXIT_USAGE;
-use crate::config::{Config, TreeError};
+use crate::config::{Config, Policy, Tree, TreeError, Verb};
 use crate::discover::{DiscoverError, discover_with};
+use crate::model::Warning;
 use crate::registry;
 
 pub mod plan;
@@ -34,6 +39,7 @@ pub mod run;
 
 pub use report::{Kind, LintReport, Outcome, Source, Status};
 
+use self::plan::{Cmd, Configured};
 use self::run::Tools;
 
 #[cfg(test)]
@@ -145,7 +151,262 @@ pub(crate) fn lint_with(
     git: &dyn Fn() -> Command,
     tools: &Tools,
 ) -> Result<LintReport, LintError> {
-    let _ = (config, langs, tools);
-    discover_with(root, &options.paths, git)?;
-    Ok(LintReport::new())
+    let candidates = discover_with(root, &options.paths, git)?;
+    if let Some(path) = candidates.files.iter().find(|f| outside(f)) {
+        return Err(LintError::Outside { path: path.clone() });
+    }
+    let names: Vec<String> = candidates.files.iter().map(|f| repo_name(f)).collect();
+    let tree = Tree::load(
+        root,
+        config.clone(),
+        Verb::Lint,
+        names.iter().map(String::as_str),
+    )?;
+    let mut report = LintReport::new();
+    for warning in candidates.warnings {
+        report.warn(warning);
+    }
+    let run = Run { root, tools };
+    for (file, name) in candidates.files.iter().zip(&names) {
+        let config = tree.config_for(name);
+        if config.excluded(Verb::Lint, name).is_some() {
+            continue;
+        }
+        let head = head(&root.join(file));
+        let hosts: Vec<&dyn Host> = langs
+            .hosts
+            .iter()
+            .copied()
+            .filter(|host| host.claims(file, &head))
+            .collect();
+        let found = extract_of(langs.guests, file, &head);
+        if hosts.is_empty() && matches!(found, Found::Nothing) {
+            unclaimed(&mut report, config, options, name)?;
+            continue;
+        }
+        if config.lint.hosts {
+            for host in hosts {
+                run.host(&mut report, host, name);
+            }
+        }
+        match found {
+            Found::Guest(guest, env) => run.extract(&mut report, config, guest, &env, name),
+            Found::Missing(id, interpreter) => report.warn(registry::missing_shebang_guest(
+                id,
+                Path::new(name),
+                Some(&interpreter),
+            )),
+            Found::Nothing => {}
+        }
+    }
+    Ok(report)
+}
+
+/// What a file is to its guests.
+enum Found<'a> {
+    /// An extract of this guest, in this env.
+    Guest(&'a dyn Guest, GuestEnv),
+    /// Its shebang names a guest this build lacks (`src:V42`).
+    Missing(LangId, String),
+    /// No guest reads it.
+    Nothing,
+}
+
+/// Stage 2 for guests (`src/lint` §I, targets): a shebang decides, and a
+/// shebang naming no language decides "none" rather than letting the
+/// extension guess; with no shebang, the extension a guest gives its
+/// extracts under the default env.
+fn extract_of<'a>(guests: &[&'a dyn Guest], file: &Path, head: &str) -> Found<'a> {
+    if let Some(bang) = shebang::parse(head) {
+        let Some(id) = shebang::guest_of(&bang) else {
+            return Found::Nothing;
+        };
+        let interpreter = bang.resolved_interpreter();
+        let dialect = interpreter.rsplit('/').next().unwrap_or(interpreter);
+        return match guests.iter().copied().find(|g| g.id() == id) {
+            Some(guest) => Found::Guest(
+                guest,
+                GuestEnv {
+                    dialect: Some(dialect.to_owned()),
+                    options: Vec::new(),
+                },
+            ),
+            None => Found::Missing(id, interpreter.to_owned()),
+        };
+    }
+    let Some(ext) = file.extension().and_then(|e| e.to_str()) else {
+        return Found::Nothing;
+    };
+    let env = GuestEnv::default();
+    guests
+        .iter()
+        .copied()
+        .find(|g| g.extension(&env) == ext)
+        .map_or(Found::Nothing, |guest| Found::Guest(guest, env))
+}
+
+/// A file nothing lints (`src:V13`): ignored by default, a warning under
+/// `warn`, a refusal under `error` or `--strict-hosts`.
+fn unclaimed(
+    report: &mut LintReport,
+    config: &Config,
+    options: &Options,
+    name: &str,
+) -> Result<(), LintError> {
+    let policy = if options.strict_hosts {
+        Policy::Error
+    } else {
+        config.langs.unclaimed
+    };
+    match policy {
+        Policy::Ignore => Ok(()),
+        Policy::Warn => {
+            report.warn(Warning {
+                code: UNCLAIMED.to_owned(),
+                file: Some(PathBuf::from(name)),
+                message: format!(
+                    "{name}: host unsupported: no host claims it and no guest reads it, so \
+                     it was not linted (src:V13)"
+                ),
+            });
+            Ok(())
+        }
+        Policy::Error => Err(LintError::Unclaimed {
+            file: PathBuf::from(name),
+        }),
+    }
+}
+
+/// The run's fixed inputs: where commands run and how they are found.
+struct Run<'a> {
+    root: &'a Path,
+    tools: &'a Tools,
+}
+
+impl Run<'_> {
+    /// `Host::checks` on a host file; defaults only, config names none
+    /// for hosts (`src/lint` §I).
+    fn host(&self, report: &mut LintReport, host: &dyn Host, name: &str) {
+        let target = Target {
+            name,
+            kind: Kind::Host,
+            guest: None,
+            dialect: None,
+        };
+        for cmd in host.checks().iter().map(Cmd::builtin) {
+            report.push(self.one(&target, &cmd, false));
+        }
+    }
+
+    /// An extract's checks: defaults and config (`src/lint:V8`).
+    fn extract(
+        &self,
+        report: &mut LintReport,
+        config: &Config,
+        guest: &dyn Guest,
+        env: &GuestEnv,
+        name: &str,
+    ) {
+        let id = guest.id();
+        let entry = config.lint.guests.get(&id);
+        let extend = extend(config, id);
+        let target = Target {
+            name,
+            kind: Kind::Extract,
+            guest: Some(id),
+            dialect: env.dialect.clone(),
+        };
+        let checks: Vec<LintCmd> = guest.checks(env);
+        let planned = plan::plan(
+            &checks,
+            Configured::checks(entry, extend, &config.lint.all),
+            false,
+        );
+        for cmd in &planned.untrusted {
+            untrusted(report, &target, cmd);
+        }
+        for cmd in &planned.run {
+            report.push(self.one(&target, cmd, false));
+        }
+    }
+
+    /// Run one command on the target and make its outcome.
+    fn one(&self, target: &Target<'_>, cmd: &Cmd, fixer: bool) -> Outcome {
+        let argv = cmd.argv(target.name);
+        let ran = run::run(self.root, &argv, self.tools);
+        Outcome {
+            file: PathBuf::from(target.name),
+            kind: target.kind,
+            guest: target.guest,
+            dialect: target.dialect.clone(),
+            check: cmd.check(),
+            argv,
+            source: cmd.source,
+            status: ran.status,
+            exit: ran.exit,
+            raw_tail: ran.tail,
+            fixer,
+        }
+    }
+}
+
+/// The file a command runs on, as outcomes name it.
+struct Target<'a> {
+    name: &'a str,
+    kind: Kind,
+    guest: Option<LangId>,
+    dialect: Option<String>,
+}
+
+/// A config command held back (`src/lint:V91`): a `skipped` outcome, and
+/// one warning per distinct command naming it.
+fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd) {
+    let argv = cmd.argv(target.name);
+    report.warn(Warning {
+        code: UNTRUSTED_COMMAND.to_owned(),
+        file: None,
+        message: format!(
+            "`{}` from xenolith.toml was not run: commands a config defines run only with \
+             --trust-config (src/lint:V91)",
+            cmd.words.join(" ")
+        ),
+    });
+    report.push(Outcome {
+        file: PathBuf::from(target.name),
+        kind: target.kind,
+        guest: target.guest,
+        dialect: target.dialect.clone(),
+        check: cmd.check(),
+        argv,
+        source: cmd.source,
+        status: Status::Skipped,
+        exit: None,
+        raw_tail: None,
+        fixer: false,
+    });
+}
+
+/// `[lint.<guest>] extend`, through the defaults table (`src/config:V73`).
+fn extend(config: &Config, id: LangId) -> bool {
+    matches!(
+        config.effective(&format!("lint.{id}.extend")),
+        Some(crate::config::Effective::Bool(true))
+    )
+}
+
+/// A discovered path that is not below the root: absolute, or climbing
+/// out of it.
+fn outside(path: &Path) -> bool {
+    path.is_absolute() || matches!(path.components().next(), Some(Component::ParentDir))
+}
+
+/// The first line of the file, read without reading the rest: the
+/// shebang and `Host::claims` need no more.
+fn head(path: &Path) -> String {
+    let mut buf = Vec::new();
+    if let Ok(file) = fs::File::open(path) {
+        let _ = file.take(1024).read_to_end(&mut buf);
+    }
+    let first = buf.split(|b| *b == b'\n').next().unwrap_or_default();
+    String::from_utf8_lossy(first).into_owned()
 }

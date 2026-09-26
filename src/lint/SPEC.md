@@ -43,7 +43,7 @@ V126: ∀ check & fixer killed at `[lint] timeout` (default 60s) → `status: er
 | M3 | publication | T94 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T24|.|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
+T24|x|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
 T87|.|multi-check runner, per-check results, `--fix`; defaults table; fixture w/ 2 checks both failing|V8
 T92|.|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
 T93|.|findings parsers (shellcheck json, ruff json, sqlfluff json, SARIF) + raw fallback|V92
