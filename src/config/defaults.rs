@@ -41,8 +41,9 @@ pub const LINT_EXTEND: bool = true;
 pub const LINT_HOSTS: bool = true;
 /// `[lint] timeout` in seconds (`src/lint:V126`); 0 = no limit.
 pub const LINT_TIMEOUT: u64 = 60;
-/// `[parse] host_errors` (`src/config` §I).
-pub const PARSE_HOST_ERRORS: &str = "warn";
+/// `[parse] host_errors` (`src/config` §I): a claimed file its host
+/// cannot parse was not checked, and that is a finding, not a pass.
+pub const PARSE_HOST_ERRORS: &str = "error";
 /// `[threshold.<guest>] max_bytes` (`src/config:V55`).
 pub const THRESHOLD_GUEST_MAX_BYTES: u64 = 80;
 /// `[threshold.<guest>] max_lines` (`src/config:V55`).
