@@ -12,8 +12,8 @@ use xenolith_lang_api::{GuestEnv, LangId};
 
 use super::{
     Sink, TEXT_BUILDER, apply_chain, attr_name, attr_segments, attr_sink, attr_value_sink,
-    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, program_of,
-    shebang_sink, shell_dialect, shell_init_sink, sink_path, sink_value, string_text,
+    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, is_order_wrap,
+    program_of, shebang_sink, shell_dialect, shell_init_sink, sink_path, sink_value, string_text,
 };
 
 /// The tree for `src`, or a panic naming the parse errors. The workspace
@@ -589,6 +589,41 @@ fn a_concatenation_outside_sink_position_is_data() {
 }
 
 // --- order / priority wraps (`languages/nix:T161`) ----------------------
+
+/// Whether the string `text` in `src` is the value of an order wrap: its
+/// parent asked about it.
+fn wrapped(src: &str, text: &str) -> bool {
+    let value = string(src, text);
+    value.parent().is_some_and(|p| is_order_wrap(&p, &value))
+}
+
+#[test]
+fn an_order_wrap_is_a_listed_function_at_its_arity() {
+    for wrap in [
+        "mkBefore",
+        "lib.mkAfter",
+        "mkOrder 1",
+        "mkForce",
+        "mkDefault",
+    ] {
+        assert!(wrapped(&format!("{wrap} ''x''"), "''x''"), "{wrap}");
+    }
+    for wrap in [
+        "mkIf c",
+        "mkOrder",
+        "mkForce 1",
+        "mkOverride 50",
+        "f",
+        "(x: x)",
+    ] {
+        assert!(!wrapped(&format!("{wrap} ''x''"), "''x''"), "{wrap}");
+    }
+    // Applied past its arity, or the string in function position.
+    assert!(!wrapped("mkBefore ''x'' y", "''x''"));
+    assert!(!wrapped("''x'' mkBefore", "''x''"));
+    // Not an application at all.
+    assert!(!wrapped("[ ''x'' ]", "''x''"));
+}
 
 #[test]
 fn a_wrapped_value_stands_where_the_wrap_does() {

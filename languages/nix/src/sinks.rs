@@ -20,7 +20,9 @@
 //!   `writeShellApplication`, which is the only place `text` means shell.
 //!
 //! In each shape the value may be a `+` concatenation: every string
-//! operand of it is in the sink ([`sink_value`], `languages/nix:T155`).
+//! operand of it is in the sink ([`sink_value`], `languages/nix:T155`),
+//! and it may sit inside one `mkBefore` / `mkOrder N` / `mkForce` ...
+//! wrap, which only orders it (`languages/nix:T161`).
 //!
 //! One rule reads a string's CONTENT, and only its first line: a whole
 //! attribute value that starts with a shebang holds what that line names
@@ -256,6 +258,11 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
 /// never around a lone string, which is not a new shape. Every other
 /// operator (`-`, `//`, `++`, a comparison) is not concatenation, and a
 /// hole is a nix expression of its own: the climb stops at either.
+///
+/// Last, ONE order or priority wrap around that value is climbed too
+/// ([`is_order_wrap`], `languages/nix:T161`): `shellHook = mkBefore ''…''`
+/// is the hook's body, placed early. A wrap is never the whole value a
+/// shebang is read from, since the string is then not the value itself.
 pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
     let mut node = string.clone();
     while let Some(parent) = node.parent() {
@@ -269,7 +276,35 @@ pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
         }
         node = parent;
     }
-    node
+    match node.parent() {
+        Some(wrap) if is_order_wrap(&wrap, &node) => wrap,
+        _ => node,
+    }
+}
+
+/// The module-system functions that only order or prioritise the value
+/// they wrap, and how many arguments each takes, the value last
+/// (`languages/nix:T161`). A closed list: `mkIf` makes a value
+/// conditional, `mkMerge` takes a list, and neither is on it.
+const ORDER_WRAPS: &[(&str, usize)] = &[
+    ("mkBefore", 1),
+    ("mkAfter", 1),
+    ("mkOrder", 2),
+    ("mkForce", 1),
+    ("mkDefault", 1),
+];
+
+/// Whether `apply` is an [`ORDER_WRAPS`] function applied to exactly its
+/// arguments, with `value` the last of them.
+fn is_order_wrap(apply: &SyntaxNode, value: &SyntaxNode) -> bool {
+    apply.kind() == SyntaxKind::NODE_APPLY
+        && apply.first_child().as_ref() != Some(value)
+        && !is_function_of_parent_apply(apply)
+        && apply_chain(apply).is_some_and(|(callee, depth)| {
+            ORDER_WRAPS
+                .iter()
+                .any(|(wrap, arity)| *wrap == callee && *arity == depth)
+        })
 }
 
 /// The init options each shell program sources into its interactive
