@@ -19,6 +19,7 @@
 //! their own tests. This file is the crate root those land in, not a
 //! placeholder for them.
 
+pub mod cli;
 pub mod config;
 pub mod model;
 

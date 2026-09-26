@@ -56,7 +56,7 @@ T9|.|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verb
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
 T97|.|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 T103|.|SARIF writer ∀ verb + schema validation test|V102
-T144|.|`src:C139` backfill: `src/main.rs` → shim; verb dispatch & `refuse` → lib module w/ own `tests.rs` (w/ T9)|`src:C139`,`scripts/guard:V140`,T9
+T144|x|`src:C139` backfill: `src/main.rs` → shim; verb dispatch & `refuse` → lib module w/ own `tests.rs` (w/ T9)|`src:C139`,`scripts/guard:V140`,T9
 
 ## §B BUGS
 
