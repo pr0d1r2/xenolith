@@ -490,6 +490,39 @@ fn stem_path(path: &str) -> String {
     }
 }
 
+/// The path a host's load names for the extract at `extract` (repo-root
+/// relative), relative to the site's runtime base
+/// (`languages/api/src/lens:V66`): the host file's directory unless a
+/// rule's `base` says otherwise. `./`-led unless it climbs, so a host
+/// whose syntax needs the dot (a nix path) has it, and never relative
+/// to the working directory.
+#[must_use]
+pub fn load_path(host_path: &str, extract: &str, base: &Base) -> String {
+    let from: Vec<&str> = match base {
+        Base::Host => host_path
+            .rsplit_once('/')
+            .map_or_else(Vec::new, |(dir, _)| segments(dir)),
+        Base::Root => Vec::new(),
+        Base::Dir(dir) => segments(dir),
+    };
+    let to = segments(extract);
+    let shared = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
+    let ups = from.len() - shared;
+    let rest = to.get(shared..).unwrap_or_default().join("/");
+    if ups == 0 {
+        format!("./{rest}")
+    } else {
+        format!("{}{rest}", "../".repeat(ups))
+    }
+}
+
+/// The non-empty, non-`.` segments of a `/`-separated path.
+fn segments(path: &str) -> Vec<&str> {
+    path.split('/')
+        .filter(|part| !part.is_empty() && *part != ".")
+        .collect()
+}
+
 /// The suffix a colliding extract takes (`src/extract:V47`): the sink's
 /// last dotted segment, lowercased, anything outside `[a-z0-9]` a `-`.
 #[must_use]

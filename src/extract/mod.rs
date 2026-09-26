@@ -642,7 +642,7 @@ fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result
         .host
         .unescape(&p.site.delim, raw)
         .map_err(|e| format!("the body cannot be read as its guest reads it: {e}"))?;
-    let load = load_text(name, &p.placed);
+    let load = place::load_path(name, &p.placed.path, &p.placed.base);
     let invoke = invoke(p, &load)?;
     let prelude = prelude(p)?;
     let mut body_nl = body.clone();
@@ -677,11 +677,6 @@ fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result
             present,
         },
     })
-}
-
-/// The path text the host writes into its load (`src/extract` §I).
-fn load_text(_host: &str, placed: &Placed) -> String {
-    format!("./{}", placed.path)
 }
 
 /// The argv the load runs: a rule's template rendered with the path as
