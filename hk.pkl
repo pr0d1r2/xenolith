@@ -342,6 +342,17 @@ local all = (fast) {
     check = "scripts/guard/node-config.sh"
   }
 
+  // Dogfood (`.:V19`, `.:C19`, `.:T28`): this repo passes its own `xnl check`,
+  // built from the tree under test so a change to the engine is judged by
+  // itself. Whole-repo and push-side like the guards above: a nested
+  // `xenolith.toml` can change the verdict for files the push never touched.
+  // `graph` and `lint` join when their engines land (`src/graph:T21`,
+  // `src/lint:T24`).
+  ["dogfood"] {
+    glob = List("**/*.nix", "**/*.pkl", "**/*.sh", "**/*.rs", "**/xenolith.toml")
+    check = "cargo run --quiet --bin xnl -- check"
+  }
+
   // No private repo name in a tracked file (`scripts/guard:V23`,
   // `scripts/guard:C17`). Whole-repo and push-side: the denylist can
   // gain an entry at any time, and the question it answers is about the
