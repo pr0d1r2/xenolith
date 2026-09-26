@@ -394,14 +394,6 @@ fn judge_site(
     if config.allowed(&key).is_some() {
         return Ok(());
     }
-    let extract = if site.holes.is_empty() {
-        Fix::Mechanical
-    } else {
-        // Holes become parameters only when every rule of
-        // `languages/api/src/holes:V40` holds; until the extract engine
-        // can say so, a site with holes is a judgement call.
-        Fix::Judgment
-    };
     // The allow belongs in the file that governs the site, written
     // relative to it (`src/config` §I), so it holds when that subtree is
     // checked on its own (`src/config:V88`).
@@ -415,9 +407,19 @@ fn judge_site(
         Rule::Xenolith,
         why,
         vec![
+            // Never `Mechanical` yet (`src:B6`): `xnl extract` refuses
+            // every host until `src/extract:T22` lands, and a mechanical
+            // direction is a fix SARIF offers to apply (`src/cli:V102`).
+            // When it lands, a body with no holes that the host
+            // unescaped and the guest parsed may become mechanical;
+            // holes stay a judgement until `languages/api/src/holes:V40`
+            // can be checked.
             Direction {
-                kind: extract,
-                action: format!("extract it to a file of its own: xnl extract {name}:{line}"),
+                kind: Fix::Judgment,
+                action: format!(
+                    "extract it to a file of its own, by hand for now: `xnl extract {name}:{line}` \
+                     rewrites no host yet (src/extract:T22)"
+                ),
             },
             Direction {
                 kind: Fix::Judgment,
