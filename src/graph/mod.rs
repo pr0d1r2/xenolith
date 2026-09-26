@@ -6,5 +6,11 @@
 //!
 //! * [`roots`] -- where extracts live, so the orphan scan walks those
 //!   directories and never the whole repository (`src/graph:V50`).
+//! * [`resolve`] -- the file a load names, found without following a
+//!   symlink (`src/graph:V72`).
 
+pub mod resolve;
 pub mod roots;
+
+#[cfg(test)]
+mod tests;
