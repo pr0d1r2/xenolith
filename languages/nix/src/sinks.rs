@@ -20,6 +20,9 @@
 use rnix::{SyntaxKind, SyntaxNode};
 use xenolith_lang_api::GuestEnv;
 
+#[cfg(test)]
+mod tests;
+
 /// What kind of sink a string sits in, which decides the env its body
 /// runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
