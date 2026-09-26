@@ -101,3 +101,32 @@ run_guard() {
   [ "$status" -ne 0 ]
   [[ "$output" == *"git"* ]]
 }
+
+# tests:V150, tests:B1. git exports GIT_DIR and GIT_INDEX_FILE to every hook,
+# and hk runs this suite from pre-commit and pre-push. The environment beats
+# `git -C`, so unless setup drops it, every fixture write above lands in the
+# repository the hook is running for. Staged here over a sentinel repo: setup
+# runs again under a hook-shaped environment, the fixture does its usual git
+# work, and the sentinel must come out exactly as it went in.
+hook_env_over_sentinel() {
+  SENTINEL="${BATS_TEST_TMPDIR}/sentinel"
+  git init --quiet "$SENTINEL"
+  SENTINEL_CONFIG="$(cat "${SENTINEL}/.git/config")"
+  export GIT_DIR="${SENTINEL}/.git" GIT_INDEX_FILE="${SENTINEL}/.git/index"
+}
+
+sentinel_untouched() {
+  [ "$(cat "${SENTINEL}/.git/config")" = "$SENTINEL_CONFIG" ]
+  [ ! -e "${SENTINEL}/.git/index" ]
+  [ -z "$(find "${SENTINEL}/.git/objects" -type f)" ]
+}
+
+@test "a git hook's environment does not reach the enclosing repo" {
+  hook_env_over_sentinel
+  setup
+  track scripts/dev/thing.sh
+  track tests/unit/scripts/dev/thing.bats
+  run_guard
+  [ "$status" -eq 0 ]
+  sentinel_untouched
+}
