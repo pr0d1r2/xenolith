@@ -33,7 +33,7 @@ sib|docs|public project docs & notices
 
 ## §I INTERFACES
 
-- lib: `xenolith::check(&Path, &Config) -> Vec<Violation>`, `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
+- lib: `xenolith::check(&Path, &Config, &check::Options) -> Result<Report, CheckError>` (`Options` = paths; `Report` = sorted violations + warnings; `CheckError` = the exit-2 refusals: discovery, missing guest), `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 
 ## §V INVARIANTS
 
@@ -70,7 +70,7 @@ T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 T119|.|benchmark harness + recorded budget file|V120,V95
 T127|x|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
 T142|x|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
-T153|.|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,T46,T58
+T153|x|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,T46,T58
 
 ## §B BUGS
 

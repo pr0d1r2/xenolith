@@ -469,17 +469,32 @@ impl Config {
     }
 
     /// The constructs `[threshold.<guest>] allow` tolerates inline for
-    /// `guest` (`src/config:V55`). RED stub: none.
+    /// `guest` (`src/config:V55`). Only shell has the list today; every
+    /// other guest tolerates none by name.
     #[must_use]
-    pub fn construct_allow(&self, _guest: LangId) -> &[String] {
-        &[]
+    pub fn construct_allow(&self, guest: LangId) -> &[String] {
+        if guest == LangId::Shell {
+            &self.threshold.shell_allow
+        } else {
+            &[]
+        }
     }
 
-    /// `[threshold.<guest>]` `(max_lines, max_bytes)`, resolved. RED
-    /// stub: none.
+    /// `[threshold.<guest>]` `(max_lines, max_bytes)`, resolved through
+    /// the defaults table (`src/config:V73`), for every guest but shell,
+    /// whose table has a construct list instead (`None`).
     #[must_use]
-    pub fn size_ceiling(&self, _guest: LangId) -> Option<(u64, u64)> {
-        None
+    pub fn size_ceiling(&self, guest: LangId) -> Option<(u64, u64)> {
+        if guest == LangId::Shell {
+            return None;
+        }
+        let set = self.threshold.guests.get(&guest);
+        Some((
+            set.and_then(|g| g.max_lines)
+                .unwrap_or(defaults::THRESHOLD_GUEST_MAX_LINES),
+            set.and_then(|g| g.max_bytes)
+                .unwrap_or(defaults::THRESHOLD_GUEST_MAX_BYTES),
+        ))
     }
 
     /// Whether `key` came from the file or the table; `None` for a key

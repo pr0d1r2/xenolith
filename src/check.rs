@@ -1,20 +1,39 @@
 //! The check engine: `xnl check` as a library call (`src:V152`).
 //!
-//! RED stub (`src:T153`): the types and seams `check/tests.rs` is written
-//! against, with a pipeline that finds nothing. The GREEN commit joins
-//! discovery, the registry, the verdict, `[[allow]]` and the report.
+//! ONE pipeline, stage by stage, each stage owned elsewhere and only
+//! JOINED here:
+//!
+//! 1. candidates -- [`crate::discover`] (`src:V57`, `src:V128`), minus
+//!    what `[[exclude]]` and `[check] exclude` skip (`src/config:V79`);
+//!    an excluded file is never opened.
+//! 2. claims -- every registry host is offered every candidate
+//!    (`languages:V56`); a file nobody claims is unclaimed (`src:V13`).
+//! 3. sites -- `Host::sites`, from the grammar (`languages:V2`).
+//! 4. guest -- the site's guest from the registry; compiled out, it goes
+//!    to `[langs] missing_guest` and is never guessed about (`src:V42`).
+//! 5. verdict -- `Guest::trivial`, then `[threshold]`, which only RELAXES
+//!    (`src/config:V55`): a trivial body is never flagged.
+//! 6. allow -- `[[allow]]` by path, sink and body hash (`src/config:V10`);
+//!    an entry matching no site is `stale-allow` (`src/config:V9`).
+//! 7. report -- [`Violation`]s (`src:V1`) into a [`Report`], which keeps
+//!    them sorted (`src:V11`).
+//!
+//! `src/cli` renders the report and maps exit codes; nothing here writes
+//! to a stream or exits.
 
+use std::collections::BTreeSet;
 use std::fmt;
-use std::path::Path;
-use std::path::PathBuf;
+use std::fs;
+use std::io::Read as _;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-use xenolith_lang_api::{Guest, Host, Site};
+use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site};
 
 use crate::cli::EXIT_USAGE;
-use crate::config::Config;
-use crate::discover::DiscoverError;
-use crate::model::Report;
+use crate::config::{Allow, Config, Policy, SiteKey, Verb};
+use crate::discover::{DiscoverError, discover_with};
+use crate::model::{Direction, Fix, Report, Rule, Violation, Warning};
 use crate::registry::{self, MissingGuest};
 
 #[cfg(test)]
@@ -23,26 +42,34 @@ mod tests;
 /// The config file `xnl check` reads at the root (`src/config:C16`).
 pub const CONFIG_FILE: &str = "xenolith.toml";
 
-/// The warning code for a claimed file its host could not parse.
+/// The warning code for a claimed file whose host could not parse it,
+/// under `[parse] host_errors = "warn"` (`languages:V78`).
 pub const HOST_PARSE_ERROR: &str = "host-parse-error";
 
-/// What stands in for a host interpolation when a body is handed to its
-/// guest.
+/// What stands in for a host interpolation (a hole) when a body is
+/// handed to its guest. A hole is HOST syntax -- nix `${…}`, pkl `\(…)` --
+/// and the guest's grammar would read it as its own, or fail on it; one
+/// plain word keeps the body's shape (a word stays a word, a command
+/// stays a command) until the lens's `unescape` lands
+/// (`languages/api/src/lens:V39`).
 const HOLE: &str = "XNL_HOLE";
 
 /// What a run is asked to look at.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
-    /// The paths named; empty means every tracked file (`src:V57`).
+    /// The paths named, repo-root relative; empty means every tracked
+    /// file (`src:V57`).
     pub paths: Vec<PathBuf>,
 }
 
-/// Why a run was refused. Every variant is exit 2.
+/// Why a run was refused rather than carried out. Every variant is exit
+/// 2 (`src/cli:V24`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckError {
-    /// Discovery refused.
+    /// Discovery refused (`src:V57`, `src:V128`).
     Discover(DiscoverError),
-    /// A site's guest is compiled out (`src:V42`).
+    /// A site's guest is compiled out and `[langs] missing_guest` is
+    /// `error` (`src:V42`).
     MissingGuest(MissingGuest),
 }
 
@@ -65,11 +92,24 @@ impl fmt::Display for CheckError {
 
 impl std::error::Error for CheckError {}
 
+impl From<DiscoverError> for CheckError {
+    fn from(e: DiscoverError) -> CheckError {
+        CheckError::Discover(e)
+    }
+}
+
+impl From<MissingGuest> for CheckError {
+    fn from(e: MissingGuest) -> CheckError {
+        CheckError::MissingGuest(e)
+    }
+}
+
 /// Check the tree at `root` under `config` (`src:V152`).
 ///
 /// # Errors
 ///
-/// None yet: this stub finds nothing.
+/// [`CheckError`], exit 2: discovery refused, or a site's guest is
+/// compiled out under `[langs] missing_guest = "error"`.
 pub fn check(root: &Path, config: &Config, options: &Options) -> Result<Report, CheckError> {
     let langs = Langs {
         hosts: registry::hosts(),
@@ -78,46 +118,462 @@ pub fn check(root: &Path, config: &Config, options: &Options) -> Result<Report, 
     check_with(root, config, options, &langs, &|| Command::new("git"))
 }
 
-/// The languages a run judges with.
+/// The languages a run judges with: the registry's in production, fakes
+/// in the tests, which is what lets the engine be tested in every
+/// feature subset (`src:V30`).
 pub(crate) struct Langs<'a> {
     pub(crate) hosts: &'a [&'a dyn Host],
     pub(crate) guests: &'a [&'a dyn Guest],
 }
 
-/// [`check`], with the languages and `git` supplied. Stub: an empty
-/// report.
+/// One site the run saw, for `[[allow]]` staleness (`src/config:V9`).
+struct Seen {
+    path: String,
+    sink: String,
+    hash: String,
+    at: Located,
+}
+
+/// Where a finding is, and in whose languages (`src:V1`).
+#[derive(Clone)]
+struct Located {
+    file: PathBuf,
+    line: usize,
+    col: usize,
+    host: LangId,
+    guest: LangId,
+    sink: String,
+    site: DelimKind,
+}
+
+/// [`check`], with the languages and the `git` command supplied by the
+/// caller -- the seam the tests use (`tests:V150`).
 pub(crate) fn check_with(
-    _root: &Path,
-    _config: &Config,
-    _options: &Options,
-    _langs: &Langs<'_>,
-    _git: &dyn Fn() -> Command,
+    root: &Path,
+    config: &Config,
+    options: &Options,
+    langs: &Langs<'_>,
+    git: &dyn Fn() -> Command,
 ) -> Result<Report, CheckError> {
-    Ok(Report::new())
+    let candidates = discover_with(root, &options.paths, git)?;
+    let mut report = Report::new();
+    for warning in candidates.warnings {
+        report.warn(warning);
+    }
+    let mut seen = Vec::new();
+    let mut scanned = BTreeSet::new();
+    for file in &candidates.files {
+        let name = repo_name(file);
+        if config.excluded(Verb::Check, &name).is_some() {
+            continue;
+        }
+        let head = head(&root.join(file));
+        let claimers: Vec<&dyn Host> = langs
+            .hosts
+            .iter()
+            .copied()
+            .filter(|host| host.claims(file, &head))
+            .collect();
+        if claimers.is_empty() {
+            continue;
+        }
+        scanned.insert(name.clone());
+        let text = fs::read(root.join(file))
+            .map_err(|e| e.to_string())
+            .and_then(|bytes| String::from_utf8(bytes).map_err(|_| "not UTF-8".to_owned()));
+        for host in claimers {
+            let parsed = match &text {
+                Ok(src) => host
+                    .sites(src)
+                    .map(|sites| (src, sites))
+                    .map_err(|e| e.to_string()),
+                Err(e) => Err(e.clone()),
+            };
+            match parsed {
+                Ok((src, sites)) => {
+                    for site in &sites {
+                        judge_site(
+                            &mut report,
+                            &mut seen,
+                            config,
+                            langs,
+                            host.id(),
+                            &name,
+                            src,
+                            site,
+                        )?;
+                    }
+                }
+                Err(detail) => host_error(&mut report, config, host.id(), &name, &detail),
+            }
+        }
+    }
+    stale_allows(&mut report, config, root, &seen, &scanned, options, langs);
+    Ok(report)
 }
 
-/// The `[[allow]]` content hash. Stub.
+/// Stages 4 to 6 for one site.
+#[allow(clippy::too_many_arguments)] // one call site, every argument a stage input
+fn judge_site(
+    report: &mut Report,
+    seen: &mut Vec<Seen>,
+    config: &Config,
+    langs: &Langs<'_>,
+    host: LangId,
+    name: &str,
+    src: &str,
+    site: &Site,
+) -> Result<(), CheckError> {
+    let raw = site.delim.body.of(src).unwrap_or_default();
+    let hash = body_hash(raw);
+    let (line, col) = position(src, site.delim.open.start);
+    let at = Located {
+        file: PathBuf::from(name),
+        line,
+        col,
+        host,
+        guest: site.guest,
+        sink: site.sink.clone(),
+        site: site.delim.kind.clone(),
+    };
+    seen.push(Seen {
+        path: name.to_owned(),
+        sink: site.sink.clone(),
+        hash: hash.clone(),
+        at: at.clone(),
+    });
+    let Some(guest) = langs.guests.iter().find(|g| g.id() == site.guest) else {
+        let warning =
+            registry::on_missing_guest(config.langs.missing_guest, site.guest, Path::new(name))?;
+        if let Some(warning) = warning {
+            report.warn(warning);
+        }
+        return Ok(());
+    };
+    let Some(why) = verdict(*guest, &guest_text(src, site), config) else {
+        return Ok(());
+    };
+    let key = SiteKey {
+        path: name,
+        sink: &site.sink,
+        hash: &hash,
+    };
+    if config.allowed(&key).is_some() {
+        return Ok(());
+    }
+    let extract = if site.holes.is_empty() {
+        Fix::Mechanical
+    } else {
+        // Holes become parameters only when every rule of
+        // `languages/api/src/holes:V40` holds; until the extract engine
+        // can say so, a site with holes is a judgement call.
+        Fix::Judgment
+    };
+    report.push(at.violation(
+        Rule::Xenolith,
+        why,
+        vec![
+            Direction {
+                kind: extract,
+                action: format!("extract it to a file of its own: xnl extract {name}:{line}"),
+            },
+            Direction {
+                kind: Fix::Judgment,
+                action: format!(
+                    "or keep it inline, with a reason: [[allow]] path = \"{name}\", sink = \"{}\", \
+                     hash = \"{hash}\", reason = \"...\" in {CONFIG_FILE}",
+                    site.sink
+                ),
+            },
+        ],
+    ));
+    Ok(())
+}
+
+impl Located {
+    fn violation(&self, rule: Rule, why: String, directions: Vec<Direction>) -> Violation {
+        Violation {
+            rule,
+            file: self.file.clone(),
+            line: self.line,
+            col: self.col,
+            host: self.host,
+            guest: self.guest,
+            sink: self.sink.clone(),
+            site: self.site.clone(),
+            why,
+            directions,
+        }
+    }
+}
+
+/// Stage 5: `None` when the body may stay inline, else the reason it may
+/// not (`src:V1` `why`).
+///
+/// `trivial` first, and a trivial body is final: `[threshold]` only
+/// RELAXES (`src/config:V55`). A body the guest cannot parse is flagged
+/// (`languages:V77`) -- calling it trivial would leave broken code
+/// inline. Past that, a guest that names its constructs is relaxed by
+/// `[threshold.<guest>] allow` when every construct is listed; one that
+/// names none (`Error::Unsupported`) by `max_lines` / `max_bytes`.
+fn verdict(guest: &dyn Guest, body: &str, config: &Config) -> Option<String> {
+    let id = guest.id();
+    match guest.trivial(body) {
+        Ok(true) => return None,
+        Ok(false) => {}
+        Err(e) => return Some(unparseable(id, &e)),
+    }
+    match guest.constructs(body) {
+        Ok(names) => {
+            let allow = config.construct_allow(id);
+            let over: Vec<&str> = names
+                .iter()
+                .copied()
+                .filter(|name| !allow.iter().any(|a| a == name))
+                .collect();
+            if over.is_empty() && !names.is_empty() {
+                return None;
+            }
+            let listed = if over.is_empty() {
+                "more than trivial".to_owned()
+            } else {
+                over.join(", ")
+            };
+            Some(format!(
+                "non-trivial {id}: {listed}; a script belongs in its own file"
+            ))
+        }
+        Err(Error::Unsupported { .. }) => {
+            let text = body.trim();
+            let lines = u64::try_from(text.lines().count()).unwrap_or(u64::MAX);
+            let bytes = u64::try_from(text.len()).unwrap_or(u64::MAX);
+            match config.size_ceiling(id) {
+                Some((max_lines, max_bytes)) if lines <= max_lines && bytes <= max_bytes => None,
+                Some((max_lines, max_bytes)) => Some(format!(
+                    "non-trivial {id}: {lines} lines, {bytes} bytes, over \
+                     threshold.{id} max_lines = {max_lines}, max_bytes = {max_bytes}"
+                )),
+                None => Some(format!("non-trivial {id}")),
+            }
+        }
+        Err(e) => Some(unparseable(id, &e)),
+    }
+}
+
+fn unparseable(id: LangId, e: &Error) -> String {
+    format!("unparseable {id}: {e}")
+}
+
+/// `[parse] host_errors` for a claimed file its host could not read
+/// (`languages:V78`).
+fn host_error(report: &mut Report, config: &Config, host: LangId, name: &str, detail: &str) {
+    let message = format!("{name} did not parse as {host}, so it was not checked: {detail}");
+    match config.parse.host_errors {
+        Policy::Ignore => {}
+        Policy::Warn => report.warn(Warning {
+            code: HOST_PARSE_ERROR.to_owned(),
+            file: Some(PathBuf::from(name)),
+            message,
+        }),
+        Policy::Error => report.push(
+            unsited(PathBuf::from(name), 1, host, String::new()).violation(
+                Rule::HostParseError,
+                message,
+                vec![Direction {
+                    kind: Fix::Judgment,
+                    action: format!("fix the {host} syntax error in {name}"),
+                }],
+            ),
+        ),
+    }
+}
+
+/// A location for a finding that is not at a site: a host file that did
+/// not parse, an allow whose site is gone.
+///
+/// `src:V1` has a slot for a guest and a delimiter kind on EVERY
+/// violation, and these findings have neither. Until the model says what
+/// such a finding carries, the file's own language stands in for both
+/// languages and the delimiter is `argv-string` -- the kind with the
+/// least host syntax. Flagged to the spec owner rather than decided
+/// here.
+fn unsited(file: PathBuf, line: usize, host: LangId, sink: String) -> Located {
+    Located {
+        file,
+        line,
+        col: 1,
+        host,
+        guest: host,
+        sink,
+        site: DelimKind::ArgvString,
+    }
+}
+
+/// Stage 6, second half: every `[[allow]]` no seen site matches is
+/// `stale-allow` (`src/config:V9`).
+///
+/// Judged only where the run could have seen the site: every entry on a
+/// whole-tree run, but on a run over named paths (hk passes the changed
+/// files) only entries naming a file that was scanned -- the rest are
+/// about files this run never opened.
+///
+/// Reported AT the site when one with the entry's path and sink still
+/// exists (the body changed, so the hash no longer matches), else at the
+/// entry in `xenolith.toml`.
+fn stale_allows(
+    report: &mut Report,
+    config: &Config,
+    root: &Path,
+    seen: &[Seen],
+    scanned: &BTreeSet<String>,
+    options: &Options,
+    langs: &Langs<'_>,
+) {
+    let keys = seen.iter().map(|s| SiteKey {
+        path: &s.path,
+        sink: &s.sink,
+        hash: &s.hash,
+    });
+    let whole_tree = options.paths.is_empty();
+    let config_text = fs::read_to_string(root.join(CONFIG_FILE)).unwrap_or_default();
+    for (index, allow) in config.stale_allows(keys) {
+        if !whole_tree && !scanned.contains(&allow.path) {
+            continue;
+        }
+        let drifted = seen
+            .iter()
+            .find(|s| s.path == allow.path && s.sink == allow.sink);
+        let (at, why) = match drifted {
+            Some(s) => (
+                s.at.clone(),
+                format!(
+                    "[[allow]] #{} in {CONFIG_FILE} is stale: the body changed (hash {} now, \
+                     {} allowed)",
+                    index + 1,
+                    s.hash,
+                    allow.hash
+                ),
+            ),
+            None => (
+                gone(allow, index, &config_text, root, langs),
+                format!(
+                    "[[allow]] #{} is stale: no site `{}` in {}",
+                    index + 1,
+                    allow.sink,
+                    allow.path
+                ),
+            ),
+        };
+        report.push(at.violation(
+            Rule::StaleAllow,
+            why,
+            vec![Direction {
+                kind: Fix::Judgment,
+                action: format!(
+                    "update its hash if the new body should stay inline, or delete the entry \
+                     from {CONFIG_FILE}"
+                ),
+            }],
+        ));
+    }
+}
+
+/// Where to report an allow whose site is gone: its entry in the config
+/// file, in the language of the host that claims the file it names.
+fn gone(allow: &Allow, index: usize, config_text: &str, root: &Path, langs: &Langs<'_>) -> Located {
+    let path = Path::new(&allow.path);
+    let head = head(&root.join(path));
+    let host = langs
+        .hosts
+        .iter()
+        .find(|host| host.claims(path, &head))
+        .map_or(LangId::Shell, |host| host.id());
+    let line = config_text
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| line.trim() == "[[allow]]")
+        .nth(index)
+        .map_or(1, |(n, _)| n + 1);
+    unsited(PathBuf::from(CONFIG_FILE), line, host, allow.sink.clone())
+}
+
+/// The content hash an `[[allow]]` keys a body by (`src/config:V10`):
+/// 64-bit FNV-1a over the body's bytes as the host file holds them,
+/// between the delimiters, as 16 lowercase hex digits.
+///
+/// Raw host text rather than the unescaped guest text, so the key is
+/// the same whether or not the host's `unescape` has landed. FNV rather
+/// than a cryptographic hash: an allow is a note to self, not a security
+/// boundary, and std has no stable portable hasher (`src:C5`).
 #[must_use]
-pub fn body_hash(_body: &str) -> String {
-    String::new()
+pub fn body_hash(body: &str) -> String {
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    const PRIME: u64 = 0x0100_0000_01b3;
+    let hash = body
+        .bytes()
+        .fold(OFFSET, |h, b| (h ^ u64::from(b)).wrapping_mul(PRIME));
+    format!("{hash:016x}")
 }
 
-/// The body as the guest reads it. Stub.
-fn guest_text(_src: &str, _site: &Site) -> String {
-    String::new()
+/// The body as the guest should read it: the text between the
+/// delimiters, each hole replaced by [`HOLE`].
+fn guest_text(src: &str, site: &Site) -> String {
+    let body = site.delim.body;
+    let mut holes: Vec<_> = site
+        .holes
+        .iter()
+        .filter(|h| h.start >= body.start && h.end <= body.end)
+        .collect();
+    holes.sort();
+    let mut out = String::new();
+    let mut at = body.start;
+    for hole in holes {
+        if hole.start < at {
+            continue;
+        }
+        out.push_str(src.get(at..hole.start).unwrap_or_default());
+        out.push_str(HOLE);
+        at = hole.end;
+    }
+    out.push_str(src.get(at..body.end).unwrap_or_default());
+    out
 }
 
-/// 1-based line and column. Stub.
-fn position(_src: &str, _offset: usize) -> (usize, usize) {
-    (0, 0)
+/// 1-based line and column of byte `offset`; the column counts
+/// characters, so a report lines up with what an editor shows.
+fn position(src: &str, offset: usize) -> (usize, usize) {
+    let before = src.get(..offset).unwrap_or(src);
+    let line = before.matches('\n').count() + 1;
+    let col = before
+        .rsplit('\n')
+        .next()
+        .map_or(0, |last| last.chars().count())
+        + 1;
+    (line, col)
 }
 
-/// The first line of a file. Stub.
-fn head(_path: &Path) -> String {
-    String::new()
+/// The first line of the file, for `Host::claims` (a shebang), read
+/// without reading the rest: an unclaimed file is not scanned
+/// (`src:V13`), and a large binary should not be loaded to learn that.
+fn head(path: &Path) -> String {
+    let mut buf = Vec::new();
+    if let Ok(file) = fs::File::open(path) {
+        let _ = file.take(1024).read_to_end(&mut buf);
+    }
+    let first = buf.split(|b| *b == b'\n').next().unwrap_or_default();
+    String::from_utf8_lossy(first).into_owned()
 }
 
-/// A candidate's repo-relative name. Stub.
-fn repo_name(_path: &Path) -> String {
-    String::new()
+/// A candidate's name as config and reports spell it: repo-root
+/// relative, `/`-separated, without `./`.
+fn repo_name(path: &Path) -> String {
+    if path.is_absolute() {
+        return path.display().to_string();
+    }
+    let parts: Vec<String> = path
+        .components()
+        .filter(|c| !matches!(c, Component::CurDir))
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    parts.join("/")
 }
