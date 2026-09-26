@@ -1,0 +1,188 @@
+//! The registry: the mirror of `src/registry.rs` (`src:C139`).
+//!
+//! What is pinned: the lists hold exactly the languages this test binary
+//! was built with, sorted by `LangId` (`src:V41`); a compiled-out guest
+//! is named by its feature, never guessed about (`src:V42`); and no file
+//! in `src/` but the registry reads a `lang-*` feature (`src:V30`).
+//! `cargo hack --each-feature` runs these under every subset, so the
+//! lang-nix-only cases below run in exactly the build they describe.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use xenolith_lang_api::{Guest, Host, LangId};
+
+use super::{compiled_in, feature, guest, guests, host, hosts, require_guest};
+
+/// What the build says, stated independently of the code under test.
+fn built_with(id: LangId) -> bool {
+    [
+        (LangId::Nix, cfg!(feature = "lang-nix")),
+        (LangId::Pkl, cfg!(feature = "lang-pkl")),
+        (LangId::Shell, cfg!(feature = "lang-shell")),
+    ]
+    .contains(&(id, true))
+}
+
+fn host_ids() -> Vec<LangId> {
+    hosts().iter().map(|h| h.id()).collect()
+}
+
+fn guest_ids() -> Vec<LangId> {
+    guests().iter().map(|g| g.id()).collect()
+}
+
+// ---------------------------------------------------------------------
+// the lists (`src:V41`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn hosts_are_exactly_the_compiled_in_hosts() {
+    // nix and pkl are hosts; shell is a guest only, so far.
+    let expected: Vec<LangId> = [LangId::Nix, LangId::Pkl]
+        .into_iter()
+        .filter(|id| built_with(*id))
+        .collect();
+    assert_eq!(host_ids(), expected);
+}
+
+#[test]
+fn guests_are_exactly_the_compiled_in_guests() {
+    let expected: Vec<LangId> = [LangId::Shell]
+        .into_iter()
+        .filter(|id| built_with(*id))
+        .collect();
+    assert_eq!(guest_ids(), expected);
+}
+
+#[test]
+fn both_lists_are_sorted_by_langid_without_repeats() {
+    // Strictly increasing: sorted AND each language once, so an engine
+    // meets hosts in one order in every subset build (`src:V11`).
+    for ids in [host_ids(), guest_ids()] {
+        assert!(ids.windows(2).all(|w| w.first() < w.last()), "{ids:?}");
+    }
+}
+
+#[test]
+fn lookup_by_id_finds_exactly_the_listed_entries() {
+    for id in LangId::ALL {
+        assert_eq!(
+            host(*id).map(Host::id),
+            host_ids().contains(id).then_some(*id)
+        );
+        assert_eq!(
+            guest(*id).map(Guest::id),
+            guest_ids().contains(id).then_some(*id)
+        );
+    }
+}
+
+#[test]
+fn compiled_in_matches_the_features_of_this_build() {
+    for id in LangId::ALL {
+        assert_eq!(compiled_in(*id), built_with(*id), "{id}");
+    }
+}
+
+#[test]
+fn a_language_with_no_crate_yet_is_not_compiled_in() {
+    // No `lang-sql` feature exists; answering "yes" would be a claim the
+    // binary cannot back.
+    assert!(!compiled_in(LangId::Sql));
+    assert!(!compiled_in(LangId::Yaml));
+}
+
+#[test]
+fn the_feature_is_lang_dash_the_id() {
+    // `LangId::as_str` is the one spelling for config, JSON and features.
+    assert_eq!(feature(LangId::Shell), "lang-shell");
+    assert_eq!(feature(LangId::Dockerfile), "lang-dockerfile");
+}
+
+// ---------------------------------------------------------------------
+// a compiled-out guest (`src:V42`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_compiled_in_guest_is_handed_back() {
+    for id in guest_ids() {
+        assert_eq!(require_guest(id).map(Guest::id).ok(), Some(id));
+    }
+}
+
+#[test]
+fn a_compiled_out_guest_is_refused_naming_its_feature_with_exit_two() {
+    // Sql has no crate in any build, so this runs everywhere.
+    let Err(missing) = require_guest(LangId::Sql) else {
+        panic!("sql is never compiled in");
+    };
+    assert_eq!(missing.guest, LangId::Sql);
+    assert_eq!(missing.exit_code(), 2);
+    let text = missing.to_string();
+    assert!(text.contains("`lang-sql`"), "{text}");
+    assert!(text.contains("src:V42"), "{text}");
+}
+
+/// The nix-only build `src:T46` names: a nix host finding shell, with no
+/// shell guest to judge it.
+#[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
+#[test]
+fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
+    let src = "{ systemd.services.a.script = ''\n  make && make install\n''; }\n";
+    let Some(nix) = host(LangId::Nix) else {
+        panic!("lang-nix is on in this build");
+    };
+    let sites = nix
+        .sites(src)
+        .unwrap_or_else(|e| panic!("fixture parses: {e}"));
+    assert_eq!(sites.len(), 1, "{sites:?}");
+    for site in &sites {
+        assert_eq!(site.guest, LangId::Shell);
+        let Err(missing) = require_guest(site.guest) else {
+            panic!("shell is compiled out in this build");
+        };
+        assert_eq!(missing.exit_code(), 2);
+        assert!(missing.to_string().contains("`lang-shell`"), "{missing}");
+    }
+}
+
+// ---------------------------------------------------------------------
+// no `cfg` leak (`src:V30`, `src:V41`)
+// ---------------------------------------------------------------------
+
+/// Every `.rs` under `dir`, sorted.
+fn rust_files(dir: &Path, into: &mut Vec<PathBuf>) {
+    let entries = fs::read_dir(dir).unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
+    for entry in entries.filter_map(Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            rust_files(&path, into);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            into.push(path);
+        }
+    }
+    into.sort();
+}
+
+#[test]
+fn no_file_in_src_but_the_registry_reads_a_language_feature() {
+    // Test mirrors are exempt: stating what the build was made with,
+    // independently of the code under test, is what they are for.
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let registry = src.join("registry.rs");
+    let needle = concat!("feature = \"", "lang-");
+    let mut files = Vec::new();
+    rust_files(&src, &mut files);
+    assert!(files.contains(&registry), "{files:?}");
+    let leaks: Vec<String> = files
+        .iter()
+        .filter(|path| **path != registry && !path.ends_with("tests.rs"))
+        .filter(|path| fs::read_to_string(path).is_ok_and(|text| text.contains(needle)))
+        .map(|path| path.display().to_string())
+        .collect();
+    assert!(
+        leaks.is_empty(),
+        "lang-* feature read outside the registry: {leaks:?}"
+    );
+}

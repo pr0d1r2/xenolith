@@ -23,6 +23,7 @@ pub mod cli;
 pub mod config;
 pub mod discover;
 pub mod model;
+pub mod registry;
 
 /// The package version, from Cargo at compile time.
 ///

@@ -10,7 +10,8 @@
 use serde_json::Value;
 use xenolith_lang_api::LangId;
 
-use super::{compiled_in, feature, human, json};
+use super::{human, json};
+use crate::registry::feature;
 
 /// What the build says, stated independently of the code under test.
 fn built_with(id: LangId) -> bool {
@@ -20,28 +21,6 @@ fn built_with(id: LangId) -> bool {
         (LangId::Shell, cfg!(feature = "lang-shell")),
     ]
     .contains(&(id, true))
-}
-
-#[test]
-fn compiled_in_matches_the_features_of_this_build() {
-    for id in LangId::ALL {
-        assert_eq!(compiled_in(*id), built_with(*id), "{id}");
-    }
-}
-
-#[test]
-fn a_language_with_no_crate_yet_is_not_compiled_in() {
-    // No `lang-sql` feature exists; answering "yes" would be a claim the
-    // binary cannot back.
-    assert!(!compiled_in(LangId::Sql));
-    assert!(!compiled_in(LangId::Yaml));
-}
-
-#[test]
-fn the_feature_is_lang_dash_the_id() {
-    // `LangId::as_str` is the one spelling for config, JSON and features.
-    assert_eq!(feature(LangId::Shell), "lang-shell");
-    assert_eq!(feature(LangId::Dockerfile), "lang-dockerfile");
 }
 
 // ---------------------------------------------------------------------
