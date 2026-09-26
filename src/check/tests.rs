@@ -968,6 +968,34 @@ fn a_broken_nested_config_refuses_with_exit_two_naming_it() {
 }
 
 #[test]
+fn a_config_inside_an_excluded_tree_is_never_read() {
+    // `src/config:V79`: an excluded file is not read, and a
+    // `xenolith.toml` under an excluded directory is one. Broken, it
+    // would refuse the run.
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            ("a.fake", SCRIPT),
+            ("vendor/x.fake", SCRIPT),
+            ("vendor/xenolith.toml", "not toml at all"),
+            ("sub/gen/y.fake", SCRIPT),
+            ("sub/gen/xenolith.toml", "not toml either"),
+            (
+                "sub/xenolith.toml",
+                "version = 1\n[check]\nexclude = [{ glob = \"gen\", reason = \"generated\" }]\n",
+            ),
+        ],
+    );
+    let skip = config("version = 1\n[[exclude]]\nglob = \"vendor\"\nreason = \"third party\"\n");
+    let report = run(&root, &skip, &["a.fake", "vendor/x.fake", "sub/gen/y.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
 fn a_whole_tree_run_reads_nested_configs_too() {
     let sandbox = Sandbox::new();
     let root = sandbox.repo("r");
