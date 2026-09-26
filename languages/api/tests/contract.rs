@@ -12,7 +12,7 @@ use std::path::Path;
 use xenolith_lang_api::shebang::Shebang;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd,
-    LoadRef, Site, Span,
+    LoadRef, Placement, Site, Span,
 };
 
 #[test]
@@ -293,4 +293,52 @@ fn a_guest_states_what_goes_above_an_extract_and_whether_it_runs() {
     );
     assert_eq!(prelude.strict.as_deref(), Some("set -euo pipefail"));
     assert!(guest.executable());
+}
+
+#[test]
+fn a_host_without_a_placement_says_so_rather_than_guessing_one() {
+    // `languages/api/src/site:T48`: the default is a refusal naming the
+    // operation (`languages/api:V37`). A made-up name would read as the
+    // host's own layer-D choice (`src/extract:V45`), and `--verbose`
+    // would explain a placement no host ever decided.
+    let host: &dyn Host = &FakeHost;
+    assert_eq!(
+        host.placement(&fake_site()),
+        Err(Error::Unsupported {
+            lang: LangId::Nix,
+            operation: "placement",
+        })
+    );
+}
+
+#[test]
+fn a_placement_is_a_name_and_a_dir_both_templates() {
+    // `languages/api/src/site` §I: a site does not carry its host's path,
+    // so a dir beside the host file is a `src/extract:V46` template the
+    // engine renders, and a fixed dir is a template without variables.
+    let nix = Placement {
+        name: "foo-script".into(),
+        dir: "{host_dir}/{host_stem}".into(),
+    };
+    let pkl = Placement {
+        name: "fmt".into(),
+        dir: "scripts/hk".into(),
+    };
+    assert_eq!(nix.dir, "{host_dir}/{host_stem}");
+    assert_eq!(pkl.name, "fmt");
+    assert_ne!(nix, pkl);
+}
+
+#[test]
+fn a_host_without_hole_advice_says_so_rather_than_advising_nothing() {
+    // `languages/api/src/holes` §I: an empty list would read as "these
+    // holes have no way out" (`languages/api:V37`).
+    let host: &dyn Host = &FakeHost;
+    assert_eq!(
+        host.hole_advice(&fake_site()),
+        Err(Error::Unsupported {
+            lang: LangId::Nix,
+            operation: "hole_advice",
+        })
+    );
 }
