@@ -13,6 +13,10 @@
 # BRIDGE 2026-09-26: `languages/api` crosses 5000 (5016) when `Guest::constructs`
 # joins §I -- the engine needs construct NAMES to apply `[threshold]`
 # (`src/config:V55`). Same ~12% rule. RETIRED with `languages:T137`.
+# BRIDGE 2026-09-26: `src/cli` (root + `src` + self) reaches ~5055 once the
+# discovery bugs of the review wave land in `src` (V57 rule + §B row); it
+# sat at 4974. Same ~12% rule. RETIRED with the `src/extract` bridge: when
+# `src` sheds rows to its children (`.:C22`).
 SPEC.md                  5000
 languages                5000
 languages/api            5620
@@ -39,7 +43,7 @@ languages/shebang        5000
 languages/rust           5000
 languages/ruby           5000
 languages/html           5000
-src/cli                  5000
+src/cli                  5660
 docs                     5000
 languages/api/src        5600
 languages/api/src/site   6500
