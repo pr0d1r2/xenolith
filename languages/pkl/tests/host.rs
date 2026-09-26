@@ -312,6 +312,82 @@ fn lens_laws_hold_for_every_site_without_holes() {
     }
 }
 
+// --- placement (`languages/pkl:T54`) ------------------------------------
+
+/// `(sink, name, dir)` for every site in `case`.
+fn placements(case: &str) -> Vec<(String, String, String)> {
+    sites(&fixture(case))
+        .iter()
+        .map(|site| {
+            let at = PklHost
+                .placement(site)
+                .unwrap_or_else(|e| panic!("{}: no placement: {e}", site.sink));
+            (site.sink.clone(), at.name, at.dir)
+        })
+        .collect()
+}
+
+fn row(sink: &str, name: &str) -> (String, String, String) {
+    (sink.to_owned(), name.to_owned(), "scripts/hk".to_owned())
+}
+
+#[test]
+fn placement_names_each_extract_after_its_step_in_scripts_hk() {
+    // `languages/pkl:V52`: the step key, whatever the property -- the
+    // engine's collision suffix tells `check` and `fix` apart
+    // (`src/extract:V47`).
+    assert_eq!(
+        placements("hk-step-script"),
+        [
+            row("shellcheck.check", "shellcheck"),
+            row("shellcheck.fix", "shellcheck"),
+            row("typos.check_list_files", "typos"),
+        ]
+    );
+}
+
+#[test]
+fn placement_kebab_cases_the_step_key_and_falls_back_to_the_stem() {
+    // `languages/api/src/site:V43`: kebab-case, and a key naming nothing
+    // gives `<host_stem>-<sink>`, the stem a `src/extract:V46` template.
+    assert_eq!(
+        placements("hk-step-names"),
+        [
+            row("cargo_clippy.check", "cargo-clippy"),
+            row("Rust.Fmt.fix", "rust-fmt"),
+            row("+++.check", "{host_stem}-check"),
+        ]
+    );
+}
+
+#[test]
+fn a_placed_extract_loads_back_with_files_forwarded() {
+    // The placement, the guest's invoke and `rewrite` together make the
+    // load `languages/pkl:V52` names, and `loads` reads it back.
+    let src = fixture("hk-step-script");
+    for site in sites(&src) {
+        let at = PklHost
+            .placement(&site)
+            .unwrap_or_else(|e| panic!("{}: no placement: {e}", site.sink));
+        let path = PathBuf::from(format!("{}/{}.sh", at.dir, at.name));
+        let invoke = Invoke {
+            argv: vec!["bash".to_owned(), path.display().to_string()],
+        };
+        let rewritten = PklHost
+            .rewrite(&src, &site, &invoke, &path)
+            .unwrap_or_else(|e| panic!("{}: rewrite failed: {e}", site.sink));
+        let command = format!("\"bash {} {{{{files}}}}\"", path.display());
+        let after = loads(&rewritten);
+        assert!(
+            after
+                .iter()
+                .any(|load| load.path == path && load.span.of(&rewritten) == Some(&command)),
+            "{}: no load {command} in {after:?}",
+            site.sink
+        );
+    }
+}
+
 #[test]
 fn inline_picks_pounds_the_body_needs() {
     // A body holding a backslash cannot go back into a plain `"""`

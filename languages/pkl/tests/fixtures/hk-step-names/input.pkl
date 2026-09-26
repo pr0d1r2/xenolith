@@ -1,0 +1,33 @@
+amends "pkl/Config.pkl"
+
+// Step keys as `languages/pkl:V52` names extracts after them: snake case
+// and a dot kebab-case (`languages/api/src/site:V43`); a key with no
+// letter or digit names nothing, so the host stem does.
+local named = new Mapping<String, Step> {
+  ["cargo_clippy"] {
+    glob = List("**/*.rs")
+    check = """
+      cargo clippy --workspace
+      cargo clippy --all-targets
+      """
+  }
+  ["Rust.Fmt"] {
+    glob = List("**/*.rs")
+    fix = """
+      cargo fmt
+      cargo fmt --check
+      """
+  }
+  ["+++"] {
+    check = """
+      true
+      false
+      """
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    steps = named
+  }
+}
