@@ -38,6 +38,8 @@ const HOSTS: &[&dyn Host] = &[
     &xenolith_lang_nix::NixHost,
     #[cfg(feature = "lang-pkl")]
     &xenolith_lang_pkl::PklHost,
+    #[cfg(feature = "lang-shell")]
+    &xenolith_lang_shell::ShellHost,
 ];
 
 /// Every compiled-in guest, sorted by [`LangId`].
