@@ -765,3 +765,38 @@ fn a_file_under_an_exclude_for_every_verb_is_skipped_by_name() {
         ["gen/a.toy: skipped: excluded by `gen/**` (generated) (src/extract:V80)"]
     );
 }
+
+// ---------------------------------------------------------------------
+// what a path may hold (T84)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_rule_template_yielding_a_space_quote_or_leading_dash_is_refused() {
+    // src/extract:V83: the path lands inside host syntax.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    for template in [
+        "tools/a b/{name}.{ext}",
+        "tools/it's/{name}.{ext}",
+        "tools/\\\"q\\\"/{name}.{ext}",
+        "-x/{name}.{ext}",
+        "tools/-{name}.{ext}",
+    ] {
+        let toml =
+            format!("version = 1\n[[extract.rule]]\nhost = \"just\"\npath = \"{template}\"\n");
+        let edit = plan_with(&sandbox, &root, &toml, &["a.toy"]);
+        let why = only_refusal(&edit);
+        assert!(why.contains("src/extract:V83"), "{template}: {why}");
+    }
+}
+
+#[test]
+fn a_host_name_yielding_a_space_is_refused_too() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.toy", "my job=shell: make && make test\n");
+    let why = only_refusal(&plan(&sandbox, &root, &["a.toy"]));
+    assert!(why.contains("`a/my job.sh`"), "{why}");
+    assert!(why.contains("src/extract:V83"), "{why}");
+}
