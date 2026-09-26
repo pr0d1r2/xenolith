@@ -1,0 +1,4 @@
+# The THIRD argument of `runCommand*` is the body; the name and the env
+# set before it are not.
+docs.runCommand | '' | bash errexit nounset pipefail | - | "\n    mkdir -p $out\n    pandoc README.md -o $out/index.html\n  "
+stamp.runCommandLocal | " | bash errexit nounset pipefail | - | "date > $out"

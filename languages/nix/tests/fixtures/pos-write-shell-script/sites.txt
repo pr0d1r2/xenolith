@@ -1,0 +1,4 @@
+# The SECOND argument of `writeShellScript*` is the body; the name is
+# not. A bare callee under `with pkgs;` is the same builder.
+greet.writeShellScript | '' | bash | - | "\n    echo \"hello $1\"\n  "
+tool.writeShellScriptBin | " | bash | ${hello} | "exec ${hello}/bin/hello"

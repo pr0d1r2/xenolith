@@ -1,0 +1,3 @@
+# A `let` binding named `script` is a variable, not a sink. A sink whose
+# value is a load (`builtins.readFile`) or a reference holds no inline
+# code -- that is the state extraction leaves behind.

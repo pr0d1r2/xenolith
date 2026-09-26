@@ -8,7 +8,7 @@
 # rather than a glob: a glob makes a half-written crate a member the moment
 # its directory appears, and `cargo test` then fails for a reason that has
 # nothing to do with the change being made.
-members = ["languages/api", "languages/shebang", "languages/shell"]
+members = ["languages/api", "languages/nix", "languages/shebang", "languages/shell"]
 resolver = "3"
 
 [workspace.package]

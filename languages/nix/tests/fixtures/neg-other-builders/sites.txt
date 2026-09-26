@@ -1,0 +1,3 @@
+# `writeText` writes a file, not a script. A builder's NAME argument is
+# not its body. `text` counts only in `writeShellApplication`'s own
+# argument set, not in a set that reaches it through another function.

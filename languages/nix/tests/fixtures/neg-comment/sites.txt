@@ -1,0 +1,2 @@
+# A sink inside a comment is not a sink (`languages:V2`): comments are
+# trivia to the grammar, with no string node to report.

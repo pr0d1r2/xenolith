@@ -1,0 +1,4 @@
+# Shell-shaped text under keys that are not sinks is data
+# (`languages:V2`, `languages/api/src/site:V38`): `description`,
+# `longDescription`, `text` outside `writeShellApplication`, and the word
+# "script" as a value or as an attribute name mid-path.
