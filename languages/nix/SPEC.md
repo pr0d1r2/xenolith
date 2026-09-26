@@ -43,14 +43,20 @@ V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshol
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T159 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 T55|.|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
 T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
 T146|x|`src:C139` backfill: `languages/nix/src/tests.rs` (`lib.rs`), `languages/nix/src/sinks/tests.rs`|`src:C139`,`scripts/guard:V140`
+T155|.|sink value built w/ `+` (`''…'' + extra`): ∀ string operand of `+` in sink position = site; fixture: shellHook concat w/ `\|\|` flagged|B1,`languages:V2`,`tests:V118`
+T156|.|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = sinks → shell; fixture: 3-command `preCheck` flagged|B1,`tests:V118`
+T157|.|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
+T158|.|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
+T159|.|home-manager shell init attrs (`initContent`, `initExtra`, `profileExtra`, `bashrcExtra` …) → shell, dialect per program (zsh/bash); fixture|B1,`tests:V118`
 
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|fleet pilot (`tests:T154`, 16 consumer repos vs the legacy line-scanning hook): 4 embed shapes the legacy hook flags, `xnl` misses — `+`-concatenated sink value, `pre*`/`post*` phase hooks, shebang-led `text`, shell init attrs; + nix `''` body not dedented ∴ indented heredoc terminator = parse error ∴ reason wrong (still flagged). ∴ swap ⊥ drop-in yet|T155-T159
