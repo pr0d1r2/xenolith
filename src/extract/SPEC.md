@@ -64,7 +64,7 @@ T22|x|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, l
 T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6
 T50|x|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
 T51|.|companion creation under `--write` w/ V4–V6 laws|V49
-T64|.|back-to-front multi-site rewrite + all-or-nothing file write; fixture w/ 3 sites, 1 refused|V64
+T64|x|back-to-front multi-site rewrite + all-or-nothing file write; fixture w/ 3 sites, 1 refused|V64
 T65|.|fixpoint extraction w/ depth limit; fixture nix → shell → python (3 levels) & one over limit|V65
 T66|.|repo-root placement path → host-relative load path; fixtures w/ host in subdir|`languages/api/src/lens:V66`,V46
 T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per C17); until then V4 compares normalized whitespace|V4,C17

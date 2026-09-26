@@ -568,17 +568,34 @@ fn rewrite_file(root: &Path, name: &str, file: &Read<'_>, sites: &[&Planned<'_>]
         });
     };
     let mut ready: Vec<(&Planned<'_>, Move)> = Vec::new();
+    let mut refused = 0;
     for p in sites {
-        if let Some(why) = &p.refused {
-            refuse(p.line, why.clone());
-            continue;
-        }
-        match movement(root, name, file, p) {
+        let moved = match &p.refused {
+            Some(why) => Err(why.clone()),
+            None => movement(root, name, file, p),
+        };
+        match moved {
             Ok(m) => ready.push((p, m)),
-            Err(why) => refuse(p.line, why),
+            Err(why) => {
+                refuse(p.line, why);
+                refused += 1;
+            }
         }
     }
-    if ready.is_empty() {
+    // All or nothing per file (`src/extract:V64`): a host half
+    // extracted is a state nobody asked for, and a rerun would have to
+    // guess which half it is looking at.
+    if refused > 0 {
+        if !ready.is_empty() {
+            refuse(
+                0,
+                format!(
+                    "left untouched with its {} other site(s): a file is extracted whole or \
+                     not at all (src/extract:V64)",
+                    ready.len()
+                ),
+            );
+        }
         return;
     }
     // Back to front: a rewrite only moves bytes after its own site
