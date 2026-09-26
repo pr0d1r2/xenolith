@@ -14,8 +14,8 @@ use xenolith_lang_api::{
 };
 
 use super::{
-    FILES, PklHost, SINKS, as_sink, is_hk_config, load, parse, plain_string, plain_word, sinks,
-    site, span, splice, text,
+    FILES, PklHost, SINKS, as_sink, is_hk_config, line_break, load, parse, plain_string,
+    plain_word, sinks, site, span, splice, text,
 };
 
 /// A hk config header, the layer-1 context every positive case needs.
@@ -535,6 +535,19 @@ fn splice_refuses_a_span_it_cannot_cut() {
     assert_eq!(splice("é", Span::new(1, 2), "x"), Err(outside));
 }
 
+// --- line_break (`languages/pkl:B2`) -----------------------------------------------
+
+#[test]
+fn line_break_is_the_one_ending_the_line_else_the_one_before() {
+    let at = Span::new(4, 5);
+    assert_eq!(line_break("abc\nX\r\n", at), "\r\n");
+    assert_eq!(line_break("abc\r\nX\n", Span::new(5, 6)), "\n");
+    assert_eq!(line_break("abc\r\nX", Span::new(5, 6)), "\r\n");
+    assert_eq!(line_break("abc\nX", at), "\n");
+    assert_eq!(line_break("X", Span::new(0, 1)), "\n");
+    assert_eq!(line_break("\nX", Span::new(1, 2)), "\n");
+}
+
 // --- Host --------------------------------------------------------------------------
 
 #[test]
@@ -722,6 +735,49 @@ fn inline_then_sites_round_trips_the_body() {
     assert_eq!(
         crate::string::unescape(&found.delim, raw),
         Ok(body.to_owned())
+    );
+}
+
+#[test]
+fn inline_breaks_its_lines_as_the_host_does() {
+    let src = step("s", "    check = \"bash x.sh\"\n").replace('\n', "\r\n");
+    let loads = PklHost
+        .loads(&src)
+        .unwrap_or_else(|e| panic!("loads failed: {e}"));
+    let out = PklHost
+        .inline(&src, nth(&loads, 0), "a\n")
+        .unwrap_or_else(|e| panic!("inline failed: {e}"));
+    assert_eq!(
+        out,
+        step("s", "    check = \"\"\"\n      a\n\n      \"\"\"\n").replace('\n', "\r\n")
+    );
+}
+
+#[test]
+fn rewrite_refuses_a_site_with_holes() {
+    let src = check_script("      echo \\(x)\n");
+    let found = only_site(&src);
+    assert_eq!(found.holes.len(), 1);
+    assert_eq!(
+        PklHost.rewrite(
+            &src,
+            &found,
+            &invoke(&["bash", "x.sh"]),
+            Path::new("hk.pkl")
+        ),
+        Err(Error::unsupported(
+            LangId::Pkl,
+            "rewrite of a string with holes"
+        ))
+    );
+}
+
+#[test]
+fn escape_is_the_string_modules_under_the_sites_pounds() {
+    let found = only_site(&check_script("      echo hi\n"));
+    assert_eq!(
+        PklHost.escape(&found.delim, "a\\b"),
+        Ok("\na\\\\b\n".to_owned())
     );
 }
 

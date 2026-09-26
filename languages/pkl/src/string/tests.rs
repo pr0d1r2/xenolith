@@ -10,7 +10,8 @@ use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result, Span};
 
 use super::{
-    decode, find_kind, holes_in, indentation, line_breaks, multiline, pounds_for, unescape,
+    decode, escape, find_kind, holes_in, indentation, line_breaks, lines, multiline, pounds_for,
+    unescape,
 };
 use crate::grammar;
 
@@ -247,6 +248,37 @@ fn multiline_then_unescape_is_the_identity() {
             "{body:?} written as {written:?}"
         );
     }
+}
+
+#[test]
+fn multiline_escapes_a_carriage_return_it_cannot_write_raw() {
+    assert_eq!(multiline("a\rb", ""), "\"\"\"\na\\rb\n\"\"\"");
+    let written = multiline("a\\b\rc", "");
+    let (pounds, raw) = inside(&written);
+    assert_eq!(unescape(&pkl(pounds), raw), Ok("a\\b\rc".to_owned()));
+}
+
+// --- escape & lines (`languages/pkl:V171`) --------------------------------------
+
+#[test]
+fn escape_writes_under_the_delimiters_own_pounds() {
+    assert_eq!(escape(&pkl(0), "a\\b"), Ok("\na\\\\b\n".to_owned()));
+    assert_eq!(escape(&pkl(1), "a\\b"), Ok("\na\\b\n".to_owned()));
+    assert_eq!(escape(&pkl(1), "a\\#b"), Ok("\na\\#\\#b\n".to_owned()));
+    assert_eq!(
+        escape(&delim(DelimKind::NixIndented), "a"),
+        Err(Error::unsupported(LangId::Pkl, "escape"))
+    );
+}
+
+#[test]
+fn lines_escapes_only_what_the_guard_would_misread() {
+    assert_eq!(lines("q\"\"\"q", "", 0), "\nq\"\"\\\"q\n");
+    assert_eq!(lines("q\"\"\"q", "", 1), "\nq\"\"\"q\n");
+    assert_eq!(lines("q\"\"\"#q", "", 1), "\nq\"\"\\#\"#q\n");
+    assert_eq!(lines("a\rb", "", 2), "\na\\##rb\n");
+    assert_eq!(lines("a\n\nb", "  ", 0), "\n  a\n\n  b\n");
+    assert_eq!(lines("", "  ", 0), "\n\n");
 }
 
 // --- pounds_for ------------------------------------------------------------------

@@ -18,4 +18,4 @@ mod placement;
 pub mod string;
 
 pub use crate::host::{PklHost, SINKS};
-pub use crate::string::{multiline, unescape};
+pub use crate::string::{escape, multiline, unescape};

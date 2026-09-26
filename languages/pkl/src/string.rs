@@ -2,8 +2,9 @@
 //!
 //! [`unescape`] turns the raw text between `"""` delimiters into the
 //! string pkl would evaluate it to, which is the body an extract holds
-//! (`languages/api/src/lens:V39`). [`multiline`] is the inverse: a body
-//! back into a delimited literal, for `inline`.
+//! (`languages/api/src/lens:V39`). [`escape`] is the inverse under a
+//! given delimiter, and [`multiline`] the inverse that picks its own: a
+//! body back into a delimited literal, for `inline`.
 //!
 //! Pkl's rules, which is all this module encodes:
 //!
@@ -113,8 +114,66 @@ pub fn unescape(delim: &Delim, raw: &str) -> Result<String> {
 pub fn multiline(body: &str, indent: &str) -> String {
     let pounds = pounds_for(body);
     let guard = "#".repeat(pounds);
-    let mut out = format!("{guard}\"\"\"\n");
-    for (index, line) in body.split('\n').enumerate() {
+    format!(
+        "{guard}\"\"\"{}{indent}\"\"\"{guard}",
+        lines(body, indent, pounds)
+    )
+}
+
+/// The inverse of [`unescape`]: `body` as it must sit between the
+/// delimiters of `delim` to evaluate back to `body`
+/// (`languages/api/src/lens:V39`, `languages/pkl:V171`).
+///
+/// The `#` count is the delimiter's, not chosen here: what the body
+/// cannot hold verbatim under it is escaped instead.
+///
+/// # Errors
+///
+/// [`Error::Unsupported`] when `delim` is not a pkl multi-line string.
+pub fn escape(delim: &Delim, body: &str) -> Result<String> {
+    let DelimKind::PklMultiline { pounds } = delim.kind else {
+        return Err(Error::unsupported(LangId::Pkl, "escape"));
+    };
+    Ok(lines(body, "", pounds))
+}
+
+/// The inside of a multi-line literal under `pounds` `#`: the opening
+/// line break, every non-empty line of `body` behind `indent`, and the
+/// line break before the closing line, whose indent the caller writes.
+///
+/// Escaped, under that guard, is exactly what would not read back:
+/// a `\` the guard would make an escape, a `"""` the guard would make
+/// the end, and a carriage return, which pkl reads as a line break
+/// (`languages/pkl:B1`).
+fn lines(body: &str, indent: &str, pounds: usize) -> String {
+    let guard = "#".repeat(pounds);
+    let backslash = format!("\\{guard}");
+    let closing = format!("\"\"\"{guard}");
+    let (as_backslash, as_quotes, as_cr) = (
+        format!("\\{guard}\\"),
+        format!("\"\"\\{guard}\""),
+        format!("\\{guard}r"),
+    );
+    let mut escaped = String::with_capacity(body.len());
+    let mut rest = body;
+    while let Some(ch) = rest.chars().next() {
+        let used = if rest.starts_with(&backslash) {
+            escaped.push_str(&as_backslash);
+            1
+        } else if rest.starts_with(&closing) {
+            escaped.push_str(&as_quotes);
+            3
+        } else if ch == '\r' {
+            escaped.push_str(&as_cr);
+            1
+        } else {
+            escaped.push(ch);
+            ch.len_utf8()
+        };
+        rest = rest.get(used..).unwrap_or_default();
+    }
+    let mut out = String::from("\n");
+    for (index, line) in escaped.split('\n').enumerate() {
         if index > 0 {
             out.push('\n');
         }
@@ -124,9 +183,6 @@ pub fn multiline(body: &str, indent: &str) -> String {
         }
     }
     out.push('\n');
-    out.push_str(indent);
-    out.push_str("\"\"\"");
-    out.push_str(&guard);
     out
 }
 

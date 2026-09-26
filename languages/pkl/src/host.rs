@@ -231,6 +231,21 @@ fn plain_word(word: &str) -> bool {
             .all(|ch| ch.is_ascii_alphanumeric() || "/._-+,:@=%".contains(ch))
 }
 
+/// The line break the host uses where `at` sits: the one ending its
+/// line, else the one before it, else `\n` for a one-line file
+/// (`languages/pkl:B2`). The literal `inline` writes breaks its lines the
+/// same way, so a CRLF config stays CRLF -- and evaluates the same, a
+/// CRLF in a pkl string being one `\n` (`languages/pkl:B1`).
+fn line_break(src: &str, at: Span) -> &'static str {
+    let crlf = |newline: usize| newline > 0 && src.as_bytes().get(newline - 1) == Some(&b'\r');
+    let after = src.get(at.end..).and_then(|rest| rest.find('\n'));
+    let before = src.get(..at.start).and_then(|head| head.rfind('\n'));
+    match (after.map(|offset| at.end + offset), before) {
+        (Some(newline), _) | (None, Some(newline)) if crlf(newline) => "\r\n",
+        _ => "\n",
+    }
+}
+
 /// `src` with `[at.start, at.end)` replaced by `with`.
 fn splice(src: &str, at: Span, with: &str) -> Result<String> {
     let before = src.get(..at.start);
@@ -279,6 +294,15 @@ impl Host for PklHost {
                 format!("no site `{}` at bytes {:?}", site.sink, site.delim.open),
             ));
         }
+        // A `\(…)` is pkl: in the script it would be text, and no hole
+        // param exists yet to carry it (`languages/pkl:V171`,
+        // `languages/api/src/holes:V40`).
+        if !site.holes.is_empty() {
+            return Err(Error::unsupported(
+                LangId::Pkl,
+                "rewrite of a string with holes",
+            ));
+        }
         // A word needing quotes would need shell quoting inside pkl
         // escaping, and `loads` could no longer read the result back:
         // refusing is better than a load `xnl graph` cannot follow.
@@ -294,7 +318,8 @@ impl Host for PklHost {
     }
 
     /// The load's string becomes a multi-line literal holding `body`,
-    /// indented one step past the property's line.
+    /// indented one step past the property's line, its lines broken the
+    /// way the host's are (`languages/pkl:B2`).
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
         if !self.loads(src)?.contains(load) {
             return Err(Error::parse(
@@ -311,10 +336,11 @@ impl Host for PklHost {
             .chars()
             .take_while(|&ch| ch == ' ' || ch == '\t')
             .collect();
+        let literal = string::multiline(body, &format!("{indent}  "));
         splice(
             src,
             load.span,
-            &string::multiline(body, &format!("{indent}  ")),
+            &literal.replace('\n', line_break(src, load.span)),
         )
     }
 
@@ -323,6 +349,12 @@ impl Host for PklHost {
     /// (`languages/api/src/lens:V39`).
     fn unescape(&self, delim: &Delim, raw: &str) -> Result<String> {
         string::unescape(delim, raw)
+    }
+
+    /// [`string::escape`]: the inverse, under the delimiter's own `#`
+    /// count (`languages/pkl:V171`).
+    fn escape(&self, delim: &Delim, body: &str) -> Result<String> {
+        string::escape(delim, body)
     }
 
     /// None yet, as a statement rather than a gap: the api lists
