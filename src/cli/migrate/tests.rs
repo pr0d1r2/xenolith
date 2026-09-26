@@ -288,6 +288,33 @@ fn listed_files_that_are_gone_or_outside_the_root_are_warned_about() {
     }
 }
 
+#[cfg(unix)]
+#[test]
+fn a_listed_file_under_a_symlinked_directory_is_warned_about_not_fatal() {
+    // `src:V128`: xnl never scans through a symlink, so the entry cannot
+    // be migrated -- one warning, and the rest of the lists still are.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    write(&root, "real/x.txt", "make && make install\n");
+    std::os::unix::fs::symlink(root.join("real"), root.join("link"))
+        .unwrap_or_else(|e| panic!("symlink: {e}"));
+    write(&root, "notes.txt", "hello\n");
+    write(
+        &root,
+        ".pkl-embedded-shell-allowlist",
+        "link/x.txt\nnotes.txt\n",
+    );
+    let (code, _, err) = xnl(&root, &["migrate"]);
+    assert_eq!(code, 1, "{err}");
+    let want =
+        format!(".pkl-embedded-shell-allowlist: warning: {LEGACY_MISSING}: line 1: `link/x.txt`");
+    assert!(err.contains(&want), "{want} in {err:?}");
+    assert!(err.contains("symlink"), "{err:?}");
+    let other =
+        format!(".pkl-embedded-shell-allowlist: warning: {LEGACY_NO_SITE}: line 2: `notes.txt`");
+    assert!(err.contains(&other), "{other} in {err:?}");
+}
+
 #[test]
 fn a_listed_file_no_host_claims_holds_no_site() {
     // An unclaimed file is not scanned (`src:V13`), so it holds no site
