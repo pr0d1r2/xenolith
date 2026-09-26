@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod escape;
 mod loads;
 mod placement;
 mod sinks;
@@ -95,6 +96,13 @@ impl Host for NixHost {
     /// a `"` body's backslash escapes decoded (`languages/nix:T158`).
     fn unescape(&self, delim: &Delim, raw: &str) -> Result<String> {
         unescape::unescape(&delim.kind, raw)
+    }
+
+    /// The inverse of [`NixHost::unescape`]: `''` pairs, `${` and the
+    /// indent-sensitive spaces escaped in a `''` body, `\`, `"`, `${` and
+    /// line breaks in a `"` one (`languages/nix:V170`, `escape`).
+    fn escape(&self, delim: &Delim, body: &str) -> Result<String> {
+        escape::escape(&delim.kind, body)
     }
 
     /// `statix`, `deadnix`, `nixfmt --check` (`languages/api` §I).
