@@ -12,7 +12,8 @@
 //! Three shapes of context, one per way nixpkgs hands a body to bash:
 //!
 //! - an ATTRIBUTE in an attribute set: `script`, `preStart`, `postStart`,
-//!   `shellHook`, `ExecStart*`, `*Phase`, `pre*` / `post*` hooks;
+//!   `shellHook`, `ExecStart*`, `*Phase`, `pre*` / `post*` hooks, and a
+//!   zsh or bash program's init options (`programs.zsh.initContent`);
 //! - a POSITIONAL argument of a builder: the text of `writeShellScript*`,
 //!   the body of `runCommand*`;
 //! - an attribute of a builder's ARGUMENT set: `text` of
@@ -52,6 +53,13 @@ pub(crate) enum Sink {
     /// The body of `runCommand` and its variants, a stdenv `*Phase`, or
     /// a phase hook (`preCheck`, `postInstall`, ...).
     Stdenv,
+    /// A zsh or bash init option -- home-manager's `initContent`,
+    /// `bashrcExtra`, ... -- in that program's dialect
+    /// (`languages/nix:T159`).
+    ShellInit {
+        /// `zsh` or `bash`.
+        dialect: &'static str,
+    },
     /// Any attribute value whose first line is a shebang naming a guest
     /// (`languages/nix:T157`).
     Shebang {
@@ -91,6 +99,12 @@ impl Sink {
             // `setup.sh`'s `set -eu` + `set -o pipefail`, which every
             // phase and every `runCommand` body runs under.
             Sink::WriteShellApplication | Sink::Stdenv => bash(&["errexit", "nounset", "pipefail"]),
+            // Sourced into the program's interactive shell, which sets no
+            // options on it.
+            Sink::ShellInit { dialect } => GuestEnv {
+                dialect: Some(dialect.to_owned()),
+                options: Vec::new(),
+            },
             // Only the interpreter line is known: options a `#!/bin/sh -e`
             // would set are not read off it.
             Sink::Shebang { dialect, .. } => GuestEnv {
@@ -240,6 +254,69 @@ pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
     node
 }
 
+/// The init options each shell program sources into its interactive
+/// shell: home-manager's `programs.<p>.*Extra` / `initContent`, and the
+/// NixOS module's `programs.<p>.*Init` (`languages/nix:T159`).
+const SHELL_INIT: &[(&str, &[&str])] = &[
+    (
+        "zsh",
+        &[
+            "initContent",
+            "initExtra",
+            "initExtraFirst",
+            "initExtraBeforeCompInit",
+            "envExtra",
+            "profileExtra",
+            "loginExtra",
+            "logoutExtra",
+            "shellInit",
+            "loginShellInit",
+            "interactiveShellInit",
+            "promptInit",
+        ],
+    ),
+    (
+        "bash",
+        &[
+            "initExtra",
+            "bashrcExtra",
+            "profileExtra",
+            "logoutExtra",
+            "shellInit",
+            "loginShellInit",
+            "interactiveShellInit",
+            "promptInit",
+        ],
+    ),
+];
+
+/// The sink of option `name` under shell `program`, when it is one of
+/// that program's init options. A closed list per program: fish's init
+/// is not the shell guest's language, and an alias table is not a file.
+pub(crate) fn shell_init_sink(program: &str, name: &str) -> Option<Sink> {
+    SHELL_INIT
+        .iter()
+        .find(|(p, names)| *p == program && names.contains(&name))
+        .map(|(dialect, _)| Sink::ShellInit { dialect })
+}
+
+/// The segment naming what `binding` configures: the one before its
+/// last in its own path (`programs.zsh.initContent`), else the last of
+/// the nearest enclosing binding -- through nested sets and through a
+/// function the set is handed to (`programs.zsh = mkIf c { … }`).
+pub(crate) fn program_of(binding: &SyntaxNode) -> Option<String> {
+    let mut own = attr_segments(binding);
+    own.pop()?;
+    if let Some(program) = own.pop() {
+        return Some(program);
+    }
+    let enclosing = binding
+        .ancestors()
+        .skip(1)
+        .find(|n| n.kind() == SyntaxKind::NODE_ATTRPATH_VALUE)?;
+    attr_segments(&enclosing).pop()
+}
+
 /// The sink of a string whose first line, as nix evaluates it, is a
 /// shebang naming a language the api knows (`languages/nix:T157`).
 ///
@@ -310,6 +387,9 @@ fn attr_value_sink(binding: &SyntaxNode) -> Option<Sink> {
     }
     let name = attr_segments(binding).pop()?;
     if let Some(sink) = attr_sink(&name) {
+        return Some(sink);
+    }
+    if let Some(sink) = program_of(binding).and_then(|p| shell_init_sink(&p, &name)) {
         return Some(sink);
     }
     // `text` is a sink BY NAME only as `writeShellApplication { text = …; }`.
