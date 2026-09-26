@@ -18,6 +18,12 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 ## §I INTERFACES
 
 - json (`xnl graph --format json`): envelope (`src/cli` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", …}, {"rule": "dangling-load", …}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
+- lib: `xenolith::graph(&Path, &Config, &graph::Options) -> Result<Graph, GraphError>`; `Graph` = `edges` sorted (host, line, col, extract) + `Report`; `GraphError` = exit 2 (discovery, nested config, unclaimed strict, outside root).
+- roots (V50): rule `path` → text before first `{`; `[extract] root` iff `layout` ∈ `mirror` \| `central` (layouts placing under it); `Placement.dir` ∀ site the run sees, `{host_dir}` `{host_stem}` rendered, cut as rule `path`, taken as dir; `Unsupported` \| empty \| `..` \| absolute → ⊥ root (⊥ whole repo).
+- extract (V7) = candidate under a root that a compiled-in guest reads (shebang, else extension: `src/lint` §I targets), ⊥ excluded; other files under roots (SPEC.md, `xenolith.toml`) ⊥ orphan. unclaimed = ⊥ host claims ∧ ⊥ guest reads (`src:V13`).
+- orphan (V7) judged only on whole-tree run ∧ ∀ claimed host's loads known: named paths = partial view (∼ `src/config:V9` staleness); `loads` `Unsupported` → warning `loads-unsupported` ∀ host lang, ⊥ parse → `[parse] host_errors`; either → orphan ⊥ judged.
+- load resolves from host file dir (`languages/api/src/lens:V66` default); `runtime_base` & rule `base` ⊥ applied (`LoadRef` ∌ sink ∴ rule ⊥ matchable); outside root \| through symlink (V72) \| ⊥ regular file → `dangling-load`.
+- fields: edge `sink` `""`, `params` `[]` until `LoadRef` carries them; `dangling-load` @ load span, guest = load's; `orphan-extract` @ `1:1`, host = guest = reader; `sink` `""`, `site` `argv-string` (`src:V1` unsited stand-in, as `src:V152` engine).
 
 ## §V INVARIANTS
 
