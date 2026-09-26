@@ -198,7 +198,7 @@ const SHEBANG_BUILDERS: &[&str] = &["writeScript", "writeText"];
 const SHEBANG_TEXT_POSITION: usize = 2;
 
 /// Every builder name that contributes a segment to a sink path.
-fn is_builder(callee: &str) -> bool {
+pub(crate) fn is_builder(callee: &str) -> bool {
     callee == TEXT_BUILDER || call_sink(callee).is_some() || SHEBANG_BUILDERS.contains(&callee)
 }
 

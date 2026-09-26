@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod placement;
 mod sinks;
 mod unescape;
 
@@ -25,8 +26,8 @@ use std::path::Path;
 
 use rnix::{Root, SyntaxKind, SyntaxNode, TextRange};
 use xenolith_lang_api::{
-    Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site,
-    Span,
+    Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Placement,
+    Result, Site, Span,
 };
 
 /// Nix as a host.
@@ -137,6 +138,18 @@ impl Host for NixHost {
             .find(|string| usize::from(string.text_range().start()) == at)
             .and_then(|string| sinks::classify(&string))
             .is_some_and(|sink| matches!(sink, sinks::Sink::Shebang { .. }))
+    }
+
+    /// Named after the attribute path, beside the host file
+    /// (`languages/nix:V53`, `placement::name`).
+    fn placement(&self, site: &Site) -> Result<Placement> {
+        Ok(placement::placement(site))
+    }
+
+    /// `replaceVars`, then argv, then env (`languages/nix:V54`,
+    /// `placement::hole_advice`).
+    fn hole_advice(&self, _site: &Site) -> Result<Vec<String>> {
+        Ok(placement::hole_advice())
     }
 }
 
