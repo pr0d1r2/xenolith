@@ -4,9 +4,9 @@
 //! One file at the consumer's repo root replaces every per-language
 //! allowlist (`src/config:C16`). This module turns its text into a typed
 //! [`Config`] and nothing else: APPLYING the config is each verb's job
-//! (`src` §F), and discovery and merge across nested files is `.:T91`.
-//! The matching a verb needs to apply `[[allow]]` and the exclude lists
-//! lives beside their types, in `allow.rs` and `exclude.rs`.
+//! (`src` §F). Discovery and merge across nested files is `tree.rs`
+//! (`.:T91`). The matching a verb needs to apply `[[allow]]` and the
+//! exclude lists lives beside their types, in `allow.rs` and `exclude.rs`.
 //!
 //! Two rules shape every function below:
 //!
@@ -28,12 +28,17 @@ use xenolith_lang_api::LangId;
 mod allow;
 pub mod defaults;
 mod exclude;
+pub mod tree;
 
 pub use allow::SiteKey;
 pub use exclude::{Exclude, Excludes, Verb};
+pub use tree::{Tree, TreeError};
 
 #[cfg(test)]
 mod tests;
+
+/// The file any directory may hold (`src/config` §I, discovery).
+pub const FILE: &str = "xenolith.toml";
 
 /// The schema versions this build reads (`src/config:V70`).
 pub const VERSIONS: &[i64] = &[1];
