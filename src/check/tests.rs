@@ -719,6 +719,221 @@ fn a_file_of_a_compiled_out_host_names_the_feature_under_strict() {
 }
 
 // ---------------------------------------------------------------------
+// nested configs (`src/config` §I discovery, `src/config:V88`, `.:T91`)
+// ---------------------------------------------------------------------
+
+/// The same `&&` script in the root, in `sub/` and in `subway/`, which
+/// shares a prefix with `sub` and is not under it.
+const SCRIPT: &str = "build=shell: a && b\n";
+
+fn nested_tree(sandbox: &Sandbox, sub_toml: &str) -> PathBuf {
+    tree(
+        sandbox,
+        &[
+            ("a.fake", SCRIPT),
+            ("sub/b.fake", SCRIPT),
+            ("sub/deep/c.fake", SCRIPT),
+            ("subway/d.fake", SCRIPT),
+            ("sub/xenolith.toml", sub_toml),
+        ],
+    )
+}
+
+const NESTED: &[&str] = &["a.fake", "sub/b.fake", "sub/deep/c.fake", "subway/d.fake"];
+
+#[test]
+fn a_nested_config_governs_its_subtree_and_nothing_else() {
+    let sandbox = Sandbox::new();
+    let root = nested_tree(
+        &sandbox,
+        "version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n",
+    );
+    let report = run(&root, &Config::default(), NESTED);
+    assert_eq!(
+        rules(&report),
+        vec![
+            ("a.fake".to_owned(), 1, Rule::Xenolith),
+            ("subway/d.fake".to_owned(), 1, Rule::Xenolith),
+        ]
+    );
+}
+
+#[test]
+fn a_nested_scalar_overrides_the_root_for_its_subtree() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            ("a.fake", "!\n"),
+            ("sub/b.fake", "!\n"),
+            (
+                "sub/xenolith.toml",
+                "version = 1\n[parse]\nhost_errors = \"ignore\"\n",
+            ),
+        ],
+    );
+    let error = config("version = 1\n[parse]\nhost_errors = \"error\"\n");
+    let report = run(&root, &error, &["a.fake", "sub/b.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+    assert!(report.warnings().is_empty(), "{report:?}");
+}
+
+#[test]
+fn a_nested_exclude_glob_is_relative_to_its_file() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            ("gen/x.fake", SCRIPT),
+            ("sub/gen/x.fake", SCRIPT),
+            (
+                "sub/xenolith.toml",
+                "version = 1\n[[exclude]]\nglob = \"gen\"\nreason = \"generated\"\n",
+            ),
+        ],
+    );
+    let report = run(&root, &Config::default(), &["gen/x.fake", "sub/gen/x.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("gen/x.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
+fn a_nested_allow_path_is_relative_to_its_file_and_holds_standalone() {
+    // `src/config:V88`: the same verdict from the root and from inside
+    // `sub` with no ancestor read, since the entry says `b.fake`, not
+    // `sub/b.fake`.
+    let sandbox = Sandbox::new();
+    let sub_toml = format!(
+        "version = 1\n[[allow]]\npath = \"b.fake\"\nsink = \"build\"\nhash = \"{}\"\n\
+         reason = \"fixture\"\n",
+        body_hash("a && b")
+    );
+    let root = nested_tree(&sandbox, &sub_toml);
+    let from_root = run(
+        &root,
+        &Config::default(),
+        &["sub/b.fake", "sub/deep/c.fake"],
+    );
+    assert_eq!(
+        rules(&from_root),
+        vec![("sub/deep/c.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+    let standalone = run(
+        &root.join("sub"),
+        &config(&sub_toml),
+        &["b.fake", "deep/c.fake"],
+    );
+    assert_eq!(
+        rules(&standalone),
+        vec![("deep/c.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
+fn the_allow_direction_names_the_nearest_config_and_a_path_relative_to_it() {
+    let sandbox = Sandbox::new();
+    let root = nested_tree(&sandbox, "version = 1\n");
+    let report = run(&root, &Config::default(), &["sub/deep/c.fake"]);
+    let action = only(&report)
+        .directions
+        .last()
+        .map(|d| d.action.clone())
+        .unwrap_or_default();
+    assert!(action.contains("path = \"deep/c.fake\""), "{action}");
+    assert!(action.ends_with("in sub/xenolith.toml"), "{action}");
+}
+
+#[test]
+fn a_stale_allow_in_a_nested_file_is_reported_at_that_file() {
+    let sandbox = Sandbox::new();
+    let root = nested_tree(
+        &sandbox,
+        "version = 1\n\n[[allow]]\npath = \"b.fake\"\nsink = \"gone\"\nhash = \"0\"\n\
+         reason = \"fixture\"\n",
+    );
+    let report = run(&root, &Config::default(), &["sub/b.fake"]);
+    let stale: Vec<_> = report
+        .violations()
+        .iter()
+        .filter(|v| v.rule == Rule::StaleAllow)
+        .collect();
+    match stale.as_slice() {
+        [v] => {
+            assert_eq!(
+                (v.file.display().to_string(), v.line),
+                ("sub/xenolith.toml".into(), 3)
+            );
+            assert!(v.why.contains("sub/b.fake"), "{}", v.why);
+        }
+        other => panic!("expected one stale allow, got {other:#?}"),
+    }
+}
+
+#[test]
+fn a_nested_allow_never_covers_a_site_outside_its_subtree() {
+    // The root's `b.fake` is not the nested file's `b.fake`.
+    let sandbox = Sandbox::new();
+    let sub_toml = format!(
+        "version = 1\n[[allow]]\npath = \"b.fake\"\nsink = \"build\"\nhash = \"{}\"\n\
+         reason = \"fixture\"\n",
+        body_hash("a && b")
+    );
+    let root = tree(
+        &sandbox,
+        &[("b.fake", SCRIPT), ("sub/xenolith.toml", &sub_toml)],
+    );
+    let report = run(&root, &Config::default(), &["b.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("b.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
+fn a_broken_nested_config_refuses_with_exit_two_naming_it() {
+    let sandbox = Sandbox::new();
+    let root = nested_tree(&sandbox, "version = 1\n[langs]\nbogus = 1\n");
+    let e = refused(&root, &Config::default(), &["sub/b.fake"], &fakes());
+    assert!(matches!(e, CheckError::Config(_)), "{e:?}");
+    assert_eq!(e.exit_code(), 2);
+    assert!(
+        e.to_string().starts_with("sub/xenolith.toml: langs.bogus"),
+        "{e}"
+    );
+}
+
+#[test]
+fn a_whole_tree_run_reads_nested_configs_too() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "a.fake", SCRIPT);
+    write(&root, "sub/b.fake", SCRIPT);
+    write(
+        &root,
+        "sub/xenolith.toml",
+        "version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n",
+    );
+    sandbox.run_git(&root, &["add", "."]);
+    let report = check_with(
+        &root,
+        &Config::default(),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+// ---------------------------------------------------------------------
 // the parts
 // ---------------------------------------------------------------------
 

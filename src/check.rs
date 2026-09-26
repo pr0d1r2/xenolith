@@ -31,7 +31,7 @@ use std::process::Command;
 use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site};
 
 use crate::cli::EXIT_USAGE;
-use crate::config::{Allow, Config, Policy, SiteKey, Verb};
+use crate::config::{Allow, Config, Policy, SiteKey, TreeError, Verb};
 use crate::discover::{DiscoverError, discover_with};
 use crate::model::{Direction, Fix, Report, Rule, Violation, Warning};
 use crate::registry::{self, MissingGuest};
@@ -75,6 +75,10 @@ pub struct Options {
 pub enum CheckError {
     /// Discovery refused (`src:V57`, `src:V128`).
     Discover(DiscoverError),
+    /// A `xenolith.toml` below the root cannot be read, does not parse,
+    /// or declares another version than the chain above it
+    /// (`src/config` §I discovery, `src/config:V70`).
+    Config(TreeError),
     /// A site's guest is compiled out and `[langs] missing_guest` is
     /// `error` (`src:V42`).
     MissingGuest(MissingGuest),
@@ -101,6 +105,7 @@ impl fmt::Display for CheckError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CheckError::Discover(e) => e.fmt(f),
+            CheckError::Config(e) => e.fmt(f),
             CheckError::MissingGuest(e) => e.fmt(f),
             CheckError::Unclaimed { file, missing } => {
                 write!(
