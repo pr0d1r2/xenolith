@@ -334,6 +334,36 @@ fn the_extract_direction_never_claims_to_run_before_extract_can() {
 }
 
 #[test]
+fn a_command_in_a_direction_quotes_its_path_for_the_shell() {
+    // Pasted into a shell, `xnl extract my dir/a.fake:1` is three words.
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[("my dir/it's.fake", SCRIPT), ("plain.fake", SCRIPT)],
+    );
+    let report = run(
+        &root,
+        &Config::default(),
+        &["my dir/it's.fake", "plain.fake"],
+    );
+    let extract: Vec<String> = report
+        .violations()
+        .iter()
+        .filter_map(|v| v.directions.first().map(|d| d.action.clone()))
+        .collect();
+    match extract.as_slice() {
+        [odd, plain] => {
+            assert!(
+                odd.contains("`xnl extract 'my dir/it'\\''s.fake:1'`"),
+                "{odd}"
+            );
+            assert!(plain.contains("`xnl extract plain.fake:1`"), "{plain}");
+        }
+        other => panic!("expected two violations, got {other:?}"),
+    }
+}
+
+#[test]
 fn a_single_command_is_clean() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[("a.fake", "build=shell: make install\n")]);
