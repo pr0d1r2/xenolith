@@ -41,10 +41,11 @@ sib|languages/perl|perl grammar, guest rules
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T63 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T63, T148 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T63|x|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|`languages/api/src/lens:V63`,`languages/api/src/lens:V34`
+T148|.|`src:C139` backfill: `languages/shebang/src/tests.rs` (`lib.rs`)|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 

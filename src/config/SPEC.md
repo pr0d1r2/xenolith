@@ -53,7 +53,7 @@ V89: convention over configuration: key whose value ≡ inherited effective valu
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T10, T25, T49, T56, T70, T73, T80 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T10, T25, T49, T56, T70, T73, T80, T143 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T89 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -65,6 +65,7 @@ T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pk
 T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
 T80|.|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
+T143|.|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 

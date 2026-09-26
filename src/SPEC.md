@@ -29,6 +29,7 @@ sib|docs|public project docs & notices
 - C1: Rust cargo workspace; repo & root crate = `xenolith` (lib + bin `xnl` = `xenolith` consonant skeleton, `rg` shape; `xnl` free as crate, nixpkgs & brew binary — checked 2026-09-19); lib exposed for consumers. root crate depends on ∀ language crate, `default` = ∀ `lang-*` ∴ `xnl` works out of box, trim via `default-features = false`; feature = compile-time (grammar ∉ binary), `xenolith.toml` `[langs]` = runtime toggle over compiled-in set. ∀ workspace crate (api, ∀ `xenolith-lang-*`, root) published to crates.io, lockstep version. MIT.
 - C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
 - C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
+- C139: 1-to-1 Rust unit tests ∀ tracked `.rs` w/ logic (∃ fn body ∴ pure-wiring `lib.rs` exempt; ∀ crate, as C5; twin of `scripts:C13`): `#[cfg(test)] mod tests;` → `<d>/<m>.rs` & `<d>/<m>/mod.rs` ↔ `<d>/<m>/tests.rs`, `<d>/lib.rs` ↔ `<d>/tests.rs`; inline `mod tests {}` ⊥ counts. `main.rs` ⊥ own mirror (= lib's) ∴ ! shim, `fn main` → lib only. `tests/` integration allowed, ⊥ satisfies. closed exemption list & checker: `scripts/guard:V140`.
 
 ## §I INTERFACES
 
@@ -53,7 +54,7 @@ V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & dis
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88, T127 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88, T127, T142 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -67,6 +68,7 @@ T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 T119|.|benchmark harness + recorded budget file|V120,V95
 T127|.|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
+T142|.|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
 
 ## §B BUGS
 

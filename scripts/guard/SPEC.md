@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-repo guardrail scripts hk calls: commit-msg, bats mirror, TDD order, private-name denylist.
+repo guardrail scripts hk calls: commit-msg, bats mirror, rust mirror, TDD order, private-name denylist.
 
 ## §N NAV
 
@@ -22,6 +22,7 @@ self|scripts/guard|repo guardrail scripts hk calls
 V16: rule & its checker & its fixtures land in ONE commit; RED test commit precedes (C11).
 V20: ∀ commit msg Conventional Commits & body contains `Why:`; hk `commit-msg` enforces (via `xnl`-free script ∵ bootstrap).
 V21: ∀ `scripts/**/*.sh` & `.github/scripts/**/*.sh` ∃ bats at mirrored path & vice versa (⊥ orphan test).
+V140: ∀ tracked `.rs` w/ logic (∃ fn body, `src:C139`) ∃ sibling `tests.rs` wired by `#[cfg(test)] mod tests;` & vice versa (⊥ orphan, ⊥ unwired). checked per branch ⊥ per commit (B1). exempt, closed list (new entry = row here w/ reason): `**/build.rs` (build script, ⊥ crate code); `languages/pkl/src/grammar.rs` (FFI shim over vendored C, `languages:V121`; covered by crate `tests/`); `**/tests.rs` (the mirrors); `tests/**` & `<crate>/tests/**` (integration: allowed, ⊥ satisfy V140); `**/vendor/**` (verbatim upstream); `lib.rs` of pure wiring (mod decls, re-exports, ⊥ fn body); `main.rs` shim (`fn main` → lib only, `src:C139`).
 V23: ⊥ private repo name in tracked files | commit msgs (C17); hk check against denylist in gitignored file ?.
 V117: before the FIRST public push: ∀ commit message & blob in every ref to be pushed scanned against the private denylist (V23); only `main` & release tags pushed; local `backup/*` branches ⊥ pushed.
 
@@ -29,7 +30,7 @@ V117: before the FIRST public push: ∀ commit message & blob in every ref to be
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T5-T7, T29, T47 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T5-T7, T29, T47, T141 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -39,6 +40,7 @@ T7|x|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs
 T29|x|private-name denylist guard (gitignored list) + bats|V23,C17
 T47|.|`scripts/guard/crate-deps.sh` + bats: from `cargo metadata`, api ⊥ grammar dep & ⊥ features, language crate ⊥ depends on root \| other language crate; hk pre-push|`languages/api:V32`,C13
 T115|.|history audit script (`git log -p` over refs to push vs denylist) + bats; run once before first push|V117,V23
+T141|.|`scripts/guard/rust-mirror.sh` + bats: 1-to-1 `.rs` ↔ `tests.rs` over `git ls-files`, closed exemption list, orphan & unwired `tests.rs` fail; hk step in `all` (pre-push, B1)|V140,`src:C139`,`scripts:C13`
 
 ## §B BUGS
 

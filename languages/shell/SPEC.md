@@ -48,7 +48,7 @@ V138: zsh-only syntax (`setopt err_exit`, anon fn `() { print hi }`, glob qualif
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T11, T15, T53, T83, T135, T136 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T11, T15, T53, T83, T135, T136, T149 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T11|x|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,`languages:V2`
@@ -57,6 +57,7 @@ T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving ex
 T83|.|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82
 T135|.|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
 T136|.|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt`, anon fn, glob qualifier|V138,V82,`languages:V132`
+T149|.|`src:C139` backfill: `languages/shell/src/classify/tests.rs`, `languages/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 
