@@ -330,6 +330,21 @@ fn a_placement_is_a_name_and_a_dir_both_templates() {
 }
 
 #[test]
+fn a_host_without_escape_says_so_rather_than_writing_the_body_raw() {
+    // `languages/api/src/lens` §I: `inline` writes `escape(body)`, and a
+    // body written back unescaped is a different program once the host
+    // reads it again (`languages/api/src/lens:V39`).
+    let host: &dyn Host = &FakeHost;
+    assert_eq!(
+        host.escape(&fake_site().delim, "echo $HOME"),
+        Err(Error::Unsupported {
+            lang: LangId::Nix,
+            operation: "escape",
+        })
+    );
+}
+
+#[test]
 fn a_host_without_hole_advice_says_so_rather_than_advising_nothing() {
     // `languages/api/src/holes` §I: an empty list would read as "these
     // holes have no way out" (`languages/api:V37`).
