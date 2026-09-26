@@ -35,7 +35,7 @@ sib|languages/perl|perl grammar, guest rules
 
 ## §V INVARIANTS
 
-V53: nix host placement: name = attr path tail (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input — kept a separate package, ⊥ vendored or re-exported by xenolith; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty.
+V53: nix host placement: name = last ≤2 attr segments, builders ⊥, kebab (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input — kept a separate package, ⊥ vendored or re-exported by xenolith; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty. `loads` = either call, anywhere, on a relative path literal `.sh`\|`.bash`\|`.zsh`.
 V54: nix `hole_advice` (fallback when `languages/api/src/holes:V40` params ⊥ apply): `${…}` holes → propose `replaceVars ./<file> { var = …; }` w/ `@var@` placeholders, else pass as argv | env. advice only, ⊥ auto-applied.
 V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshold.exec]`; over → extract to shell script w/ simple interface (fixed argv, holes → params per `languages/api/src/holes:V40`, `"$@"` forwarded) & `ExecStart = "${nix-shebang.lib.toShellScript { inherit pkgs; name = "<name>"; src = ./…; }}/bin/<name>"` ∴ logic unit-testable (bats).
 
