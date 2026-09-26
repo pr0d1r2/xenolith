@@ -55,7 +55,7 @@ T156|x|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = 
 T157|x|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
 T158|x|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
 T159|x|home-manager shell init attrs (`initContent`, `initExtra`, `profileExtra`, `bashrcExtra` …) → shell, dialect per program (zsh/bash); fixture|B1,`tests:V118`
-T160|.|T157 ∀ WHOLE text arg of `writeScript`/`writeText` (`writeTextFile { text }` = T157 already); ⊥ shebang → ⊥ site; fixture|B1,`tests:V118`
+T160|x|T157 ∀ WHOLE text arg of `writeScript`/`writeText` (`writeTextFile { text }` = T157 already); ⊥ shebang → ⊥ site; fixture|B1,`tests:V118`
 T161|.|named sink value wrapped ONCE in `mkBefore`/`mkAfter`/`mkOrder N`/`mkForce`/`mkDefault` = that sink's site; T157 ⊥ unwraps; fixture|B1,`tests:V118`
 
 ## §B BUGS

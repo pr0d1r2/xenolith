@@ -24,8 +24,10 @@
 //!
 //! One rule reads a string's CONTENT, and only its first line: a whole
 //! attribute value that starts with a shebang holds what that line names
-//! ([`shebang_sink`], `languages/nix:T157`). The interpreter line is the
-//! file saying what it is, not a guess from its shape.
+//! ([`shebang_sink`], `languages/nix:T157`), and so does the whole text
+//! of `writeScript` or `writeText` (`languages/nix:T160`). The
+//! interpreter line is the file saying what it is, not a guess from its
+//! shape.
 
 use rnix::{SyntaxKind, SyntaxNode};
 use xenolith_lang_api::{GuestEnv, LangId, shebang};
@@ -184,9 +186,18 @@ fn call_sink(callee: &str) -> Option<(Sink, usize)> {
 /// The builder whose ARGUMENT SET holds a shell body under `text`.
 const TEXT_BUILDER: &str = "writeShellApplication";
 
+/// The builders that write their second argument out as a file of no
+/// declared language, so only that text's own shebang can name one
+/// (`languages/nix:T160`). `writeTextFile { text }` is not here: its
+/// text is an attribute value, which T157 already reads.
+const SHEBANG_BUILDERS: &[&str] = &["writeScript", "writeText"];
+
+/// The argument position of a [`SHEBANG_BUILDERS`] text.
+const SHEBANG_TEXT_POSITION: usize = 2;
+
 /// Every builder name that contributes a segment to a sink path.
 fn is_builder(callee: &str) -> bool {
-    callee == TEXT_BUILDER || call_sink(callee).is_some()
+    callee == TEXT_BUILDER || call_sink(callee).is_some() || SHEBANG_BUILDERS.contains(&callee)
 }
 
 /// The sink a string node sits in, if any.
@@ -221,8 +232,15 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
                 return None;
             }
             let (callee, position) = apply_chain(&parent)?;
-            let (sink, wanted) = call_sink(&callee)?;
-            (position == wanted).then_some(sink)
+            if let Some((sink, wanted)) = call_sink(&callee) {
+                return (position == wanted).then_some(sink);
+            }
+            // A text-writing builder's WHOLE text may name its own guest
+            // (`languages/nix:T160`), as a whole attribute value does.
+            let whole = value == *string
+                && position == SHEBANG_TEXT_POSITION
+                && SHEBANG_BUILDERS.contains(&callee.as_str());
+            whole.then(|| shebang_sink(string)).flatten()
         }
         _ => None,
     }
