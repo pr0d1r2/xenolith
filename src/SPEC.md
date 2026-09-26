@@ -84,3 +84,4 @@ B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `
 B7|2026-09-26|direction command printed path unquoted ∴ space \| quote → pastes as ≠ words|path quoted as 1 POSIX shell word
 B8|2026-09-26|`languages/nix:T157` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
 B9|2026-09-26|named dir w/ 0 tracked files → empty scan, exit 0; walk kept FIFO ∴ engine `open` hung; `./a` & `a` deduped raw ∴ reported twice|V57: `EmptyDir` / `NotAFile` exit 2, regular files \| symlinks only, `normalise` before dedup
+B10|2026-09-26|`--strict-hosts` refusal built `lang-<id>` from the extension's language ∴ `.py` → "rebuild with feature `lang-python`", ⊥ ∃ (B8 fixed guests only)|name the feature only if it exists (`registry::existing_feature`), else "no support … yet"

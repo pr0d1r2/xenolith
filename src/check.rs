@@ -138,12 +138,19 @@ impl fmt::Display for CheckError {
                     "{}: host unsupported: no host in this build claims it",
                     file.display()
                 )?;
-                if let Some(id) = missing {
-                    write!(
+                // Only a feature that exists is named (`src:V30`, `src:B10`).
+                match missing.map(|id| (id, registry::existing_feature(id))) {
+                    Some((id, Some(feature))) => {
+                        write!(
+                            f,
+                            "; {id} is compiled out, rebuild with feature `{feature}`"
+                        )?;
+                    }
+                    Some((id, None)) => write!(
                         f,
-                        "; {id} is compiled out, rebuild with feature `{}`",
-                        registry::feature(*id)
-                    )?;
+                        "; xenolith has no support for {id} in this build: no crate provides it yet"
+                    )?,
+                    None => {}
                 }
                 f.write_str(" (src:V13)")
             }
