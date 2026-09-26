@@ -18,6 +18,12 @@
 //! 7. report -- [`Violation`]s (`src:V1`) into a [`Report`], which keeps
 //!    them sorted (`src:V11`).
 //!
+//! Every stage from 1 on reads the config EFFECTIVE for the file at hand:
+//! the root's, merged with each `xenolith.toml` on the way down to the
+//! file's directory ([`Tree`], `src/config` §I discovery). The caller
+//! hands in the root's; the nested ones are read here, since which
+//! directories matter is known only once discovery has run.
+//!
 //! `src/cli` renders the report and maps exit codes; nothing here writes
 //! to a stream or exits.
 
@@ -31,7 +37,8 @@ use std::process::Command;
 use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site};
 
 use crate::cli::EXIT_USAGE;
-use crate::config::{Allow, Config, Policy, SiteKey, TreeError, Verb};
+use crate::config::tree::file_in;
+use crate::config::{self, Allow, Config, Policy, SiteKey, Tree, TreeError, Verb};
 use crate::discover::{DiscoverError, discover_with};
 use crate::model::{Direction, Fix, Report, Rule, Violation, Warning};
 use crate::registry::{self, MissingGuest};
@@ -39,8 +46,9 @@ use crate::registry::{self, MissingGuest};
 #[cfg(test)]
 mod tests;
 
-/// The config file `xnl check` reads at the root (`src/config:C16`).
-pub const CONFIG_FILE: &str = "xenolith.toml";
+/// The config file `xnl check` reads at the root (`src/config:C16`), and
+/// in any directory beneath it (`src/config` §I, discovery).
+pub const CONFIG_FILE: &str = config::FILE;
 
 /// The warning code for a claimed file whose host could not parse it,
 /// under `[parse] host_errors = "warn"` (`languages:V78`).
@@ -134,6 +142,12 @@ impl From<DiscoverError> for CheckError {
     }
 }
 
+impl From<TreeError> for CheckError {
+    fn from(e: TreeError) -> CheckError {
+        CheckError::Config(e)
+    }
+}
+
 impl From<MissingGuest> for CheckError {
     fn from(e: MissingGuest) -> CheckError {
         CheckError::MissingGuest(e)
@@ -144,8 +158,9 @@ impl From<MissingGuest> for CheckError {
 ///
 /// # Errors
 ///
-/// [`CheckError`], exit 2: discovery refused, or a site's guest is
-/// compiled out under `[langs] missing_guest = "error"`.
+/// [`CheckError`], exit 2: discovery refused, a nested `xenolith.toml`
+/// refused, or a site's guest is compiled out under `[langs]
+/// missing_guest = "error"`.
 pub fn check(root: &Path, config: &Config, options: &Options) -> Result<Report, CheckError> {
     let langs = Langs {
         hosts: registry::hosts(),
@@ -192,6 +207,8 @@ pub(crate) fn check_with(
     git: &dyn Fn() -> Command,
 ) -> Result<Report, CheckError> {
     let candidates = discover_with(root, &options.paths, git)?;
+    let names: Vec<String> = candidates.files.iter().map(|f| repo_name(f)).collect();
+    let tree = Tree::load(root, config.clone(), names.iter().map(String::as_str))?;
     let mut report = Report::new();
     for warning in candidates.warnings {
         report.warn(warning);
@@ -200,6 +217,7 @@ pub(crate) fn check_with(
     let mut scanned = BTreeSet::new();
     for file in &candidates.files {
         let name = repo_name(file);
+        let config = tree.config_for(&name);
         if config.excluded(Verb::Check, &name).is_some() {
             continue;
         }
@@ -232,7 +250,7 @@ pub(crate) fn check_with(
                         judge_site(
                             &mut report,
                             &mut seen,
-                            config,
+                            &tree,
                             langs,
                             host.id(),
                             &name,
@@ -245,7 +263,7 @@ pub(crate) fn check_with(
             }
         }
     }
-    stale_allows(&mut report, config, root, &seen, &scanned, options, langs);
+    stale_allows(&mut report, &tree, root, &seen, &scanned, options, langs);
     Ok(report)
 }
 
@@ -291,18 +309,19 @@ fn unclaimed(
     }
 }
 
-/// Stages 4 to 6 for one site.
+/// Stages 4 to 6 for one site, under the config effective for its file.
 #[allow(clippy::too_many_arguments)] // one call site, every argument a stage input
 fn judge_site(
     report: &mut Report,
     seen: &mut Vec<Seen>,
-    config: &Config,
+    tree: &Tree,
     langs: &Langs<'_>,
     host: LangId,
     name: &str,
     src: &str,
     site: &Site,
 ) -> Result<(), CheckError> {
+    let config = tree.config_for(name);
     let raw = site.delim.body.of(src).unwrap_or_default();
     let hash = body_hash(raw);
     let (line, col) = position(src, site.delim.open.start);
@@ -348,6 +367,15 @@ fn judge_site(
         // can say so, a site with holes is a judgement call.
         Fix::Judgment
     };
+    // The allow belongs in the file that governs the site, written
+    // relative to it (`src/config` §I), so it holds when that subtree is
+    // checked on its own (`src/config:V88`).
+    let dir = tree.nearest(name);
+    let rel = name
+        .strip_prefix(dir)
+        .and_then(|rest| rest.strip_prefix('/'))
+        .unwrap_or(name);
+    let file = file_in(dir);
     report.push(at.violation(
         Rule::Xenolith,
         why,
@@ -359,8 +387,8 @@ fn judge_site(
             Direction {
                 kind: Fix::Judgment,
                 action: format!(
-                    "or keep it inline, with a reason: [[allow]] path = \"{name}\", sink = \"{}\", \
-                     hash = \"{hash}\", reason = \"...\" in {CONFIG_FILE}",
+                    "or keep it inline, with a reason: [[allow]] path = \"{rel}\", sink = \"{}\", \
+                     hash = \"{hash}\", reason = \"...\" in {file}",
                     site.sink
                 ),
             },
@@ -489,7 +517,10 @@ fn unsited(file: PathBuf, line: usize, host: LangId, sink: String) -> Located {
 }
 
 /// Stage 6, second half: every `[[allow]]` no seen site matches is
-/// `stale-allow` (`src/config:V9`).
+/// `stale-allow` (`src/config:V9`), judged file by file: each
+/// `xenolith.toml` read, its entries rebased to the root, so an entry in
+/// a nested file can only be matched -- or found stale -- by a site in
+/// that file's subtree (`src/config` §I).
 ///
 /// Judged only where the run could have seen the site: every entry on a
 /// whole-tree run, but on a run over named paths (hk passes the changed
@@ -498,68 +529,82 @@ fn unsited(file: PathBuf, line: usize, host: LangId, sink: String) -> Located {
 ///
 /// Reported AT the site when one with the entry's path and sink still
 /// exists (the body changed, so the hash no longer matches), else at the
-/// entry in `xenolith.toml`.
+/// entry in the `xenolith.toml` that declares it.
 fn stale_allows(
     report: &mut Report,
-    config: &Config,
+    tree: &Tree,
     root: &Path,
     seen: &[Seen],
     scanned: &BTreeSet<String>,
     options: &Options,
     langs: &Langs<'_>,
 ) {
-    let keys = seen.iter().map(|s| SiteKey {
-        path: &s.path,
-        sink: &s.sink,
-        hash: &s.hash,
-    });
+    let keys: Vec<SiteKey<'_>> = seen
+        .iter()
+        .map(|s| SiteKey {
+            path: &s.path,
+            sink: &s.sink,
+            hash: &s.hash,
+        })
+        .collect();
     let whole_tree = options.paths.is_empty();
-    let config_text = fs::read_to_string(root.join(CONFIG_FILE)).unwrap_or_default();
-    for (index, allow) in config.stale_allows(keys) {
-        if !whole_tree && !scanned.contains(&allow.path) {
-            continue;
+    for (dir, layer) in tree.layers() {
+        let file = file_in(dir);
+        let config_text = fs::read_to_string(root.join(&file)).unwrap_or_default();
+        for (index, allow) in layer.stale_allows(keys.iter().copied()) {
+            if !whole_tree && !scanned.contains(&allow.path) {
+                continue;
+            }
+            let drifted = seen
+                .iter()
+                .find(|s| s.path == allow.path && s.sink == allow.sink);
+            let (at, why) = match drifted {
+                Some(s) => (
+                    s.at.clone(),
+                    format!(
+                        "[[allow]] #{} in {file} is stale: the body changed (hash {} now, {} \
+                         allowed)",
+                        index + 1,
+                        s.hash,
+                        allow.hash
+                    ),
+                ),
+                None => (
+                    gone(allow, index, &file, &config_text, root, langs),
+                    format!(
+                        "[[allow]] #{} is stale: no site `{}` in {}",
+                        index + 1,
+                        allow.sink,
+                        allow.path
+                    ),
+                ),
+            };
+            report.push(at.violation(
+                Rule::StaleAllow,
+                why,
+                vec![Direction {
+                    kind: Fix::Judgment,
+                    action: format!(
+                        "update its hash if the new body should stay inline, or delete the \
+                         entry from {file}"
+                    ),
+                }],
+            ));
         }
-        let drifted = seen
-            .iter()
-            .find(|s| s.path == allow.path && s.sink == allow.sink);
-        let (at, why) = match drifted {
-            Some(s) => (
-                s.at.clone(),
-                format!(
-                    "[[allow]] #{} in {CONFIG_FILE} is stale: the body changed (hash {} now, \
-                     {} allowed)",
-                    index + 1,
-                    s.hash,
-                    allow.hash
-                ),
-            ),
-            None => (
-                gone(allow, index, &config_text, root, langs),
-                format!(
-                    "[[allow]] #{} is stale: no site `{}` in {}",
-                    index + 1,
-                    allow.sink,
-                    allow.path
-                ),
-            ),
-        };
-        report.push(at.violation(
-            Rule::StaleAllow,
-            why,
-            vec![Direction {
-                kind: Fix::Judgment,
-                action: format!(
-                    "update its hash if the new body should stay inline, or delete the entry \
-                     from {CONFIG_FILE}"
-                ),
-            }],
-        ));
     }
 }
 
-/// Where to report an allow whose site is gone: its entry in the config
-/// file, in the language of the host that claims the file it names.
-fn gone(allow: &Allow, index: usize, config_text: &str, root: &Path, langs: &Langs<'_>) -> Located {
+/// Where to report an allow whose site is gone: its entry in `file`, the
+/// config that declares it, in the language of the host that claims the
+/// file it names.
+fn gone(
+    allow: &Allow,
+    index: usize,
+    file: &str,
+    config_text: &str,
+    root: &Path,
+    langs: &Langs<'_>,
+) -> Located {
     let path = Path::new(&allow.path);
     let head = head(&root.join(path));
     let host = langs
@@ -573,7 +618,7 @@ fn gone(allow: &Allow, index: usize, config_text: &str, root: &Path, langs: &Lan
         .filter(|(_, line)| line.trim() == "[[allow]]")
         .nth(index)
         .map_or(1, |(n, _)| n + 1);
-    unsited(PathBuf::from(CONFIG_FILE), line, host, allow.sink.clone())
+    unsited(PathBuf::from(file), line, host, allow.sink.clone())
 }
 
 /// The content hash an `[[allow]]` keys a body by (`src/config:V10`):
