@@ -32,6 +32,16 @@ env {
   ["HK_HIDE_WHEN_DONE"] = "true"
 }
 
+/// Verbatim upstream: a vendored grammar's generated C and its license
+/// files, copied byte for byte at a named rev (`languages:V121`). The
+/// byte-level hygiene steps that judge choices upstream made -- file size,
+/// indent, final newline -- exclude it, because the only way to pass them
+/// there is to edit the files, and an edited "verbatim" copy is a fork
+/// that still claims to be the release it names. Narrow on purpose:
+/// `vendor/` directories only, and only those steps. The content checks
+/// (secrets, conflict markers, spelling, line endings) still read it.
+local verbatim = List("**/vendor/**")
+
 /// LAYER ONE: what runs on every commit. Scoped by glob, so a SPEC-only
 /// commit never waits on a compiler and a shell-only commit never waits on
 /// cargo.
@@ -148,6 +158,7 @@ local fast = new Mapping<String, Step> {
   // it a rule rather than a suggestion an editor may or may not honour.
   ["editorconfig"] {
     glob = List("**/*")
+    exclude = verbatim
     check = "scripts/hk/run-tool.sh editorconfig-checker {{files}}"
   }
 
@@ -229,6 +240,7 @@ local fast = new Mapping<String, Step> {
   }
   ["final-newline"] {
     glob = List("**/*")
+    exclude = verbatim
     check = "hk util end-of-file-fixer {{files}}"
     fix = "hk util end-of-file-fixer --fix {{files}}"
   }
@@ -239,6 +251,7 @@ local fast = new Mapping<String, Step> {
   }
   ["no-large-files"] {
     glob = List("**/*")
+    exclude = verbatim
     check = "hk util check-added-large-files {{files}}"
   }
   ["no-merge-conflict"] {

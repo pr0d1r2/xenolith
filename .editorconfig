@@ -33,3 +33,17 @@ trim_trailing_whitespace = false
 
 [Makefile]
 indent_style = tab
+
+[**/vendor/**]
+# Verbatim upstream (`languages:V121`): a vendored grammar's C and license
+# files are copied byte for byte at a named rev, and an editor that
+# "fixes" their whitespace forks them while they still claim to be the
+# release. Every property is UNSET so no editor touches their bytes; hk's
+# byte-level steps exclude the same directories (`hk.pkl`, `verbatim`).
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+max_line_length = unset
