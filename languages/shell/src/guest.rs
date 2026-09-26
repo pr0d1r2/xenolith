@@ -214,6 +214,11 @@ fn strict_line(env: &GuestEnv) -> Option<String> {
     match family(env) {
         Family::Zsh => Some(zsh_setopt(&env.options)),
         Family::Bash => Some(set_line(&env.options, true)),
+        // `pipefail` is dropped for sh, so a site whose only option it
+        // was has nothing left to set. `set -` is not an empty line:
+        // bash reads it as turning `-v` and `-x` off
+        // (`languages/shell:B3`).
+        Family::Posix if env.options.iter().all(|option| option == "pipefail") => None,
         Family::Posix => Some(set_line(&env.options, false)),
     }
 }
