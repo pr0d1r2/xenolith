@@ -843,3 +843,23 @@ fn an_extract_path_that_is_a_symlink_out_of_the_root_is_refused() {
     let _ = write::apply(&root, &edit);
     assert!(!outside.join("build.sh").exists());
 }
+
+// ---------------------------------------------------------------------
+// a rule's invoke must still be a load (T69)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_rule_invoke_the_host_cannot_read_back_as_a_load_is_refused_by_name() {
+    // src/extract:V68: the toy host reads the LAST word of a load as its
+    // path, so an invoke ending in a flag is no load it recognises --
+    // and `xnl graph` would then disagree with the rewrite.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[[extract.rule]]\nhost = \"just\"\n\
+                invoke = [\"run\", \"{path}\", \"--fast\"]\n";
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    let why = only_refusal(&plan_with(&sandbox, &root, toml, &["a.toy"]));
+    assert!(why.contains("rule #1 in xenolith.toml"), "{why}");
+    assert!(why.contains("just"), "{why}");
+    assert!(why.contains("src/extract:V68"), "{why}");
+}
