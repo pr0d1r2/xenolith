@@ -1,0 +1,3 @@
+# A builder with no attribute around it: the sink path is the builder
+# alone, and there is no attribute name to place the extract by.
+writeShellScript | '' | bash | - | "\n  echo hello\n  echo world\n"

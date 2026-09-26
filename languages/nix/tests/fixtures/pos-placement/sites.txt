@@ -1,0 +1,10 @@
+# One site per shape `languages/nix:V53` names differently: a service
+# script, an exec line under `serviceConfig`, a builder's `text` (builder
+# segment dropped), a quoted attribute with slashes, a sink one level
+# down, and a builder bound to an attribute.
+systemd.services.web-app.script | '' | bash errexit | - | "\n    echo one\n    echo two\n  "
+systemd.services.web.serviceConfig.ExecStartPre | " | - | ${pkgs.coreutils} | "${pkgs.coreutils}/bin/true"
+packages.deploy.writeShellApplication.text | '' | bash errexit nounset pipefail | - | "\n      rsync -a ./public/ \"$1\"\n    "
+environment.etc.X11/xinit/xinitrc.text | '' | sh | - | "\n    #!/bin/sh\n    exec i3\n  "
+devShells.default.shellHook | '' | bash | - | "\n      export A=1\n    "
+greet.writeShellScript | '' | bash | - | "\n    echo hi\n  "

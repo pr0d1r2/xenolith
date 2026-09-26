@@ -21,6 +21,14 @@
 //! ```
 //!
 //! Lines starting with `#` say why the case exists and are ignored.
+//!
+//! A case MAY also hold `placement.txt`: where the host would put the
+//! extract of each site, in the same order (`languages/nix:V53`,
+//! `languages/nix:T55`), one line per site:
+//!
+//! ```text
+//! <sink> | <name template> | <dir template>
+//! ```
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -43,6 +51,21 @@ fn cases() -> Vec<PathBuf> {
 
 fn read(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+/// The expectation lines of a case file: comments and blank lines gone.
+fn expected(path: &Path) -> Vec<String> {
+    read(path)
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.trim().is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+/// The case directory's own name.
+fn case_name(case: &Path) -> String {
+    case.file_name()
+        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
 }
 
 /// One site in the `sites.txt` line format.
@@ -78,15 +101,9 @@ fn every_case_reports_exactly_its_expected_sites() {
     );
     let mut failures = Vec::new();
     for case in &cases {
-        let name = case
-            .file_name()
-            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let name = case_name(case);
         let src = read(&case.join("input.nix"));
-        let expected: Vec<String> = read(&case.join("sites.txt"))
-            .lines()
-            .filter(|line| !line.starts_with('#') && !line.trim().is_empty())
-            .map(str::to_owned)
-            .collect();
+        let expected = expected(&case.join("sites.txt"));
         let actual: Vec<String> = match NixHost.sites(&src) {
             Ok(sites) => sites.iter().map(|site| render(&src, site)).collect(),
             Err(e) => vec![format!("ERROR {e}")],
@@ -109,5 +126,42 @@ fn every_case_reports_exactly_its_expected_sites() {
             failures.push(format!("{name}: a case is `pos-` or `neg-`"));
         }
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}
+
+#[test]
+fn every_placement_file_names_where_each_site_goes() {
+    // `languages/nix:V53`: the name is cut from the attribute path, the
+    // dir sits beside the host file -- both `src/extract:V46` templates.
+    let mut checked = 0;
+    let mut failures = Vec::new();
+    for case in cases() {
+        let file = case.join("placement.txt");
+        if !file.exists() {
+            continue;
+        }
+        checked += 1;
+        let src = read(&case.join("input.nix"));
+        let actual: Vec<String> = match NixHost.sites(&src) {
+            Ok(sites) => sites
+                .iter()
+                .map(|site| match NixHost.placement(site) {
+                    Ok(at) => format!("{} | {} | {}", site.sink, at.name, at.dir),
+                    Err(e) => format!("{} | ERROR {e}", site.sink),
+                })
+                .collect(),
+            Err(e) => vec![format!("ERROR {e}")],
+        };
+        let expected = expected(&file);
+        if actual != expected {
+            failures.push(format!(
+                "{}\n  expected:\n    {}\n  actual:\n    {}",
+                case_name(&case),
+                expected.join("\n    "),
+                actual.join("\n    ")
+            ));
+        }
+    }
+    assert!(checked > 0, "no placement.txt found -- nothing was checked");
     assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }

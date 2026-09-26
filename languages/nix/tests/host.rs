@@ -200,6 +200,43 @@ fn host_checks_are_statix_deadnix_and_nixfmt() {
     assert!(!NIX.fixers().is_empty());
 }
 
+// --- placement & hole advice (`languages/nix:T55`) ---------------------
+
+#[test]
+fn placement_names_the_extract_after_its_attribute_path() {
+    // `languages/nix:V53`; the per-shape table is `tests/fixtures/*/
+    // placement.txt`. Both fields are `src/extract:V46` templates: the
+    // site does not know which file it came from.
+    let site = only_site("{ systemd.services.foo.script = ''\n  a\n  b\n''; }");
+    let at = NIX
+        .placement(&site)
+        .unwrap_or_else(|e| panic!("no placement: {e}"));
+    assert_eq!(at.name, "foo-script");
+    assert_eq!(at.dir, "{host_dir}/{host_stem}");
+}
+
+#[test]
+fn hole_advice_proposes_replace_vars_then_argv_then_env() {
+    // `languages/nix:V54`: advice only, one direction per way out, the
+    // nix-native one first.
+    let src = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pos-holes/input.nix"),
+    )
+    .unwrap_or_else(|e| panic!("pos-holes: {e}"));
+    let site = only_site(&src);
+    assert_eq!(site.holes.len(), 2);
+    let advice = NIX
+        .hole_advice(&site)
+        .unwrap_or_else(|e| panic!("no advice: {e}"));
+    let [replace_vars, argv, env] = advice.as_slice() else {
+        panic!("expected three directions, got {advice:#?}");
+    };
+    assert!(replace_vars.contains("replaceVars ./<file> { var = …; }"));
+    assert!(replace_vars.contains("`@var@`"));
+    assert!(argv.contains("argument"), "{argv}");
+    assert!(env.contains("environment variable"), "{env}");
+}
+
 // --- unescape (`languages/api/src/lens:V39`, `languages/nix:T158`) ------
 
 /// A delimiter of `kind`; `unescape` reads only the kind.
