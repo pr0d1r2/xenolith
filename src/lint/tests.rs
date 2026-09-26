@@ -8,13 +8,14 @@
 use std::fs;
 use std::os::unix::fs::PermissionsExt as _;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use xenolith_lang_api::{
     Delim, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef,
     Prelude, Result, Site,
 };
 
-use super::{Kind, LintError, LintReport, Options, Outcome, Source, Status, lint_with};
+use super::{Kind, LintError, LintReport, Options, Outcome, Source, Status, limit, lint_with};
 use crate::check::Langs;
 use crate::config::{self, Config};
 use crate::discover::{Sandbox, write};
@@ -582,4 +583,41 @@ fn a_trusted_config_fixer_runs_under_fix() {
     let report = fx.lint(&config, &options).unwrap_or_else(|e| panic!("{e}"));
     assert!(fx.root.join("ownfix-ran").exists());
     assert!(report.warnings().is_empty(), "{:?}", report.warnings());
+}
+
+// ---------------------------------------------------------------------
+// T125: the timeout
+// ---------------------------------------------------------------------
+
+#[test]
+fn the_timeout_is_seconds_and_zero_is_no_limit() {
+    assert_eq!(limit(0), None);
+    assert_eq!(limit(90), Some(Duration::from_secs(90)));
+}
+
+#[test]
+fn a_check_past_the_timeout_is_an_error_and_the_rest_still_run() {
+    // `src/lint:V126`, the task's fixture: a sleeping tool errors at the
+    // limit, exit 2, naming the tool and the limit.
+    let fx = Fixture::all_pass();
+    fx.tool("alpha", "exec /bin/sleep 30");
+    fx.file("a.sh", "echo hi\n");
+    let config = parsed("version = 1\n[lint]\ntimeout = 1\n");
+    let started = Instant::now();
+    let report = fx.report(&config, &["a.sh"]);
+    assert!(
+        started.elapsed() < Duration::from_secs(20),
+        "{:?}",
+        started.elapsed()
+    );
+    // beta still ran. Its own status is not pinned: it shares the 1s
+    // limit, and on macOS the first exec of a freshly written script
+    // waits on a policy check that, with the whole suite spawning at
+    // once, was measured past a second.
+    let names: Vec<&str> = report.outcomes().iter().map(|o| o.check.as_str()).collect();
+    assert_eq!(names, ["alpha", "beta"]);
+    assert_eq!(nth(&report, 0).status, Status::Error);
+    let why = nth(&report, 0).raw_tail.clone().unwrap_or_default();
+    assert!(why.contains("`alpha`") && why.contains("1s"), "{why}");
+    assert_eq!(report.exit_code(), 2);
 }

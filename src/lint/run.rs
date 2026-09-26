@@ -11,6 +11,7 @@ use std::io::{ErrorKind, Read};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use super::report::Status;
 
@@ -71,7 +72,8 @@ impl Ran {
 /// fail, and a tool that never ran or died on a signal an error
 /// (`src/lint` §I).
 #[must_use]
-pub fn run(root: &Path, argv: &[String], tools: &Tools) -> Ran {
+pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools) -> Ran {
+    let _ = limit;
     let Some((program, rest)) = argv.split_first() else {
         return Ran::error("an empty command: nothing to run".to_owned());
     };

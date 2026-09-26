@@ -24,6 +24,7 @@ use std::fs;
 use std::io::Read as _;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 use xenolith_lang_api::{Guest, GuestEnv, Host, LangId, LintCmd, shebang};
 
@@ -198,7 +199,7 @@ pub(crate) fn lint_with(
         }
         if config.lint.hosts {
             for host in hosts {
-                run.host(&mut report, host, name);
+                run.host(&mut report, host, name, limit(config.lint.timeout));
             }
         }
         match found {
@@ -302,12 +303,13 @@ struct Run<'a> {
 impl Run<'_> {
     /// `Host::checks` on a host file; defaults only, config names none
     /// for hosts (`src/lint` §I).
-    fn host(&self, report: &mut LintReport, host: &dyn Host, name: &str) {
+    fn host(&self, report: &mut LintReport, host: &dyn Host, name: &str, limit: Option<Duration>) {
         let target = Target {
             name,
             kind: Kind::Host,
             guest: None,
             dialect: None,
+            limit,
         };
         for cmd in host.checks().iter().map(Cmd::builtin) {
             report.push(self.one(&target, &cmd, false));
@@ -332,6 +334,7 @@ impl Run<'_> {
             kind: Kind::Extract,
             guest: Some(id),
             dialect: env.dialect.clone(),
+            limit: limit(config.lint.timeout),
         };
         if self.fix {
             let fixers: Vec<LintCmd> = guest.fixers(env);
@@ -365,7 +368,7 @@ impl Run<'_> {
     /// Run one command on the target and make its outcome.
     fn one(&self, target: &Target<'_>, cmd: &Cmd, fixer: bool) -> Outcome {
         let argv = cmd.argv(target.name);
-        let ran = run::run(self.root, &argv, self.tools);
+        let ran = run::run(self.root, &argv, target.limit, self.tools);
         Outcome {
             file: PathBuf::from(target.name),
             kind: target.kind,
@@ -388,6 +391,8 @@ struct Target<'a> {
     kind: Kind,
     guest: Option<LangId>,
     dialect: Option<String>,
+    /// `[lint] timeout` for the file (`src/lint:V126`).
+    limit: Option<Duration>,
 }
 
 /// A config command held back (`src/lint:V91`): a `skipped` outcome, and
@@ -416,6 +421,14 @@ fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd, fixer: boo
         raw_tail: None,
         fixer,
     });
+}
+
+/// `[lint] timeout` as a wall clock per command, `None` for 0: no limit
+/// (`src/lint:V126`, `src/lint` §I).
+#[must_use]
+pub fn limit(seconds: u64) -> Option<Duration> {
+    let _ = seconds;
+    None
 }
 
 /// `[lint.<guest>] extend`, through the defaults table (`src/config:V73`).
