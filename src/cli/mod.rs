@@ -6,58 +6,134 @@
 //! arguments and both streams as parameters, which is what lets
 //! `src/cli/tests.rs` drive every branch without spawning a process.
 //!
-//! The verbs (`check`, `extract`, `graph`, `lint`), their flags and their
-//! exit codes belong to `src/cli` and arrive with `src/cli:T9`. What this
-//! module does today is answer for the binary's identity and REFUSE
-//! everything else -- loudly, with exit 2.
+//! Three layers, one file each (`src/cli:T9`):
 //!
-//! Refusing matters more than it looks. A binary that accepts `xnl check`
-//! and exits 0 having scanned nothing is indistinguishable, in a gate,
-//! from one that scanned the tree and found it clean.
+//! * [`args`] -- what was ASKED: the verbs `check`, `extract`, `graph`,
+//!   `lint`, `langs` and their flags, parsed in full.
+//! * this module -- what to DO about it: one match arm per verb.
+//! * [`langs`] -- the one verb with nothing to scan, answered here.
+//!
+//! The scanning verbs parse every flag and path and then REFUSE with
+//! exit 2, naming the task that brings their engine (`src:T153` for
+//! `check`). Refusing matters more than it looks: a binary that accepts
+//! `xnl check` and exits 0 having scanned nothing is indistinguishable,
+//! in a gate, from one that scanned the tree and found it clean. Wiring
+//! an engine in is replacing its arm's [`not_yet`] with one call and a
+//! render (`src:V152`: the engine decides, `src/cli` renders and maps
+//! exit codes).
 
+use std::ffi::{OsStr, OsString};
 use std::io::Write;
 use std::process::ExitCode;
 
+use self::args::{Invocation, OutputFormat, Scan, Usage, Verb};
+
+pub mod args;
+pub mod langs;
+
 #[cfg(test)]
 mod tests;
+
+/// Exit code for "done, nothing found" (`src/cli:V24`).
+pub const EXIT_OK: u8 = 0;
 
 /// Exit code for "the request was understood and not carried out"
 /// (`src/cli:V24`): usage errors and unimplemented verbs alike. Distinct
 /// from 1, which is reserved for findings.
 pub const EXIT_USAGE: u8 = 2;
 
+/// The whole grammar, for a refusal to end with (`src/cli` §I).
+const USAGE: &str = "\
+usage: xnl <verb> [flags] [paths...]
+
+  xnl check   [--format human|json|sarif] [paths...]
+  xnl extract [--write] [--relocate] <path>[:line]...
+  xnl graph   [--format human|json|sarif] [paths...]
+  xnl lint    [--fix] [--trust-config] [--format human|json|sarif] [paths...]
+  xnl langs   [--format human|json]
+  xnl --version
+
+every verb also takes --verbose and --strict-hosts; `--` ends the flags.
+exit: 0 ok, 1 violation, 2 usage or refused.";
+
 /// The binary's entry point: the process arguments, stdout and stderr.
+///
+/// `args_os`, not `args`: the latter panics on an argument that is not
+/// UTF-8, and a filename from hk can be exactly that.
 #[must_use]
 pub fn main() -> ExitCode {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    let args: Vec<OsString> = std::env::args_os().skip(1).collect();
     ExitCode::from(run(&args, &mut std::io::stdout(), &mut std::io::stderr()))
 }
 
 /// Dispatch `args` (without the program name), writing to `out` and
 /// `err`, and return the exit code.
-pub fn run(args: &[String], out: &mut impl Write, err: &mut impl Write) -> u8 {
-    match args.first().map(String::as_str) {
-        Some("--version" | "-V") => {
+pub fn run<A: AsRef<OsStr>>(args: &[A], out: &mut impl Write, err: &mut impl Write) -> u8 {
+    if args.is_empty() {
+        return refuse(err, USAGE);
+    }
+    match args::parse(args) {
+        Ok(invocation) => dispatch(&invocation, out, err),
+        // The problem first, so a terminal showing only the top of the
+        // message shows the mistake.
+        Err(Usage(problem)) => refuse(err, &format!("xnl: {problem}\n\n{USAGE}")),
+    }
+}
+
+/// One arm per verb. An arm whose engine has landed calls it and
+/// renders the result; the rest refuse.
+fn dispatch(invocation: &Invocation, out: &mut impl Write, err: &mut impl Write) -> u8 {
+    match &invocation.verb {
+        Verb::Version => {
             // As in `refuse`: a failed write to stdout has nowhere to be
             // reported, and a panic would only add noise on stderr.
             let _ = writeln!(out, "xnl {}", crate::VERSION);
-            0
+            EXIT_OK
         }
-        Some(verb) => refuse(
+        Verb::Langs { format } => {
+            let text = match format {
+                OutputFormat::Json => langs::json(),
+                // The parser refuses `langs --format sarif`, so
+                // `Sarif` does not reach here; if it ever did, the
+                // human list beats an empty stdout.
+                OutputFormat::Human | OutputFormat::Sarif => langs::human(),
+            };
+            let _ = out.write_all(text.as_bytes());
+            EXIT_OK
+        }
+        Verb::Check(scan) => scanning(err, "check", scan, "src:T153"),
+        Verb::Graph(scan) => scanning(err, "graph", scan, "src/graph:T21"),
+        Verb::Lint { scan, .. } => scanning(err, "lint", scan, "src/lint:T24"),
+        Verb::Extract { .. } => not_yet(err, "extract", "src/extract:T22"),
+    }
+}
+
+/// A scanning verb whose engine has not landed. `--format sarif` is
+/// refused first and separately: its writer is its own task
+/// (`src/cli:T103`), and it will still be missing the day the engine
+/// arrives.
+fn scanning(err: &mut impl Write, verb: &str, scan: &Scan, task: &str) -> u8 {
+    if scan.format == OutputFormat::Sarif {
+        return refuse(
             err,
             &format!(
-                "xnl: `{verb}` is not implemented yet. The verbs check, extract, \
-                 graph and lint arrive with src/cli:T9; this build knows only \
-                 --version."
+                "xnl: `{verb} --format sarif` is not implemented yet: the SARIF \
+                 writer arrives with src/cli:T103."
             ),
-        ),
-        None => refuse(
-            err,
-            "usage: xnl --version\n\nNo verb is implemented yet \
-             (src/cli:T9). This build reports its version and refuses \
-             everything else rather than exiting 0 having done nothing.",
-        ),
+        );
     }
+    not_yet(err, verb, task)
+}
+
+/// Refuse `verb`, naming the task that brings it.
+fn not_yet(err: &mut impl Write, verb: &str, task: &str) -> u8 {
+    refuse(
+        err,
+        &format!(
+            "xnl: `{verb}` is not implemented yet: it arrives with {task}. \
+             This build refuses rather than exit 0 having done nothing."
+        ),
+    )
 }
 
 /// Write a refusal to `err` and return the usage exit code.
