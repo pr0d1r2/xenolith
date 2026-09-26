@@ -40,6 +40,7 @@ use self::args::{Invocation, OutputFormat, Scan, Usage, Verb};
 
 pub mod args;
 pub mod check;
+pub mod extract;
 pub mod graph;
 pub mod langs;
 pub mod lint;

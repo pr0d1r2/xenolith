@@ -34,7 +34,7 @@ fn binary_prints_the_same_version_the_library_reports() {
 #[test]
 fn a_verb_whose_engine_has_not_landed_exits_two_and_says_so() {
     let out = Command::new(XNL)
-        .args(["extract", "a.nix"])
+        .args(["extract", "--relocate", "a.nix"])
         .output()
         .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
     assert_eq!(
