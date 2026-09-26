@@ -287,6 +287,9 @@ pub(crate) fn check_with(
         whole_tree: options.paths.is_empty(),
     };
     stale_allows(&mut report, &tree, root, &seen, &judged, langs);
+    if judged.whole_tree {
+        stale_excludes(&mut report, &tree, &names);
+    }
     Ok(report)
 }
 
@@ -623,6 +626,37 @@ fn stale_allows(
                     ),
                 }],
             ));
+        }
+    }
+}
+
+/// Every exclude entry, in every config read, whose glob matches none of
+/// `tracked` is `stale-exclude` (`src/config:V79`, `src:B5`). Asked only
+/// on a whole-tree run: named paths are a partial view of the tree.
+///
+/// A WARNING, though V79 calls it a violation: `src:V1` gives every
+/// violation a host, a guest and a site, and an exclude has none. Which
+/// shape an unsited finding takes is the spec owner's open decision;
+/// until it is made, the finding is reported without inventing those
+/// fields.
+fn stale_excludes(report: &mut Report, tree: &Tree, tracked: &[String]) {
+    for (dir, layer) in tree.layers() {
+        let file = file_in(dir);
+        for (key, exclude) in layer.stale_excludes(tracked.iter().map(String::as_str)) {
+            // The glob as its file spells it, not rebased to the root.
+            let glob = dir
+                .is_empty()
+                .then_some(exclude.glob.as_str())
+                .or_else(|| exclude.glob.strip_prefix(&format!("{dir}/")))
+                .unwrap_or(&exclude.glob);
+            report.warn(Warning {
+                code: Rule::StaleExclude.as_str().to_owned(),
+                file: Some(PathBuf::from(&file)),
+                message: format!(
+                    "{key} (glob `{glob}`) matches no tracked file, so it skips nothing: \
+                     delete it from {file} (src/config:V79)"
+                ),
+            });
         }
     }
 }

@@ -79,3 +79,4 @@ B1|2026-09-26|`Report::push` keyed (file,line,col,rule), `warn` (code,file): tie
 B2|2026-09-26|file marked scanned before its host parsed it ∴ parse error (syntax, ⊥ UTF-8) → its `[[allow]]` all `stale-allow`|staleness ⊥ judged ∀ file ⊥ parsed
 B3|2026-09-26|whole-tree run judged ∀ `[[allow]]` ∴ allow for file ⊥ scanned (host compiled out, excluded) → `stale-allow`|judge allow only ∀ scanned file \| ⊥ candidate
 B4|2026-09-26|`repo_name` kept absolute path absolute ∴ ⊥ met allow, exclude, nested config; path outside root scanned|named path → root-relative (lexical \| canonical root); outside → exit 2
+B5|2026-09-26|engine ⊥ called `stale_excludes` ∴ stale exclude ⊥ reported (`src/config:V79`)|whole-tree run: warning `stale-exclude` ∀ layer; violation shape open (V1)
