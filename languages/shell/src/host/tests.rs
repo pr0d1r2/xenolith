@@ -1,4 +1,5 @@
-//! Unit tests for `host.rs` (`src:C139`): the claim, part by part.
+//! Unit tests for `host.rs` (`src:C139`): the claim, the walk and the
+//! unescaping, part by part.
 
 use std::path::Path;
 
@@ -6,7 +7,104 @@ use xenolith_lang_api::{
     Delim, DelimKind, Error, Format, GuestEnv, Host, Invoke, LangId, LoadRef, Site, Span,
 };
 
-use super::{BATS, EXTENSIONS, FILENAMES, ShellHost, raw};
+use super::{
+    BATS, EXTENSIONS, FILENAMES, ShellHost, hole, line_start, parse, raw, strip_tabs, unbackslash,
+    walk,
+};
+
+fn found(src: &str) -> Vec<Site> {
+    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
+    let mut out = Vec::new();
+    walk(tree.root_node(), src, &mut out);
+    out
+}
+
+#[test]
+fn the_walk_reaches_commands_at_any_depth() {
+    let src = "f() { for x in 1; do (python3 -c 'print(1)'); done; }\n";
+    let sinks: Vec<String> = found(src).into_iter().map(|site| site.sink).collect();
+    assert_eq!(sinks, ["python3 -c"]);
+}
+
+#[test]
+fn a_heredoc_with_a_second_stdin_is_not_a_site() {
+    assert!(found("python3 <<'PY' <input.txt\nprint(1)\nPY\n").is_empty());
+    assert!(found("python3 <<'PY'\nprint(1)\nPY\n").len() == 1);
+}
+
+#[test]
+fn an_empty_heredoc_is_a_site_with_an_empty_body() {
+    let src = "python3 <<'PY'\nPY\n";
+    let sites = found(src);
+    let [site] = sites.as_slice() else {
+        panic!("{sites:#?}");
+    };
+    assert!(site.delim.body.is_empty());
+    assert_eq!(site.delim.close.of(src), Some("PY"));
+}
+
+#[test]
+fn a_heredoc_tag_loses_its_quotes_and_backslash() {
+    for (src, tag) in [
+        ("python3 <<\\PY\nx\nPY\n", "PY"),
+        ("python3 <<\"PY\"\nx\nPY\n", "PY"),
+        ("python3 <<'P Y'\nx\nP Y\n", "P Y"),
+    ] {
+        let sites = found(src);
+        let kind = sites.first().map(|site| site.delim.kind.clone());
+        assert_eq!(
+            kind,
+            Some(DelimKind::Heredoc {
+                tag: tag.to_owned(),
+                quoted: true,
+                strip_indent: false,
+            }),
+            "{src:?}"
+        );
+    }
+}
+
+#[test]
+fn line_start_is_the_byte_after_the_previous_newline() {
+    assert_eq!(line_start("ab\n\tcd", 4), 3);
+    assert_eq!(line_start("ab\ncd", 3), 3);
+    assert_eq!(line_start("abcd", 2), 0);
+    assert_eq!(line_start("", 0), 0);
+}
+
+#[test]
+fn strip_tabs_removes_only_leading_tabs() {
+    assert_eq!(strip_tabs("\t\ta\tb\n  c\n\td"), "a\tb\n  c\nd");
+    assert_eq!(strip_tabs(""), "");
+}
+
+#[test]
+fn unbackslash_decodes_exactly_the_heredoc_escapes() {
+    assert_eq!(
+        unbackslash("\\$a \\` \\\\ \\\" \\n \\x"),
+        "$a ` \\ \\\" \\n \\x"
+    );
+    assert_eq!(unbackslash("a \\\nb"), "a b");
+    assert_eq!(unbackslash("trailing \\"), "trailing \\");
+}
+
+#[test]
+fn a_hole_starts_at_its_first_non_blank_byte() {
+    let src = "echo \"${a} $(b)\"\n";
+    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
+    let string = tree
+        .root_node()
+        .named_child(0)
+        .and_then(|command| command.child_by_field_name("argument"))
+        .unwrap_or_else(|| panic!("no argument"));
+    let mut cursor = string.walk();
+    let holes: Vec<&str> = string
+        .named_children(&mut cursor)
+        .filter(|part| part.kind() != "string_content")
+        .filter_map(|part| hole(part, src).of(src))
+        .collect();
+    assert_eq!(holes, ["${a}", "$(b)"]);
+}
 
 fn claims(path: &str, head: &str) -> bool {
     ShellHost.claims(Path::new(path), head)

@@ -5,17 +5,19 @@
 //! and it is also a host in its own right -- a heredoc fed to `python`
 //! encloses python the same way a nix string encloses bash.
 //!
-//! What lives here today is the classifier: the answer to "is this one
-//! command, or is it a script?" (`languages/shell:V3`). Every shell sink
-//! in every host asks it, so it is shared rather than reimplemented per
-//! host -- twelve implementations of one rule would be twelve places for
-//! the answer to differ.
+//! At its centre is the classifier: the answer to "is this one command,
+//! or is it a script?" (`languages/shell:V3`). Every shell sink in every
+//! host asks it, so it is shared rather than reimplemented per host --
+//! twelve implementations of one rule would be twelve places for the
+//! answer to differ. Around it: shell as a guest ([`ShellGuest`]) and as
+//! a host ([`ShellHost`]), whose sinks are read in `sinks`.
 
 #![forbid(unsafe_code)]
 
 pub mod classify;
 pub mod guest;
 pub mod host;
+mod sinks;
 
 pub use crate::classify::{Classification, Construct, ZSH_UNSUPPORTED, classify, classify_in};
 pub use crate::guest::ShellGuest;

@@ -53,7 +53,7 @@ V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` s
 
 id|status|task|cites
 T11|x|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,`languages:V2`
-T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|V139,`languages:V2`,`tests:V14`,`tests:V15`
+T15|x|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|V139,`languages:V2`,`tests:V14`,`tests:V15`
 T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving extract passes shellcheck|V51
 T83|.|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82,V139
 T135|x|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
