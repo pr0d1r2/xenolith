@@ -19,6 +19,9 @@ use std::path::PathBuf;
 use serde_json::{Map, Value, json};
 use xenolith_lang_api::{DelimKind, LangId};
 
+#[cfg(test)]
+mod tests;
+
 /// Whether a machine may apply a direction unattended.
 ///
 /// Mirrors microlith's `Fix`, including the hard-won reading of
