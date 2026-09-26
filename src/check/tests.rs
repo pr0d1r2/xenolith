@@ -512,6 +512,40 @@ fn a_whole_tree_run_keeps_the_allows_of_a_file_that_did_not_parse() {
     );
 }
 
+#[test]
+fn an_allow_for_a_file_no_host_in_this_build_claims_is_not_stale() {
+    // `src:V30`: in a build without the nix host, `x.nix` is unclaimed
+    // and never scanned, so its allow cannot be judged -- while an allow
+    // naming a file that is gone still is.
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "x.nix", "{ }\n");
+    sandbox.run_git(&root, &["add", "x.nix"]);
+    let text = format!(
+        "{}\n[[allow]]\npath = \"gone.nix\"\nsink = \"s\"\nhash = \"0\"\nreason = \"fixture\"\n",
+        allow("x.nix", "s", "0")
+    );
+    let report = check_with(
+        &root,
+        &config(&text),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let stale: Vec<&str> = report
+        .violations()
+        .iter()
+        .filter(|v| v.rule == Rule::StaleAllow)
+        .map(|v| v.why.as_str())
+        .collect();
+    assert_eq!(stale.len(), 1, "{stale:?}");
+    assert!(
+        stale.iter().all(|why| why.contains("gone.nix")),
+        "{stale:?}"
+    );
+}
+
 // ---------------------------------------------------------------------
 // candidates and claims (`src:V57`, `src/config:V79`, `src:V13`)
 // ---------------------------------------------------------------------
