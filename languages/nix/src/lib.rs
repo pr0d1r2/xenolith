@@ -177,7 +177,7 @@ fn site(string: &SyntaxNode, sink: sinks::Sink) -> Option<Site> {
         .collect();
     Some(Site {
         sink: sinks::sink_path(string),
-        guest: LangId::Shell,
+        guest: sink.guest(),
         env: sink.env(),
         delim: Delim {
             kind,

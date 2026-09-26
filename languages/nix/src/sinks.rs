@@ -6,7 +6,8 @@
 //! same bytes under `description` are prose, under `text` of
 //! `environment.etc` a config file, under a `let` binding a value nobody
 //! has run yet. So every decision here reads the rnix tree around the
-//! string node and never the string's contents (`languages:V2`).
+//! string node, never a regex over the source (`languages:V2`) -- and the
+//! string's contents only for the one rule at the end.
 //!
 //! Three shapes of context, one per way nixpkgs hands a body to bash:
 //!
@@ -19,9 +20,16 @@
 //!
 //! In each shape the value may be a `+` concatenation: every string
 //! operand of it is in the sink ([`sink_value`], `languages/nix:T155`).
+//!
+//! One rule reads a string's CONTENT, and only its first line: a whole
+//! attribute value that starts with a shebang holds what that line names
+//! ([`shebang_sink`], `languages/nix:T157`). The interpreter line is the
+//! file saying what it is, not a guess from its shape.
 
 use rnix::{SyntaxKind, SyntaxNode};
-use xenolith_lang_api::GuestEnv;
+use xenolith_lang_api::{GuestEnv, LangId, shebang};
+
+use crate::unescape;
 
 #[cfg(test)]
 mod tests;
@@ -44,6 +52,14 @@ pub(crate) enum Sink {
     /// The body of `runCommand` and its variants, a stdenv `*Phase`, or
     /// a phase hook (`preCheck`, `postInstall`, ...).
     Stdenv,
+    /// Any attribute value whose first line is a shebang naming a guest
+    /// (`languages/nix:T157`).
+    Shebang {
+        /// The language the interpreter runs.
+        guest: LangId,
+        /// The shell dialect, when the interpreter is one the api names.
+        dialect: Option<&'static str>,
+    },
 }
 
 impl Sink {
@@ -75,6 +91,20 @@ impl Sink {
             // `setup.sh`'s `set -eu` + `set -o pipefail`, which every
             // phase and every `runCommand` body runs under.
             Sink::WriteShellApplication | Sink::Stdenv => bash(&["errexit", "nounset", "pipefail"]),
+            // Only the interpreter line is known: options a `#!/bin/sh -e`
+            // would set are not read off it.
+            Sink::Shebang { dialect, .. } => GuestEnv {
+                dialect: dialect.map(str::to_owned),
+                options: Vec::new(),
+            },
+        }
+    }
+
+    /// The language the body is in: what a shebang names, else shell.
+    pub(crate) fn guest(self) -> LangId {
+        match self {
+            Sink::Shebang { guest, .. } => guest,
+            _ => LangId::Shell,
         }
     }
 }
@@ -153,7 +183,15 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
     let value = sink_value(string);
     let parent = value.parent()?;
     match parent.kind() {
-        SyntaxKind::NODE_ATTRPATH_VALUE => attr_value_sink(&parent),
+        SyntaxKind::NODE_ATTRPATH_VALUE => attr_value_sink(&parent).or_else(|| {
+            // Past the named sinks, a WHOLE attribute value -- not a `+`
+            // operand, not a `let` binding -- may name its own guest.
+            let whole = value == *string
+                && parent
+                    .parent()
+                    .is_some_and(|set| set.kind() == SyntaxKind::NODE_ATTR_SET);
+            whole.then(|| shebang_sink(string)).flatten()
+        }),
         // `ExecStartPre = [ "a" "b" ]`: systemd takes a list of lines, and
         // each element is its own exec line.
         SyntaxKind::NODE_LIST => {
@@ -202,6 +240,58 @@ pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
     node
 }
 
+/// The sink of a string whose first line, as nix evaluates it, is a
+/// shebang naming a language the api knows (`languages/nix:T157`).
+///
+/// The api's map decides (`shebang::guest_of`), and it does not guess:
+/// an interpreter it does not know -- or one wholly inside a hole, like
+/// `#!${pkgs.runtimeShell}` -- is no sink rather than "shell, probably".
+pub(crate) fn shebang_sink(string: &SyntaxNode) -> Option<Sink> {
+    let parsed = shebang::parse(&string_text(string))?;
+    let guest = shebang::guest_of(&parsed)?;
+    let interpreter = parsed.resolved_interpreter();
+    let name = interpreter.rsplit('/').next().unwrap_or(interpreter);
+    let dialect = if guest == LangId::Shell {
+        shell_dialect(name)
+    } else {
+        None
+    };
+    Some(Sink::Shebang { guest, dialect })
+}
+
+/// The dialect a shell interpreter's basename names, for the dialects
+/// `GuestEnv` has (`languages/api/src/site` §I); the rest of the sh
+/// family is undecided (`languages/shell:V82`).
+pub(crate) fn shell_dialect(name: &str) -> Option<&'static str> {
+    ["sh", "bash", "zsh"].into_iter().find(|d| *d == name)
+}
+
+/// What a string evaluates to, with each hole a placeholder word: its
+/// text tokens, unescaped as the guest would read them.
+pub(crate) fn string_text(string: &SyntaxNode) -> String {
+    let mut raw = String::new();
+    let mut indented = false;
+    for part in string.children_with_tokens() {
+        match part.kind() {
+            SyntaxKind::TOKEN_STRING_START => {
+                indented = part.as_token().is_some_and(|t| t.text() == "''");
+            }
+            SyntaxKind::TOKEN_STRING_CONTENT => {
+                if let Some(token) = part.as_token() {
+                    raw.push_str(token.text());
+                }
+            }
+            SyntaxKind::NODE_INTERPOL => raw.push_str("HOLE"),
+            _ => {}
+        }
+    }
+    if indented {
+        unescape::indented(&raw)
+    } else {
+        unescape::double_quoted(&raw)
+    }
+}
+
 /// Whether a binary operation is `+`.
 fn is_concatenation(op: &SyntaxNode) -> bool {
     op.children_with_tokens()
@@ -222,9 +312,10 @@ fn attr_value_sink(binding: &SyntaxNode) -> Option<Sink> {
     if let Some(sink) = attr_sink(&name) {
         return Some(sink);
     }
-    // `text` is a sink ONLY as `writeShellApplication { text = …; }`.
+    // `text` is a sink BY NAME only as `writeShellApplication { text = …; }`.
     // `environment.etc."x".text` is a config file, and flagging it would
-    // be the confident wrong answer `languages:V2` forbids.
+    // be the confident wrong answer `languages:V2` forbids -- unless its
+    // own first line says otherwise ([`shebang_sink`]).
     if name == "text" {
         let apply = set.parent()?;
         if apply.kind() == SyntaxKind::NODE_APPLY && apply.first_child().as_ref() != Some(&set) {
