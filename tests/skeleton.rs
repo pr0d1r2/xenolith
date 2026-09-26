@@ -58,3 +58,36 @@ fn no_arguments_is_a_usage_error() {
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("usage"), "got {stderr:?}");
 }
+
+#[test]
+fn langs_exits_zero_and_lists_languages_on_stdout() {
+    let out = Command::new(XNL)
+        .arg("langs")
+        .output()
+        .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
+    assert!(out.status.success(), "`xnl langs` must exit 0");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("shell"), "got {stdout:?}");
+    assert!(out.stderr.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_path_that_is_not_utf8_is_read_not_a_panic() {
+    // `std::env::args` panics on such an argument; the binary must read
+    // its arguments as `OsString`s, because hk hands over whatever names
+    // the tree holds. `check` still refuses (no engine yet), but as the
+    // refusal, naming the task, not as a panic.
+    use std::ffi::OsString;
+    use std::os::unix::ffi::OsStringExt;
+
+    let out = Command::new(XNL)
+        .arg("check")
+        .arg(OsString::from_vec(vec![b'a', 0xff, b'.', b'n', b'i', b'x']))
+        .output()
+        .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
+    assert_eq!(out.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(!stderr.contains("panicked"), "got {stderr:?}");
+    assert!(stderr.contains("src:T153"), "got {stderr:?}");
+}

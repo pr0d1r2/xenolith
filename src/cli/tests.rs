@@ -5,7 +5,11 @@
 //! boundary; these check every branch of the dispatch and of `refuse`,
 //! including which STREAM each message lands on -- a refusal on stdout
 //! corrupts a caller parsing JSON (`src/cli` §I) -- and what happens
-//! when a stream cannot be written.
+//! when a stream cannot be written. The parser has its own mirror
+//! (`src/cli/args/tests.rs`), and so does `langs`
+//! (`src/cli/langs/tests.rs`); what is pinned here is that the dispatch
+//! routes each verb where it belongs and refuses, with exit 2, every verb
+//! whose engine has not landed (`src/cli:V24`).
 
 use std::io::{self, Write};
 
@@ -37,6 +41,15 @@ fn xnl(args: &[&str]) -> (u8, String, String) {
     )
 }
 
+/// Run with `args`, expect a refusal, and return stderr.
+fn refused(args: &[&str]) -> String {
+    let (code, out, err) = xnl(args);
+    assert_eq!(code, EXIT_USAGE, "{args:?}: {err}");
+    assert!(out.is_empty(), "{args:?}: {out:?}");
+    assert!(err.ends_with('\n'), "{args:?}: {err:?}");
+    err
+}
+
 #[test]
 fn the_usage_exit_code_is_two() {
     // `src/cli:V24`: 0 ok, 1 violation, 2 usage. 1 is for findings, so a
@@ -65,9 +78,8 @@ fn dash_capital_v_is_the_short_form() {
 fn dash_lowercase_v_is_not_version() {
     // `-v` is `--verbose` in most tools; answering it as version would
     // make a typo succeed.
-    let (code, out, _) = xnl(&["-v"]);
-    assert_eq!(code, EXIT_USAGE);
-    assert!(out.is_empty());
+    let err = refused(&["-v"]);
+    assert!(err.contains("`-v`"), "{err:?}");
 }
 
 #[test]
@@ -78,11 +90,10 @@ fn version_looks_only_at_the_first_argument() {
 }
 
 #[test]
-fn version_after_a_verb_is_still_a_refusal() {
-    let (code, out, err) = xnl(&["check", "--version"]);
-    assert_eq!(code, EXIT_USAGE);
-    assert!(out.is_empty());
-    assert!(err.contains("`check`"), "{err:?}");
+fn version_after_a_verb_is_an_unknown_flag_of_that_verb() {
+    let err = refused(&["check", "--version"]);
+    assert!(err.contains("`--version`"), "{err:?}");
+    assert!(err.contains("check"), "{err:?}");
 }
 
 #[test]
@@ -96,39 +107,143 @@ fn version_to_a_closed_stdout_does_not_panic() {
 }
 
 // ---------------------------------------------------------------------
-// refusals
+// usage
 // ---------------------------------------------------------------------
 
 #[test]
-fn no_arguments_is_a_usage_refusal_on_stderr() {
-    let (code, out, err) = xnl(&[]);
-    assert_eq!(code, EXIT_USAGE);
-    assert!(out.is_empty(), "{out:?}");
-    assert!(err.starts_with("usage: xnl --version\n"), "{err:?}");
-    assert!(err.contains("src/cli:T9"), "{err:?}");
-    assert!(err.ends_with('\n'));
-}
-
-#[test]
-fn every_planned_verb_is_refused_by_name() {
-    for verb in ["check", "extract", "graph", "lint", "langs"] {
-        let (code, out, err) = xnl(&[verb]);
-        assert_eq!(code, EXIT_USAGE, "{verb}");
-        assert!(out.is_empty(), "{verb}: {out:?}");
-        assert!(err.starts_with(&format!("xnl: `{verb}` ")), "{err:?}");
-        assert!(err.contains("src/cli:T9"), "{err:?}");
+fn no_arguments_prints_the_usage_on_stderr() {
+    let err = refused(&[]);
+    assert!(err.starts_with("usage: xnl "), "{err:?}");
+    for word in [
+        "check",
+        "extract",
+        "graph",
+        "lint",
+        "langs",
+        "--format",
+        "--verbose",
+        "--strict-hosts",
+        "--version",
+    ] {
+        assert!(err.contains(word), "usage lacks {word}: {err}");
     }
 }
 
 #[test]
 fn an_unknown_word_or_flag_is_refused_by_name() {
     for word in ["--help", "frobnicate", "-", ""] {
-        let (code, out, err) = xnl(&[word]);
-        assert_eq!(code, EXIT_USAGE, "{word:?}");
-        assert!(out.is_empty(), "{word:?}");
+        let err = refused(&[word]);
+        assert!(err.starts_with("xnl: "), "{err:?}");
         assert!(err.contains(&format!("`{word}`")), "{err:?}");
     }
 }
+
+#[test]
+fn a_usage_error_is_followed_by_the_usage() {
+    // The line that says what was wrong comes FIRST, so a terminal
+    // showing only the top of the message shows the mistake.
+    let err = refused(&["check", "--frobnicate"]);
+    let first = err.lines().next().unwrap_or_default();
+    assert!(first.contains("`--frobnicate`"), "{err:?}");
+    assert!(err.contains("usage: xnl "), "{err:?}");
+}
+
+#[test]
+fn flags_are_parsed_before_a_verb_is_refused() {
+    // A bad flag on a verb without an engine is still a bad flag: the
+    // user learns about the typo today, not the day the engine lands.
+    let err = refused(&["check", "--format", "xml"]);
+    assert!(err.contains("`xml`"), "{err:?}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+}
+
+// ---------------------------------------------------------------------
+// verbs whose engines have not landed
+// ---------------------------------------------------------------------
+
+#[test]
+fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
+    // Refusing matters more than it looks: `xnl check` exiting 0 having
+    // scanned nothing is, in a gate, a clean tree.
+    for (args, task) in [
+        (&["check"][..], "src:T153"),
+        (&["check", "--format", "json", "a.nix"][..], "src:T153"),
+        (&["extract", "a.nix:3"][..], "src/extract:T22"),
+        (&["extract", "--write", "a.nix"][..], "src/extract:T22"),
+        (&["graph", "--verbose"][..], "src/graph:T21"),
+        (&["lint", "--fix", "x.sh"][..], "src/lint:T24"),
+    ] {
+        let verb = args.first().copied().unwrap_or_default();
+        let err = refused(args);
+        assert!(
+            err.starts_with(&format!("xnl: `{verb}` is not implemented yet")),
+            "{args:?}: {err:?}"
+        );
+        assert!(err.contains(task), "{args:?} should name {task}: {err:?}");
+    }
+}
+
+#[test]
+fn sarif_is_refused_naming_its_own_task() {
+    for verb in ["check", "graph", "lint"] {
+        let err = refused(&[verb, "--format", "sarif"]);
+        assert!(err.contains("sarif"), "{verb}: {err:?}");
+        assert!(err.contains("src/cli:T103"), "{verb}: {err:?}");
+    }
+}
+
+#[test]
+fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
+    let args = vec!["check".to_owned()];
+    let mut out = Vec::new();
+    assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);
+    assert!(out.is_empty());
+}
+
+// ---------------------------------------------------------------------
+// langs
+// ---------------------------------------------------------------------
+
+#[test]
+fn langs_lists_every_language_on_stdout_and_exits_zero() {
+    let (code, out, err) = xnl(&["langs"]);
+    assert_eq!(code, 0, "{err}");
+    assert!(err.is_empty(), "{err:?}");
+    for id in xenolith_lang_api::LangId::ALL {
+        assert!(
+            out.lines().any(|line| line.starts_with(id.as_str())),
+            "{id} missing from {out}"
+        );
+    }
+}
+
+#[test]
+fn langs_json_is_the_envelope_with_langs() {
+    let (code, out, err) = xnl(&["langs", "--format", "json", "--verbose"]);
+    assert_eq!(code, 0, "{err}");
+    let value: serde_json::Value =
+        serde_json::from_str(&out).unwrap_or_else(|e| panic!("{e}: {out}"));
+    assert_eq!(
+        value.get("schema").and_then(serde_json::Value::as_u64),
+        Some(u64::from(crate::model::SCHEMA))
+    );
+    assert!(
+        value.get("langs").is_some_and(serde_json::Value::is_array),
+        "{value}"
+    );
+}
+
+#[test]
+fn langs_to_a_closed_stdout_does_not_panic() {
+    let args = vec!["langs".to_owned()];
+    let mut err = Vec::new();
+    assert_eq!(run(&args, &mut Closed, &mut err), 0);
+    assert!(err.is_empty());
+}
+
+// ---------------------------------------------------------------------
+// refuse
+// ---------------------------------------------------------------------
 
 #[test]
 fn refuse_writes_the_message_and_a_newline() {
@@ -141,12 +256,4 @@ fn refuse_writes_the_message_and_a_newline() {
 fn refuse_to_a_closed_stderr_still_exits_two() {
     // A clean exit 2 beats a panic on the stream that just failed.
     assert_eq!(refuse(&mut Closed, "no."), EXIT_USAGE);
-}
-
-#[test]
-fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
-    let args = vec!["check".to_owned()];
-    let mut out = Vec::new();
-    assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);
-    assert!(out.is_empty());
 }
