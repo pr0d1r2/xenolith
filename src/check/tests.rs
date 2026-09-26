@@ -487,7 +487,10 @@ fn an_excluded_file_is_never_read() {
     let report = run(&root, &skip, &["vendor/x.fake"]);
     assert_eq!(report, Report::new());
     let read = run(&root, &Config::default(), &["vendor/x.fake"]);
-    assert_eq!(read.warnings().len(), 1, "{read:?}");
+    assert_eq!(
+        rules(&read),
+        vec![("vendor/x.fake".to_owned(), 1, Rule::HostParseError)]
+    );
 }
 
 #[test]
@@ -597,10 +600,38 @@ fn a_compiled_out_guest_under_warn_is_a_warning_and_under_ignore_nothing() {
 }
 
 #[test]
+fn a_host_parse_error_is_a_violation_by_default() {
+    // `src/config` §I: a file xenolith could not read was not checked,
+    // and a gate must not read that as clean.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "!\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn a_file_that_is_not_utf8_is_a_host_parse_error_by_default() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("t");
+    std::fs::write(root.join("a.fake"), [b'x', 0xff, b'\n'])
+        .unwrap_or_else(|e| panic!("write: {e}"));
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+}
+
+#[test]
 fn a_host_parse_error_follows_parse_host_errors() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[("a.fake", "!\n")]);
-    let warned = run(&root, &Config::default(), &["a.fake"]);
+    let warn = config("version = 1\n[parse]\nhost_errors = \"warn\"\n");
+    let warned = run(&root, &warn, &["a.fake"]);
     let codes: Vec<&str> = warned.warnings().iter().map(|w| w.code.as_str()).collect();
     assert_eq!(codes, vec!["host-parse-error"]);
     assert_eq!(warned.exit_code(), 0);
@@ -1058,6 +1089,17 @@ mod nix_shell {
                  (non-trivial shell: and-or"
             ),
             "{human}"
+        );
+    }
+
+    #[test]
+    fn a_nix_file_led_by_a_byte_order_mark_fails_the_run_by_default() {
+        // `src/config` §I: the BOM is not nix, so the file was not
+        // checked -- a violation, not a clean pass.
+        let report = check_nix(&format!("\u{feff}{SCRIPT}"), &Config::default());
+        assert_eq!(
+            rules(&report),
+            vec![("service.nix".to_owned(), 1, Rule::HostParseError)]
         );
     }
 

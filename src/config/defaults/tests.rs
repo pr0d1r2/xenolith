@@ -227,7 +227,7 @@ fn the_defaults_are_the_values_the_spec_states() {
     assert_eq!(LANGS_MISSING_GUEST, "error");
     assert_eq!(LANGS_UNCLAIMED, "ignore");
     assert_eq!((LINT_EXTEND, LINT_HOSTS), (true, true));
-    assert_eq!(PARSE_HOST_ERRORS, "warn");
+    assert_eq!(PARSE_HOST_ERRORS, "error");
     assert_eq!(THRESHOLD_GUEST_MAX_BYTES, 80);
     assert_eq!(THRESHOLD_GUEST_MAX_LINES, 1);
     assert_eq!(THRESHOLD_EXEC_MAX_ARGS, 8);
