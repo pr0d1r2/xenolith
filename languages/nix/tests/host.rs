@@ -8,7 +8,7 @@
 
 use std::path::Path;
 
-use xenolith_lang_api::{DelimKind, Error, GuestEnv, Host, LangId, Site, Span};
+use xenolith_lang_api::{Delim, DelimKind, Error, GuestEnv, Host, LangId, Site, Span};
 use xenolith_lang_nix::NixHost;
 
 const NIX: NixHost = NixHost;
@@ -198,4 +198,81 @@ fn host_checks_are_statix_deadnix_and_nixfmt() {
         .collect();
     assert_eq!(tools, vec!["statix", "deadnix", "nixfmt"]);
     assert!(!NIX.fixers().is_empty());
+}
+
+// --- unescape (`languages/api/src/lens:V39`, `languages/nix:T158`) ------
+
+/// A delimiter of `kind`; `unescape` reads only the kind.
+fn delim(kind: DelimKind) -> Delim {
+    Delim {
+        kind,
+        open: Span::new(0, 0),
+        body: Span::new(0, 0),
+        close: Span::new(0, 0),
+    }
+}
+
+fn indented(raw: &str) -> String {
+    NIX.unescape(&delim(DelimKind::NixIndented), raw)
+        .unwrap_or_else(|e| panic!("{raw:?}: {e}"))
+}
+
+#[test]
+fn unescape_dedents_an_indented_body_as_nix_does() {
+    // The opening line break is not content, the common indent of the
+    // content lines goes, and the closing line's spaces go with it -- so
+    // an indented heredoc terminator is a terminator again.
+    assert_eq!(
+        indented("\n    cat <<EOF\n    hi\n    EOF\n  "),
+        "cat <<EOF\nhi\nEOF\n"
+    );
+    assert_eq!(
+        indented("\n    if a; then\n      b\n    fi\n"),
+        "if a; then\n  b\nfi\n"
+    );
+    // A line of spaces only does not set the indent.
+    assert_eq!(indented("\n    a\n\n  \n    b\n"), "a\n\n\nb\n");
+    // Content on the opening line counts, spaces before it included.
+    assert_eq!(indented("  a\n  b"), "a\nb");
+    // Tabs are content to nix, never indentation.
+    assert_eq!(indented("\n\ta\n\tb\n"), "\ta\n\tb\n");
+}
+
+#[test]
+fn unescape_resolves_indented_string_escapes() {
+    assert_eq!(indented("a ''${b}"), "a ${b}");
+    assert_eq!(indented("a ''$b"), "a $b");
+    assert_eq!(indented("'''q'''"), "''q''");
+    assert_eq!(indented("a''\\nb''\\tc''\\rd''\\xe"), "a\nb\tc\rdxe");
+    // A lone quote and `$${` are plain text.
+    assert_eq!(indented("it's $${x}"), "it's $${x}");
+}
+
+#[test]
+fn unescape_counts_an_escape_as_content_for_the_indent() {
+    // `''$` at the start of a line ends the line's indent and is never
+    // stripped itself.
+    assert_eq!(indented("\n    ''$a\n      b\n"), "$a\n  b\n");
+    assert_eq!(indented("\n  ''$a\n    b\n"), "$a\n  b\n");
+}
+
+#[test]
+fn unescape_resolves_double_quoted_escapes_and_keeps_indent() {
+    let quoted = |raw: &str| {
+        NIX.unescape(&delim(DelimKind::NixString), raw)
+            .unwrap_or_else(|e| panic!("{raw:?}: {e}"))
+    };
+    assert_eq!(
+        quoted(r#"a\nb\tc\rd\"e\\f\${g}\h"#),
+        "a\nb\tc\rd\"e\\f${g}h"
+    );
+    assert_eq!(quoted("  a\n  b"), "  a\n  b");
+}
+
+#[test]
+fn unescape_refuses_a_delimiter_nix_does_not_write() {
+    assert_eq!(
+        NIX.unescape(&delim(DelimKind::PklMultiline { pounds: 0 }), "x"),
+        Err(Error::unsupported(LangId::Nix, "unescape"))
+    );
 }

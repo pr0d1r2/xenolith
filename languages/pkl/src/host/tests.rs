@@ -745,3 +745,36 @@ fn inline_refuses_a_load_that_is_not_in_the_source() {
         "{err:?}"
     );
 }
+
+// --- unescape (`languages/api/src/lens:V39`) ---------------------------
+
+#[test]
+fn unescape_is_the_string_modules_for_a_site_body() {
+    // The trait method hands the site's delimiter and raw body to
+    // `string::unescape`: the closing line's indent goes, escapes decode.
+    let src = check_script("        a \\t b\n");
+    let found = only_site(&src);
+    let raw = found
+        .delim
+        .body
+        .of(&src)
+        .unwrap_or_else(|| panic!("no body"));
+    assert_eq!(
+        PklHost.unescape(&found.delim, raw),
+        Ok("  a \t b".to_owned())
+    );
+}
+
+#[test]
+fn unescape_refuses_a_delimiter_pkl_does_not_write() {
+    let nix = Delim {
+        kind: DelimKind::NixIndented,
+        open: Span::new(0, 0),
+        body: Span::new(0, 0),
+        close: Span::new(0, 0),
+    };
+    assert_eq!(
+        PklHost.unescape(&nix, "x"),
+        Err(Error::unsupported(LangId::Pkl, "unescape"))
+    );
+}

@@ -100,6 +100,14 @@ impl Host for FakeHost {
         Err(Error::unsupported(LangId::Just, "inline"))
     }
 
+    /// `\&` is an escaped `&`; `\!` is an escape nothing decodes.
+    fn unescape(&self, _: &Delim, raw: &str) -> Result<String> {
+        if raw.contains("\\!") {
+            return Err(Error::parse(LangId::Just, "a fake bad escape"));
+        }
+        Ok(raw.replace("\\&", "&"))
+    }
+
     fn checks(&self) -> Vec<LintCmd> {
         Vec::new()
     }
@@ -368,6 +376,27 @@ fn a_hole_reaches_the_guest_as_a_plain_word_and_makes_extraction_a_judgement() {
     let v = only(&report);
     assert!(v.why.contains("and-or"), "{}", v.why);
     assert_eq!(v.directions.first().map(|d| d.kind), Some(Fix::Judgment));
+}
+
+#[test]
+fn the_guest_reads_the_body_the_host_unescaped() {
+    // `languages/api/src/lens:V39`: raw, the fake shell sees `\&\&` and
+    // no `&&`; through the host's `unescape` it sees the and-or.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "a=shell: x \\&\\& y\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    let why = &only(&report).why;
+    assert!(why.contains("and-or"), "{why}");
+}
+
+#[test]
+fn a_body_the_host_cannot_unescape_is_flagged_not_judged_raw() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "a=shell: x \\!\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    let v = only(&report);
+    assert_eq!(v.rule, Rule::Xenolith);
+    assert!(v.why.starts_with("unparseable just string"), "{}", v.why);
 }
 
 // ---------------------------------------------------------------------
@@ -1080,6 +1109,21 @@ mod nix_shell {
             "{ stdenv }:\nstdenv.mkDerivation {\n  name = \"d\";\n  \
              postInstall = \"installManPage d.1\";\n}\n",
         );
+    }
+
+    #[test]
+    fn an_indented_heredoc_is_judged_by_construct_not_as_unparseable() {
+        // `languages/nix:T158`: nix strips the common indent before bash
+        // runs the body, so the terminator IS `EOF`; the guest must see
+        // the body that runs, not the host's bytes.
+        let why = flagged_at(
+            "{ pkgs }:\n{\n  gen = pkgs.writeShellScript \"gen\" ''\n    if [ -n \"''${A:-}\" ]; \
+             then\n      cat > out <<EOF\n    hi\n    EOF\n    fi\n  '';\n}\n",
+            3,
+        );
+        assert!(why.contains("heredoc"), "{why}");
+        assert!(why.contains("if"), "{why}");
+        assert!(!why.contains("unparseable"), "{why}");
     }
 
     #[test]

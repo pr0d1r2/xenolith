@@ -90,6 +90,9 @@ fn traits_are_object_safe_so_the_registry_can_hold_them() {
     let host: &dyn Host = &FakeHost;
     let guest: &dyn Guest = &FakeGuest;
     assert_eq!(host.id(), LangId::Nix);
+    // `unescape` goes through the object too (`languages/api/src/lens:V39`).
+    let site = fake_site();
+    assert_eq!(host.unescape(&site.delim, "\n  x\n"), Ok("x".to_owned()));
     assert_eq!(guest.id(), LangId::Shell);
     assert_eq!(guest.extension(&GuestEnv::default()), "sh");
     assert_eq!(guest.invoke(Path::new("x.sh")).argv, vec!["bash", "x.sh"]);
@@ -201,6 +204,9 @@ impl Host for FakeHost {
     }
     fn inline(&self, src: &str, _load: &LoadRef, _body: &str) -> Result<String, Error> {
         Ok(src.to_owned())
+    }
+    fn unescape(&self, _delim: &Delim, raw: &str) -> Result<String, Error> {
+        Ok(raw.trim().to_owned())
     }
     fn checks(&self) -> Vec<LintCmd> {
         Vec::new()
