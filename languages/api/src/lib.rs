@@ -406,6 +406,24 @@ pub trait Host {
     /// well-formed one.
     fn unescape(&self, delim: &Delim, raw: &str) -> Result<String>;
 
+    /// The inverse of [`Host::unescape`]: `body` as it must be written
+    /// between the delimiters of `delim` for this host to read it back
+    /// unchanged -- which `inline` needs, and [`lens::escape_law`] checks
+    /// (`languages/api/src/lens:V39`).
+    ///
+    /// The default is [`Error::Unsupported`]: a body written back raw is
+    /// a different program the next time the host reads it, so a host
+    /// without an escape must say so rather than pretend.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Unsupported`] for a delimiter kind this host does not
+    /// write, or when it offers no escape at all.
+    fn escape(&self, delim: &Delim, body: &str) -> Result<String> {
+        let _ = (delim, body);
+        Err(Error::unsupported(self.id(), "escape"))
+    }
+
     /// Checks to run on files of this host language itself -- nix
     /// `statix`, yaml `actionlint` -- as opposed to on the extracts.
     fn checks(&self) -> Vec<LintCmd>;
