@@ -60,6 +60,9 @@ pub struct Options {
     /// `--fix`: each extract's fixers first, then its checks; host
     /// files are never rewritten (`src/lint:V8`).
     pub fix: bool,
+    /// `--trust-config`: run the commands a `xenolith.toml` defines;
+    /// only the flag grants it, never a config key (`src/lint:V91`).
+    pub trust_config: bool,
 }
 
 /// Why a run was refused rather than carried out; every variant exit 2.

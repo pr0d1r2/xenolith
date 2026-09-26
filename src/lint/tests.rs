@@ -516,3 +516,70 @@ fn an_untrusted_config_fixer_is_skipped_with_a_warning() {
         report.warnings()
     );
 }
+
+// ---------------------------------------------------------------------
+// T92: `--trust-config`
+// ---------------------------------------------------------------------
+
+fn trusting(paths: &[&str]) -> Options {
+    Options {
+        trust_config: true,
+        ..named(paths)
+    }
+}
+
+#[test]
+fn trusted_config_checks_run_after_the_defaults_they_extend() {
+    // `src/lint:V91`: the same config as the untrusted case, run.
+    let fx = Fixture::all_pass();
+    fx.tool("own", "exit 0");
+    fx.tool("typos", "echo \"typo in $1\"\nexit 1");
+    fx.file("a.sh", "echo hi\n");
+    let config =
+        parsed("version = 1\n[lint]\nall = [\"typos {file}\"]\n[lint.shell]\nchecks = [\"own\"]\n");
+    let report = fx
+        .lint(&config, &trusting(&["a.sh"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        checks(&report),
+        [
+            pair("alpha", Status::Pass),
+            pair("beta", Status::Pass),
+            pair("own", Status::Pass),
+            pair("typos", Status::Fail),
+        ]
+    );
+    let typos = nth(&report, 3);
+    assert_eq!(typos.source, Source::Config);
+    assert_eq!(typos.argv, ["typos", "a.sh"]);
+    assert_eq!(typos.raw_tail.as_deref(), Some("typo in a.sh"));
+    assert!(report.warnings().is_empty(), "{:?}", report.warnings());
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn trusted_config_with_extend_false_replaces_the_defaults() {
+    let fx = Fixture::all_pass();
+    fx.tool("own", "exit 0");
+    fx.file("a.sh", "echo hi\n");
+    let config = parsed("version = 1\n[lint.shell]\nchecks = [\"own\"]\nextend = false\n");
+    let report = fx
+        .lint(&config, &trusting(&["a.sh"]))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(checks(&report), [pair("own", Status::Pass)]);
+}
+
+#[test]
+fn a_trusted_config_fixer_runs_under_fix() {
+    let fx = Fixture::all_pass();
+    fx.tool("ownfix", ": > ownfix-ran");
+    fx.file("a.sh", "echo hi\n");
+    let config = parsed("version = 1\n[lint.shell]\nfixers = [\"ownfix\"]\n");
+    let options = Options {
+        fix: true,
+        ..trusting(&["a.sh"])
+    };
+    let report = fx.lint(&config, &options).unwrap_or_else(|e| panic!("{e}"));
+    assert!(fx.root.join("ownfix-ran").exists());
+    assert!(report.warnings().is_empty(), "{:?}", report.warnings());
+}
