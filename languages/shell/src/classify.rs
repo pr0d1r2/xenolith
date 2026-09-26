@@ -41,7 +41,7 @@ pub enum Construct {
     If,
     /// `a | b`.
     Pipeline,
-    /// Any redirection: `>`, `<`, `2>&1`.
+    /// Any redirection: `>`, `<`, `2>&1`, `<<<`.
     Redirect,
     /// Two or more commands, separated by `;` or a newline.
     Sequence,
@@ -195,7 +195,10 @@ fn construct_of(node: Node<'_>, src: &str) -> Option<Construct> {
         "case_statement" => Some(Construct::Case),
         "function_definition" => Some(Construct::FunctionDefinition),
         "heredoc_redirect" => Some(Construct::Heredoc),
-        "file_redirect" => Some(Construct::Redirect),
+        // `<<<` is a redirection like `<` is, but the grammar gives it a
+        // node of its own; without this row `cat <<< x` read as simple
+        // (`languages/shell:B2`).
+        "file_redirect" | "herestring_redirect" => Some(Construct::Redirect),
         // Process substitution is a subshell plus a redirect wearing one
         // piece of syntax. Reported as a substitution because that is the
         // part a reader sees.
