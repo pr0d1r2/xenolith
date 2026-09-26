@@ -21,6 +21,9 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
+mod tests;
+
 /// A parsed shebang line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Shebang {

@@ -45,7 +45,7 @@ sib|languages/perl|perl grammar, guest rules
 
 id|status|task|cites
 T63|x|`shebang` module port + shared vectors w/ nix-shebang; law harness inlines from disk|`languages/api/src/lens:V63`,`languages/api/src/lens:V34`
-T148|.|`src:C139` backfill: `languages/shebang/src/tests.rs` (`lib.rs`)|`src:C139`,`scripts/guard:V140`
+T148|x|`src:C139` backfill: `languages/shebang/src/tests.rs` (`lib.rs`)|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 
