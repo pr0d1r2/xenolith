@@ -368,6 +368,33 @@ fn explicit_paths_come_out_sorted_and_once() {
 }
 
 #[test]
+fn one_file_named_two_ways_is_one_candidate_under_its_plain_name() {
+    // `./a.nix`, `a.nix`, `d/../a.nix` and the absolute path are one file;
+    // kept apart, it is scanned and reported once per spelling.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "a.nix", "{ }\n");
+    write(&root, "d/b.sh", "echo b\n");
+    let absolute = root.join("a.nix").display().to_string();
+    let named = ["./a.nix", "a.nix", "d/../a.nix", "d//b.sh", "d/./b.sh"];
+    let mut rels: Vec<&str> = named.to_vec();
+    rels.push(&absolute);
+    let got = found(&sandbox, &root, &rels);
+    assert_eq!(names(&got.files), ["a.nix", "d/b.sh"]);
+}
+
+#[test]
+fn a_directory_named_with_a_dot_prefix_merges_with_its_files() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "d/a.sh", "echo a\n");
+    let got = found(&sandbox, &root, &["./d", "d/a.sh"]);
+    assert_eq!(names(&got.files), ["d/a.sh"]);
+    let got = found(&sandbox, &root, &["."]);
+    assert_eq!(names(&got.files), ["d/a.sh"]);
+}
+
+#[test]
 fn an_explicit_path_that_does_not_exist_is_refused_with_exit_2() {
     let sandbox = Sandbox::new();
     let root = sandbox.repo("r");
