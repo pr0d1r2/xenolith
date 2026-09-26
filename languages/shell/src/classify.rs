@@ -13,6 +13,9 @@
 use tree_sitter::{Node, Parser};
 use xenolith_lang_api::{Error, LangId, Result};
 
+#[cfg(test)]
+mod tests;
+
 /// A shell construct that makes a body more than one simple command.
 ///
 /// The names are the strings `[threshold.shell] allow` matches
