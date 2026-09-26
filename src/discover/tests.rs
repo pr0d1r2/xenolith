@@ -490,6 +490,9 @@ fn every_refusal_names_its_spec_rule() {
         DiscoverError::Missing {
             path: PathBuf::from("a"),
         },
+        DiscoverError::EmptyDir {
+            path: PathBuf::from("d"),
+        },
         DiscoverError::Io {
             path: PathBuf::from("a"),
             detail: "denied".to_owned(),

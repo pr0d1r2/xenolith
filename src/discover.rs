@@ -14,7 +14,9 @@
 //!   read as clean.
 //! * EXPLICIT PATHS: what hk (or a person) named. A file is taken as
 //!   given, tracked or not -- hk already decided. A directory means its
-//!   tracked files inside a repository, and a walk outside one.
+//!   tracked files inside a repository, and a walk outside one; one that
+//!   yields no file at all is refused, since scanning nothing and exiting
+//!   0 would read, in a gate, as that directory clean.
 //!
 //! Whichever source, a symlink is never scanned (`src:V128`): found, it
 //! is skipped with a warning; named, it is refused. That rule and its
@@ -82,6 +84,12 @@ pub enum DiscoverError {
         /// The path as it was named.
         path: PathBuf,
     },
+    /// A directory named explicitly holds no file to scan: inside a
+    /// repository, no tracked one.
+    EmptyDir {
+        /// The directory as it was named.
+        path: PathBuf,
+    },
     /// A path could not be read while listing it.
     Io {
         /// The path being read.
@@ -123,6 +131,13 @@ impl fmt::Display for DiscoverError {
             DiscoverError::Missing { path } => {
                 write!(f, "{}: no such file or directory (src:V57)", path.display())
             }
+            DiscoverError::EmptyDir { path } => write!(
+                f,
+                "{}: named directory holds no file to scan; inside a repository only \
+                 its tracked files are candidates, untracked & ignored ones are not \
+                 (src:V57)",
+                path.display()
+            ),
             DiscoverError::Io { path, detail } => {
                 write!(f, "{}: {detail} (src:V57)", path.display())
             }
@@ -155,7 +170,8 @@ impl std::error::Error for DiscoverError {}
 ///
 /// [`DiscoverError`], every variant exit 2: outside git with no paths,
 /// git failing, or a named path that does not exist, cannot be read, or
-/// is a symlink (`src:V128`). A symlink FOUND rather than named is
+/// is a symlink (`src:V128`), or a named directory with no file to scan.
+/// A symlink FOUND rather than named is
 /// skipped with a [`SYMLINK_SKIPPED`] warning instead.
 pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverError> {
     discover_with(root, paths, &|| Command::new("git"))
@@ -191,11 +207,16 @@ fn list(
             },
         })?;
         if meta.is_dir() {
+            let mut found = BTreeSet::new();
             match ls_files(root, Some(path), git) {
-                Ok(found) => files.extend(found),
-                Err(DiscoverError::NotARepo { .. }) => walk(root, path, &mut files)?,
+                Ok(listed) => found.extend(listed),
+                Err(DiscoverError::NotARepo { .. }) => walk(root, path, &mut found)?,
                 Err(e) => return Err(e),
             }
+            if found.is_empty() {
+                return Err(DiscoverError::EmptyDir { path: path.clone() });
+            }
+            files.append(&mut found);
         } else {
             files.insert(path.clone());
         }
