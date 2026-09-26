@@ -170,7 +170,6 @@ fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
     for (args, task) in [
         (&["extract", "a.nix:3"][..], "src/extract:T22"),
         (&["extract", "--write", "a.nix"][..], "src/extract:T22"),
-        (&["graph", "--verbose"][..], "src/graph:T21"),
     ] {
         let verb = args.first().copied().unwrap_or_default();
         let err = refused(args);
@@ -195,6 +194,22 @@ fn check_is_routed_to_its_engine_not_refused() {
     assert_eq!(code, EXIT_USAGE, "{err}");
     assert!(!err.contains("not implemented"), "{err:?}");
     assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
+fn graph_is_routed_to_its_engine_not_refused() {
+    // `src/graph:T21`: the arm runs the graph engine. A named path that
+    // does not exist is discovery's refusal (`src:V57`), not the not-yet
+    // one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["graph", "nope.pkl"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.pkl"), "{err:?}");
 }
 
 #[test]
@@ -239,7 +254,8 @@ fn sarif_is_refused_naming_its_own_task() {
 
 #[test]
 fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
-    let args = vec!["graph".to_owned()];
+    // A verb still refused, so nothing scans the tree the tests run in.
+    let args = vec!["extract".to_owned(), "a.nix".to_owned()];
     let mut out = Vec::new();
     assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);
     assert!(out.is_empty());

@@ -34,7 +34,7 @@ fn binary_prints_the_same_version_the_library_reports() {
 #[test]
 fn a_verb_whose_engine_has_not_landed_exits_two_and_says_so() {
     let out = Command::new(XNL)
-        .arg("graph")
+        .args(["extract", "a.nix"])
         .output()
         .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
     assert_eq!(
@@ -44,7 +44,7 @@ fn a_verb_whose_engine_has_not_landed_exits_two_and_says_so() {
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("graph"),
+        stderr.contains("extract"),
         "the refusal must name the verb asked for; got {stderr:?}"
     );
 }
