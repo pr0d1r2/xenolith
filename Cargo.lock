@@ -315,6 +315,7 @@ dependencies = [
  "serde_json",
  "toml",
  "xenolith-lang-api",
+ "xenolith-lang-nix",
  "xenolith-lang-shell",
 ]
 

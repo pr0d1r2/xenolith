@@ -46,7 +46,7 @@ V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshol
 | M1 | nix + pkl + shell end-to-end | T12, T55, T71 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T12|.|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
+T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 T55|.|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
 T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
 
