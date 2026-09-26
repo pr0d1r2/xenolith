@@ -1115,6 +1115,48 @@ fn a_config_inside_an_excluded_tree_is_never_read() {
 }
 
 #[test]
+fn a_whole_tree_run_reports_an_exclude_matching_no_tracked_file() {
+    // `src/config:V79`: a skip nobody can see the point of is a skip
+    // nobody removes. Only a whole-tree run knows every tracked file.
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "vendor/x.fake", SCRIPT);
+    write(
+        &root,
+        "sub/xenolith.toml",
+        "version = 1\n[lint]\nexclude = [{ glob = \"gone\", reason = \"old\" }]\n",
+    );
+    sandbox.run_git(&root, &["add", "."]);
+    let root_toml = config(
+        "version = 1\n[[exclude]]\nglob = \"vendor\"\nreason = \"third party\"\n\
+         [[exclude]]\nglob = \"build\"\nreason = \"output\"\n",
+    );
+    let report = check_with(&root, &root_toml, &Options::default(), &fakes(), &|| {
+        sandbox.git()
+    })
+    .unwrap_or_else(|e| panic!("{e}"));
+    let stale: Vec<(String, bool)> = report
+        .warnings()
+        .iter()
+        .filter(|w| w.code == "stale-exclude")
+        .map(|w| {
+            let file = w.file.as_deref().map(|f| f.display().to_string());
+            (file.unwrap_or_default(), w.message.contains("exclude[1]"))
+        })
+        .collect();
+    assert_eq!(
+        stale,
+        vec![
+            ("sub/xenolith.toml".to_owned(), false),
+            ("xenolith.toml".to_owned(), true),
+        ]
+    );
+    // Named paths are a partial view: nothing is judged stale.
+    let named = run(&root, &root_toml, &["sub/xenolith.toml"]);
+    assert!(named.warnings().is_empty(), "{named:?}");
+}
+
+#[test]
 fn a_whole_tree_run_reads_nested_configs_too() {
     let sandbox = Sandbox::new();
     let root = sandbox.repo("r");
