@@ -9,9 +9,9 @@
 use std::ffi::OsString;
 use std::io::{ErrorKind, Read};
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command, ExitStatus, Stdio};
 use std::thread::{self, JoinHandle};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::report::Status;
 
@@ -69,11 +69,10 @@ impl Ran {
 }
 
 /// Run `argv` in `root` and judge it: exit 0 is a pass, any other exit a
-/// fail, and a tool that never ran or died on a signal an error
-/// (`src/lint` §I).
+/// fail, and a tool that never ran, died on a signal or was still
+/// running at `limit` an error (`src/lint` §I, `src/lint:V126`).
 #[must_use]
 pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools) -> Ran {
-    let _ = limit;
     let Some((program, rest)) = argv.split_first() else {
         return Ran::error("an empty command: nothing to run".to_owned());
     };
@@ -92,8 +91,12 @@ pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools)
         Err(e) => return Ran::error(format!("`{program}` could not be run: {e}")),
     };
     let (printed, complained) = readers(&mut child);
-    let status = match child.wait() {
-        Ok(status) => status,
+    let status = match wait(&mut child, limit) {
+        Ok(Some(status)) => status,
+        // The readers are left to finish on their own: a grandchild the
+        // tool started may hold its pipes open past the kill, and joining
+        // them would be the hang the limit exists to prevent.
+        Ok(None) => return Ran::error(overran(program, limit.unwrap_or_default())),
         Err(e) => return Ran::error(format!("`{program}` could not be waited for: {e}")),
     };
     let mut text = collect(printed);
@@ -114,6 +117,38 @@ pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools)
             None => format!("`{program}` was killed by a signal"),
         }),
     }
+}
+
+/// How often a limited run looks at its child.
+const POLL: Duration = Duration::from_millis(10);
+
+/// Wait for `child`; past `limit`, kill it and answer `None`.
+fn wait(child: &mut Child, limit: Option<Duration>) -> std::io::Result<Option<ExitStatus>> {
+    let Some(limit) = limit else {
+        return child.wait().map(Some);
+    };
+    let started = Instant::now();
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        if started.elapsed() >= limit {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Ok(None);
+        }
+        thread::sleep(POLL);
+    }
+}
+
+/// Why a tool killed at the limit has no verdict (`src/lint:V126`).
+#[must_use]
+pub fn overran(program: &str, limit: Duration) -> String {
+    format!(
+        "`{program}` did not finish within {}s and was killed; raise `[lint] timeout` \
+         if it needs longer (src/lint:V126)",
+        limit.as_secs()
+    )
 }
 
 /// Why a tool that is not on PATH did not run, and how to get it

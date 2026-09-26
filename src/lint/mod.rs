@@ -427,8 +427,7 @@ fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd, fixer: boo
 /// (`src/lint:V126`, `src/lint` §I).
 #[must_use]
 pub fn limit(seconds: u64) -> Option<Duration> {
-    let _ = seconds;
-    None
+    (seconds > 0).then(|| Duration::from_secs(seconds))
 }
 
 /// `[lint.<guest>] extend`, through the defaults table (`src/config:V73`).
