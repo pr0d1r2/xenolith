@@ -12,8 +12,14 @@
 //! reading does not recognise ends it with "no program here". A wrong
 //! "yes" is a finding about text nothing runs; a wrong "no" is a site
 //! missed, which a later task can widen deliberately.
+//!
+//! A shell's argv also says what the program runs UNDER
+//! (`languages/shell:V82`): the dialect is the interpreter's name, and
+//! the options are the ones its flags set -- only those, since a child
+//! shell does not inherit the enclosing script's `set`
+//! (`languages/shell:V139`).
 
-use xenolith_lang_api::LangId;
+use xenolith_lang_api::{GuestEnv, LangId};
 
 #[cfg(test)]
 mod tests;
@@ -56,12 +62,39 @@ const INTERPRETERS: &[(&str, Kind, LangId)] = &[
 /// string), `-s` (stdin), `-l` (login), `-i` (interactive).
 const SHELL_INVOCATION: &[char] = &['c', 's', 'l', 'i'];
 
-/// `set` letters bash and POSIX sh share, which a flag bundle may carry.
-const SET_LETTERS: &[char] = &['a', 'e', 'f', 'u', 'v', 'x', 'C'];
+/// `set` letters bash and POSIX sh share, which a flag bundle may carry,
+/// and the option each sets, in the names [`GuestEnv`] uses.
+const SET_LETTERS: &[(char, &str)] = &[
+    ('a', "allexport"),
+    ('e', "errexit"),
+    ('f', "noglob"),
+    ('u', "nounset"),
+    ('v', "verbose"),
+    ('x', "xtrace"),
+    ('C', "noclobber"),
+];
 
 /// zsh's letters differ: `-f` is `NO_RCS`, an invocation letter, and
 /// only these four mean what the bash letters mean.
-const ZSH_LETTERS: &[char] = &['e', 'u', 'v', 'x'];
+const ZSH_LETTERS: &[(char, &str)] = &[
+    ('e', "errexit"),
+    ('u', "nounset"),
+    ('v', "verbose"),
+    ('x', "xtrace"),
+];
+
+/// The portable names zsh's `-o` spellings fold to. zsh reads option
+/// names ignoring case and underscores, so `ERR_EXIT`, `err_exit` and
+/// `errexit` are one option; the guest renders it back as zsh's own
+/// (`languages/shell:V51`).
+const ZSH_PORTABLE: &[&str] = &[
+    "allexport",
+    "errexit",
+    "nounset",
+    "pipefail",
+    "verbose",
+    "xtrace",
+];
 
 /// Long options a shell takes WITHOUT a value; any other `--word` ends
 /// the reading, since it may consume the next argument.
@@ -83,6 +116,9 @@ pub(crate) struct Interpreter<'s> {
     pub guest: LangId,
     /// `python3`, `bash`: the basename as written.
     pub name: &'s str,
+    /// The table's name for it, version stripped: `python`, `bash`. For
+    /// a shell, this is the dialect.
+    pub dialect: &'static str,
 }
 
 /// The interpreter a PLAIN command word names, or `None`.
@@ -96,7 +132,18 @@ pub(crate) fn interpreter(word: &str) -> Option<Interpreter<'_>> {
     INTERPRETERS
         .iter()
         .find(|(known, _, _)| *known == bare)
-        .map(|&(_, kind, guest)| Interpreter { kind, guest, name })
+        .map(|&(dialect, kind, guest)| Interpreter {
+            kind,
+            guest,
+            name,
+            dialect,
+        })
+}
+
+impl Interpreter<'_> {
+    fn is_zsh(&self) -> bool {
+        self.dialect == "zsh"
+    }
 }
 
 /// Where a shell's argv leaves off.
@@ -108,6 +155,8 @@ struct ShellArgv {
     stdin: bool,
     /// Index of the first operand, if any.
     operand: Option<usize>,
+    /// Options the flags left on, sorted, deduplicated.
+    options: Vec<String>,
 }
 
 /// The argv of a shell, read up to its first operand; `None` for any
@@ -118,11 +167,11 @@ fn shell_argv(zsh: bool, args: &[Option<&str>]) -> Option<ShellArgv> {
     while let Some(arg) = args.get(i) {
         let Some(word) = *arg else {
             out.operand = Some(i);
-            return Some(out);
+            break;
         };
         if word == "-" || word == "--" {
             out.operand = (i + 1 < args.len()).then_some(i + 1);
-            return Some(out);
+            break;
         }
         if word.starts_with("--") {
             if !SHELL_LONG.contains(&word) {
@@ -134,32 +183,75 @@ fn shell_argv(zsh: bool, args: &[Option<&str>]) -> Option<ShellArgv> {
                 if letter == 'o' {
                     // `-o NAME` / `+o NAME`: the value is the next word.
                     i += 1;
-                    args.get(i).copied().flatten()?;
+                    let name = args.get(i).copied().flatten()?;
+                    toggle(&mut out.options, option_name(zsh, name), on);
                 } else if on && letter == 'c' {
                     out.command = true;
                 } else if on && letter == 's' {
                     out.stdin = true;
-                } else if !known_letter(zsh, letter) {
-                    return None;
+                } else if let Letter::Sets(name) = letter_option(zsh, letter)? {
+                    toggle(&mut out.options, name.to_owned(), on);
                 }
             }
         } else {
             out.operand = Some(i);
-            return Some(out);
+            break;
         }
         i += 1;
     }
+    out.options.sort_unstable();
     Some(out)
 }
 
-/// Whether a letter in a shell's flag bundle is one this reading knows
-/// takes no value: an invocation letter or a `set` letter of the dialect.
-fn known_letter(zsh: bool, letter: char) -> bool {
-    if zsh {
-        // zsh's `-f` is `NO_RCS`: skip the startup files, set nothing.
-        SHELL_INVOCATION.contains(&letter) || letter == 'f' || ZSH_LETTERS.contains(&letter)
+/// Turn `name` on or off in `options`, keeping each name once.
+fn toggle(options: &mut Vec<String>, name: String, on: bool) {
+    options.retain(|option| *option != name);
+    if on {
+        options.push(name);
+    }
+}
+
+/// A letter this reading knows in a shell's flag bundle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Letter {
+    /// A `set` letter of the dialect, and the option it names.
+    Sets(&'static str),
+    /// An invocation letter, which sets no option.
+    Invocation,
+}
+
+/// What a letter in a shell's flag bundle means, or `None` for one this
+/// reading does not know -- it may take a value, so the reading stops.
+fn letter_option(zsh: bool, letter: char) -> Option<Letter> {
+    // zsh's `-f` is `NO_RCS`: skip the startup files, set nothing.
+    if SHELL_INVOCATION.contains(&letter) || (zsh && letter == 'f') {
+        return Some(Letter::Invocation);
+    }
+    let letters = if zsh { ZSH_LETTERS } else { SET_LETTERS };
+    letters
+        .iter()
+        .find(|(known, _)| *known == letter)
+        .map(|(_, name)| Letter::Sets(name))
+}
+
+/// An `-o` value as [`GuestEnv`] names it. bash and sh names are taken
+/// as written; a zsh name folds case and underscores to the portable
+/// name when it has one, and is otherwise kept as written, so an option
+/// this crate does not know still reaches the prelude
+/// (`languages/shell:V82`).
+fn option_name(zsh: bool, name: &str) -> String {
+    if !zsh {
+        return name.to_owned();
+    }
+    let folded: String = name
+        .chars()
+        .filter(|c| *c != '_')
+        .map(|c| c.to_ascii_lowercase())
+        .collect();
+    if ZSH_PORTABLE.contains(&folded.as_str()) {
+        folded
     } else {
-        SHELL_INVOCATION.contains(&letter) || SET_LETTERS.contains(&letter)
+        name.to_owned()
     }
 }
 
@@ -190,7 +282,7 @@ fn is_eval_flag(kind: Kind, word: &str) -> bool {
 pub(crate) fn program_arg(interpreter: &Interpreter<'_>, args: &[Option<&str>]) -> Option<usize> {
     match interpreter.kind {
         Kind::Shell => {
-            let read = shell_argv(interpreter.name.starts_with("zsh"), args)?;
+            let read = shell_argv(interpreter.is_zsh(), args)?;
             if read.command { read.operand } else { None }
         }
         Kind::Psql => None,
@@ -221,7 +313,7 @@ pub(crate) fn program_arg(interpreter: &Interpreter<'_>, args: &[Option<&str>]) 
 /// to it is then code, not data (`languages/shell:V139`).
 pub(crate) fn stdin_is_program(interpreter: &Interpreter<'_>, args: &[Option<&str>]) -> bool {
     match interpreter.kind {
-        Kind::Shell => shell_argv(interpreter.name.starts_with("zsh"), args)
+        Kind::Shell => shell_argv(interpreter.is_zsh(), args)
             .is_some_and(|argv| !argv.command && (argv.operand.is_none() || argv.stdin)),
         // A database name is an operand and changes nothing; a command,
         // a file or a listing means stdin is not read for SQL.
@@ -249,5 +341,25 @@ pub(crate) fn stdin_is_program(interpreter: &Interpreter<'_>, args: &[Option<&st
             }
             true
         }
+    }
+}
+
+/// What the program runs under (`languages/shell:V82`).
+///
+/// For a shell: its dialect, and the options its own flags set. Not the
+/// enclosing script's `set`, which a child process never sees
+/// (`languages/shell:V139`) -- `set -e; bash -c '…'` runs the child
+/// WITHOUT errexit, and an extract given it would stop where the inline
+/// body carried on. Any other interpreter states no env here; its guest
+/// applies its own defaults.
+pub(crate) fn env(interpreter: &Interpreter<'_>, args: &[Option<&str>]) -> GuestEnv {
+    if interpreter.kind != Kind::Shell {
+        return GuestEnv::default();
+    }
+    GuestEnv {
+        dialect: Some(interpreter.dialect.to_owned()),
+        options: shell_argv(interpreter.is_zsh(), args)
+            .map(|read| read.options)
+            .unwrap_or_default(),
     }
 }

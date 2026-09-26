@@ -1,11 +1,11 @@
 //! Unit tests for `sinks.rs` (`src:C139`): each interpreter's argv,
 //! read the way that interpreter reads it.
 
-use xenolith_lang_api::LangId;
+use xenolith_lang_api::{GuestEnv, LangId};
 
 use super::{
-    INTERPRETERS, Interpreter, Kind, ShellArgv, interpreter, is_eval_flag, known_letter,
-    program_arg, shell_argv, stdin_is_program,
+    INTERPRETERS, Interpreter, Kind, Letter, ShellArgv, env, interpreter, is_eval_flag,
+    letter_option, option_name, program_arg, shell_argv, stdin_is_program, toggle,
 };
 
 /// `words` as the host hands them over: a plain word as `Some`, and a
@@ -107,7 +107,7 @@ fn shell_argv_stops_at_the_end_of_options() {
     );
     // `+c` does not turn command mode on.
     assert_eq!(
-        shell_argv(false, &argv(&["+e", "x"])),
+        shell_argv(false, &argv(&["+c", "x"])),
         Some(ShellArgv {
             operand: Some(1),
             ..ShellArgv::default()
@@ -116,12 +116,86 @@ fn shell_argv_stops_at_the_end_of_options() {
 }
 
 #[test]
+fn shell_argv_collects_the_options_its_flags_leave_on() {
+    let options =
+        |zsh: bool, words: &[&str]| shell_argv(zsh, &argv(words)).map(|read| read.options);
+    assert_eq!(
+        options(false, &["-xeu", "-o", "pipefail", "-c", "'x'"]),
+        Some(vec![
+            "errexit".to_owned(),
+            "nounset".to_owned(),
+            "pipefail".to_owned(),
+            "xtrace".to_owned(),
+        ])
+    );
+    assert_eq!(options(false, &["-e", "+e", "-c", "'x'"]), Some(vec![]));
+    assert_eq!(
+        options(false, &["-o", "errexit", "+o", "errexit"]),
+        Some(vec![])
+    );
+    assert_eq!(options(false, &["-ee"]), Some(vec!["errexit".to_owned()]));
+    // Only up to the first operand: after it, flags are the program's.
+    assert_eq!(options(false, &["script.sh", "-e"]), Some(vec![]));
+    assert_eq!(
+        options(true, &["-o", "NO_UNSET", "-e"]),
+        Some(vec!["errexit".to_owned(), "nounset".to_owned()])
+    );
+}
+
+#[test]
 fn letters_follow_the_dialect() {
-    assert!(known_letter(false, 'f'), "noglob in bash and sh");
-    assert!(known_letter(true, 'f'), "NO_RCS in zsh");
-    assert!(known_letter(false, 'C'));
-    assert!(!known_letter(true, 'C'));
-    assert!(!known_letter(false, 'Q'));
+    assert_eq!(letter_option(false, 'f'), Some(Letter::Sets("noglob")));
+    assert_eq!(
+        letter_option(true, 'f'),
+        Some(Letter::Invocation),
+        "NO_RCS in zsh"
+    );
+    assert_eq!(letter_option(false, 'C'), Some(Letter::Sets("noclobber")));
+    assert_eq!(letter_option(true, 'C'), None);
+    assert_eq!(letter_option(false, 'c'), Some(Letter::Invocation));
+    assert_eq!(letter_option(false, 'Q'), None);
+}
+
+#[test]
+fn zsh_option_names_fold_to_the_portable_ones() {
+    assert_eq!(option_name(true, "ERR_EXIT"), "errexit");
+    assert_eq!(option_name(true, "pipe_fail"), "pipefail");
+    assert_eq!(option_name(true, "no_unset"), "nounset");
+    // Unknown: kept as written, for the guest to render.
+    assert_eq!(option_name(true, "EXTENDED_GLOB"), "EXTENDED_GLOB");
+    // bash names are bash's own, as written.
+    assert_eq!(option_name(false, "pipefail"), "pipefail");
+    assert_eq!(option_name(false, "ERR_EXIT"), "ERR_EXIT");
+}
+
+#[test]
+fn toggle_keeps_each_name_once() {
+    let mut options = vec!["errexit".to_owned()];
+    toggle(&mut options, "errexit".to_owned(), true);
+    assert_eq!(options, ["errexit"]);
+    toggle(&mut options, "errexit".to_owned(), false);
+    assert!(options.is_empty());
+    toggle(&mut options, "xtrace".to_owned(), false);
+    assert!(options.is_empty());
+}
+
+#[test]
+fn a_shell_env_is_its_dialect_and_its_own_options() {
+    let bash = env(&named("/bin/bash"), &argv(&["-e", "-c", "'x'"]));
+    assert_eq!(bash.dialect.as_deref(), Some("bash"));
+    assert_eq!(bash.options, ["errexit"]);
+    // A version suffix is not part of the dialect.
+    assert_eq!(env(&named("bash5"), &[]).dialect.as_deref(), Some("bash"));
+    assert_eq!(env(&named("dash"), &[]).dialect.as_deref(), Some("dash"));
+}
+
+#[test]
+fn a_non_shell_env_is_the_default() {
+    assert_eq!(
+        env(&named("python3"), &argv(&["-c", "'x'"])),
+        GuestEnv::default()
+    );
+    assert_eq!(env(&named("psql"), &[]), GuestEnv::default());
 }
 
 #[test]

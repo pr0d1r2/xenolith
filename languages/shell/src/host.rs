@@ -12,14 +12,15 @@
 //! (`languages/api/src/site:V38`): the same `'…'` is a site after
 //! `python3 -c` and inert data after `echo`. Both halves come from the
 //! tree -- the command node and its arguments, the heredoc node and its
-//! terminator -- and which argv holds a program is `sinks`'s.
+//! terminator -- and which argv holds a program is `sinks`'s, as is the
+//! dialect and options a shell site runs under (`languages/shell:T83`).
 
 use std::path::Path;
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
-    Delim, DelimKind, Error, FileArg, Format, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef,
-    Result, Site, Span, shebang,
+    Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site,
+    Span, shebang,
 };
 
 use crate::sinks::{self, Interpreter, Kind};
@@ -271,7 +272,7 @@ fn argv_site(node: Node<'_>, src: &str) -> Option<Site> {
     Some(Site {
         sink: format!("{} {flag}", interpreter.name),
         guest: interpreter.guest,
-        env: GuestEnv::default(),
+        env: sinks::env(&interpreter, &words),
         delim: Delim {
             kind: DelimKind::ArgvString,
             open,
@@ -287,7 +288,8 @@ fn argv_site(node: Node<'_>, src: &str) -> Option<Site> {
 fn heredoc_site(node: Node<'_>, src: &str) -> Option<Site> {
     let body = node.child_by_field_name("body")?;
     let (interpreter, args) = command(body, src)?;
-    if !sinks::stdin_is_program(&interpreter, &words(&args, src)) {
+    let words = words(&args, src);
+    if !sinks::stdin_is_program(&interpreter, &words) {
         return None;
     }
     let mut cursor = node.walk();
@@ -341,7 +343,7 @@ fn heredoc_site(node: Node<'_>, src: &str) -> Option<Site> {
     Some(Site {
         sink: format!("{} <<{tag}", interpreter.name),
         guest: interpreter.guest,
-        env: GuestEnv::default(),
+        env: sinks::env(&interpreter, &words),
         delim: Delim {
             kind: DelimKind::Heredoc {
                 tag,
