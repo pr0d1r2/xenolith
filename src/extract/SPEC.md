@@ -24,6 +24,10 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - `[extract]`: `layout` ∈ `host` (default: host placement only) \| `mirror` (`<root>/<host path sans ext>/<name>.<ext>`) \| `sibling` (`<host_dir>/<host_stem>.<name>.<ext>`) \| `central` (`<root>/<guest>/<name>.<ext>`); `root` (default `scripts`). layer C.
 - `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `base` (`host` \| `root` \| `"<dir>"`, overrides `Host::runtime_base`), `invoke` (argv template, overrides `Guest::invoke`), `prelude` (`{ shebang, strict }`), `executable`, `companion` (template). layer B, highest precedence.
 - `[extract] depth` (default 5, ≥1): max nesting levels extracted in one run.
+- lib: `xenolith::extract(root, &Config, &Options) -> Result<Edit, ExtractError>` extracts exactly the `xenolith` sites `xenolith::check` flags (`src:V152`) in files ⊥ `[[exclude]]` \| `[extract] exclude`; `:line` w/ ⊥ such site → refused. `Edit` = per host: before, after, extracts, refusals, explain; `apply(root, &Edit)` = `--write`.
+- template vars: `{host_dir}` @ root = `""`; `{path}`/`{path_stem}` = extract path w/ \| sans ext as loaded (`invoke` only; in `path` → exit 2). load text = extract path relative to base (default host dir; `Host::runtime_base` ⊥ yet), `./`-led unless `../`.
+- refused until V4 provable: holes (`Guest::param` ⊥, `languages/api/src/holes:T76`), host `loads` \| `inline` ⊥, rule `companion` (T51: stub content unspecified), `strict = "enforce"`. extract ends `\n`.
+- collision suffix (V47) = sink's last dotted segment, lowercased, ⊥ `[a-z0-9]` → `-`, appended to ∀ colliding stems; lock (V127) = OS advisory lock, text `pid start`, removed on release; `apply` re-reads hosts under it, changed → refused.
 - `[extract] inactive_rules` ∈ `ignore` \| `warn` (default) \| `error`: handling of `[[extract.rule]]` whose host or guest is compiled out | `[langs]`-disabled.
 
 ## §V INVARIANTS
