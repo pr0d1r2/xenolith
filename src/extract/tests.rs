@@ -800,3 +800,46 @@ fn a_host_name_yielding_a_space_is_refused_too() {
     assert!(why.contains("`a/my job.sh`"), "{why}");
     assert!(why.contains("src/extract:V83"), "{why}");
 }
+
+// ---------------------------------------------------------------------
+// never through a symlink (T72)
+// ---------------------------------------------------------------------
+
+#[cfg(unix)]
+fn link(target: &Path, at: &Path) {
+    std::os::unix::fs::symlink(target, at)
+        .unwrap_or_else(|e| panic!("symlink {}: {e}", at.display()));
+}
+
+#[cfg(unix)]
+#[test]
+fn an_extract_directory_that_is_a_symlink_inside_the_root_is_refused() {
+    // src/extract:V71: never create or write through a symlink, even one
+    // that stays in the repository.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    put(&root, "real/keep", "");
+    link(&root.join("real"), &root.join("a"));
+    let why = only_refusal(&plan(&sandbox, &root, &["a.toy"]));
+    assert!(why.contains("src/extract:V71"), "{why}");
+    assert!(!root.join("real/build.sh").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn an_extract_path_that_is_a_symlink_out_of_the_root_is_refused() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let outside = sandbox.plain("outside");
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    put(&root, "a/keep", "");
+    // Dangling: reading it fails, and writing through it would create a
+    // file outside the repository.
+    link(&outside.join("build.sh"), &root.join("a/build.sh"));
+    let edit = plan(&sandbox, &root, &["a.toy"]);
+    let why = only_refusal(&edit);
+    assert!(why.contains("src/extract:V71"), "{why}");
+    let _ = write::apply(&root, &edit);
+    assert!(!outside.join("build.sh").exists());
+}

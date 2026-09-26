@@ -65,3 +65,20 @@ fn an_extract_gets_the_mode_its_guest_asks_for() {
     assert_eq!(mode("run.sh"), 0o755);
     assert_eq!(mode("prog.jq"), 0o644);
 }
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_appearing_after_the_plan_stops_the_write() {
+    // src/extract:V71, checked again at write time: the plan was made
+    // against a tree that may have changed since.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let outside = sandbox.plain("outside");
+    put(&root, "h.toy", "old\n");
+    std::os::unix::fs::symlink(&outside, root.join("d")).unwrap_or_else(|e| panic!("symlink: {e}"));
+    let plan = edit(vec![new_file("d/x.sh", "x\n", true, false)]);
+    let err = apply(&root, &plan).err().unwrap_or_default();
+    assert!(err.contains("src/extract:V71"), "{err}");
+    assert!(!outside.join("x.sh").exists());
+    assert_eq!(read(&root, "h.toy"), "old\n");
+}
