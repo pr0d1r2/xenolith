@@ -197,6 +197,7 @@ enum Kind {
     Graph,
     Lint,
     Langs,
+    Migrate,
 }
 
 /// One verb's grammar: which flags, which formats.
@@ -252,6 +253,12 @@ const GRAMMARS: &[Grammar] = &[
         verb: "langs",
         flags: &[Flag::Verbose, Flag::StrictHosts, Flag::Format],
         formats: LISTING,
+    },
+    Grammar {
+        kind: Kind::Migrate,
+        verb: "migrate",
+        flags: &[Flag::Verbose, Flag::StrictHosts, Flag::Write],
+        formats: &[],
     },
 ];
 
@@ -328,14 +335,15 @@ pub fn parse<A: AsRef<OsStr>>(args: &[A]) -> Result<Invocation, Usage> {
             }
         }
         Kind::Langs => {
-            if let Some(extra) = seen.operands.first() {
-                return Err(Usage(format!(
-                    "`langs` takes no paths, got `{}`",
-                    Path::new(extra).display()
-                )));
-            }
+            no_paths(grammar, &seen)?;
             Verb::Langs {
                 format: seen.format.unwrap_or(OutputFormat::Human),
+            }
+        }
+        Kind::Migrate => {
+            no_paths(grammar, &seen)?;
+            Verb::Migrate {
+                write: seen.has(Flag::Write),
             }
         }
     };
@@ -344,6 +352,18 @@ pub fn parse<A: AsRef<OsStr>>(args: &[A]) -> Result<Invocation, Usage> {
         verbose: seen.has(Flag::Verbose),
         strict_hosts: seen.has(Flag::StrictHosts),
     })
+}
+
+/// Refuse the first operand of a verb that takes none.
+fn no_paths(grammar: &Grammar, seen: &Seen) -> Result<(), Usage> {
+    match seen.operands.first() {
+        Some(extra) => Err(Usage(format!(
+            "`{}` takes no paths, got `{}`",
+            grammar.verb,
+            Path::new(extra).display()
+        ))),
+        None => Ok(()),
+    }
 }
 
 fn unknown_verb(word: &OsStr) -> String {

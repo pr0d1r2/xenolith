@@ -9,12 +9,15 @@
 //! Three layers, one file each (`src/cli:T9`):
 //!
 //! * [`args`] -- what was ASKED: the verbs `check`, `extract`, `graph`,
-//!   `lint`, `langs` and their flags, parsed in full.
+//!   `lint`, `langs`, `migrate` and their flags, parsed in full.
 //! * this module -- what to DO about it: one match arm per verb.
 //! * [`langs`] -- the one verb with nothing to scan, answered here.
 //! * [`check`] -- `xnl check`: config in, the engine's report out
 //!   (`src:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
+//! * [`migrate`] -- `xnl migrate`: legacy per-file allowlists turned
+//!   into per-site `[[allow]]` entries by running that same engine
+//!   (`src/cli:T97`).
 //!
 //! The scanning verbs whose engines have not landed parse every flag and
 //! path and then REFUSE with exit 2, naming the task that brings their
@@ -56,6 +59,7 @@ usage: xnl <verb> [flags] [paths...]
   xnl graph   [--format human|json|sarif] [paths...]
   xnl lint    [--fix] [--trust-config] [--format human|json|sarif] [paths...]
   xnl langs   [--format human|json]
+  xnl migrate [--write]
   xnl --version
 
 every verb also takes --verbose and --strict-hosts; `--` ends the flags.

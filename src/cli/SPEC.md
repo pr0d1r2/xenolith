@@ -54,7 +54,7 @@ V102: `--format sarif` = SARIF 2.1.0: rule id → `ruleId`, `file:line:col` → 
 id|status|task|cites
 T9|x|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,`src:V13`
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
-T97|.|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
+T97|x|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 T103|.|SARIF writer ∀ verb + schema validation test|V102
 T144|x|`src:C139` backfill: `src/main.rs` → shim; verb dispatch & `refuse` → lib module w/ own `tests.rs` (w/ T9)|`src:C139`,`scripts/guard:V140`,T9
 
