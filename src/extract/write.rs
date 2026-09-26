@@ -12,6 +12,7 @@ use std::io::{self, Write as _};
 use std::path::Path;
 
 use super::Edit;
+use super::lock::Lock;
 
 #[cfg(test)]
 mod tests;
@@ -33,6 +34,26 @@ pub(crate) fn apply_with(
     edit: &Edit,
     before: &mut dyn FnMut(&str) -> io::Result<()>,
 ) -> Result<Vec<String>, String> {
+    if edit.hosts.is_empty() {
+        return Ok(Vec::new());
+    }
+    // One writer (`src/extract:V127`), and the plan still true under the
+    // lock: a host another hand changed since would lose that change.
+    let _lock = Lock::take(root)?;
+    let changed: Vec<&str> = edit
+        .hosts
+        .iter()
+        .filter(|host| {
+            fs::read(root.join(&host.path)).ok().as_deref() != Some(host.before.as_bytes())
+        })
+        .map(|host| host.path.as_str())
+        .collect();
+    if !changed.is_empty() {
+        return Err(format!(
+            "{} changed since the plan was made; nothing was written, run xnl extract again",
+            changed.join(", ")
+        ));
+    }
     let mut written = Vec::new();
     for host in &edit.hosts {
         for extract in host.extracts.iter().filter(|e| !e.present) {

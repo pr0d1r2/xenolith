@@ -75,7 +75,7 @@ T84|x|path charset guard; fixtures: rule template yielding space, quote, leading
 T85|x|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
-T126|.|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
+T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
 
 ## §B BUGS
 
