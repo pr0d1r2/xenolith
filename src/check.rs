@@ -417,8 +417,9 @@ fn judge_site(
             Direction {
                 kind: Fix::Judgment,
                 action: format!(
-                    "extract it to a file of its own, by hand for now: `xnl extract {name}:{line}` \
-                     rewrites no host yet (src/extract:T22)"
+                    "extract it to a file of its own, by hand for now: `xnl extract {}` \
+                     rewrites no host yet (src/extract:T22)",
+                    shell_word(&format!("{name}:{line}"))
                 ),
             },
             Direction {
@@ -432,6 +433,17 @@ fn judge_site(
         ],
     ));
     Ok(())
+}
+
+/// `word` as ONE shell word, for a command a direction prints to be
+/// pasted (`src:B7`): bare when every byte is one no POSIX shell treats
+/// specially, else single-quoted, a `'` inside written `'\''`.
+fn shell_word(word: &str) -> String {
+    let plain = |c: char| c.is_ascii_alphanumeric() || "_-./:@%+,".contains(c);
+    if !word.is_empty() && word.chars().all(plain) {
+        return word.to_owned();
+    }
+    format!("'{}'", word.replace('\'', "'\\''"))
 }
 
 impl Located {

@@ -20,7 +20,7 @@ use xenolith_lang_api::{
 
 use super::{
     CheckError, HOLE, Langs, Options, body_hash, check_with, guest_text, head, position, repo_name,
-    under_root,
+    shell_word, under_root,
 };
 use crate::config::{self, Config};
 use crate::discover::{Sandbox, write};
@@ -1292,6 +1292,15 @@ fn head_is_the_first_line_only() {
 fn repo_name_drops_dot_components_and_uses_slashes() {
     assert_eq!(repo_name(Path::new("./a/./b.nix")), "a/b.nix");
     assert_eq!(repo_name(Path::new("a.nix")), "a.nix");
+}
+
+#[test]
+fn shell_word_quotes_only_what_a_shell_would_split_or_expand() {
+    assert_eq!(shell_word("a/b.nix:3"), "a/b.nix:3");
+    assert_eq!(shell_word("a b"), "'a b'");
+    assert_eq!(shell_word("$HOME"), "'$HOME'");
+    assert_eq!(shell_word("it's"), "'it'\\''s'");
+    assert_eq!(shell_word(""), "''");
 }
 
 #[test]
