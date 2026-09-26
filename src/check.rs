@@ -222,6 +222,7 @@ pub(crate) fn check_with(
     }
     let mut seen = Vec::new();
     let mut scanned = BTreeSet::new();
+    let mut unparsed = BTreeSet::new();
     for file in &candidates.files {
         let name = repo_name(file);
         let config = tree.config_for(&name);
@@ -239,7 +240,6 @@ pub(crate) fn check_with(
             unclaimed(&mut report, config, options, langs, &name)?;
             continue;
         }
-        scanned.insert(name.clone());
         let text = fs::read(root.join(file))
             .map_err(|e| e.to_string())
             .and_then(|bytes| String::from_utf8(bytes).map_err(|_| "not UTF-8".to_owned()));
@@ -253,6 +253,7 @@ pub(crate) fn check_with(
             };
             match parsed {
                 Ok((src, sites)) => {
+                    scanned.insert(name.clone());
                     for site in &sites {
                         judge_site(&mut report, &mut seen, &tree, langs, host, &name, src, site)?;
                     }
@@ -260,8 +261,16 @@ pub(crate) fn check_with(
                 Err(detail) => host_error(&mut report, config, host.id(), &name, &detail),
             }
         }
+        if !scanned.contains(&name) {
+            unparsed.insert(name);
+        }
     }
-    stale_allows(&mut report, &tree, root, &seen, &scanned, options, langs);
+    let judged = Judged {
+        scanned: &scanned,
+        unparsed: &unparsed,
+        whole_tree: options.paths.is_empty(),
+    };
+    stale_allows(&mut report, &tree, root, &seen, &judged, langs);
     Ok(report)
 }
 
@@ -532,7 +541,9 @@ fn unsited(file: PathBuf, line: usize, host: LangId, sink: String) -> Located {
 /// Judged only where the run could have seen the site: every entry on a
 /// whole-tree run, but on a run over named paths (hk passes the changed
 /// files) only entries naming a file that was scanned -- the rest are
-/// about files this run never opened.
+/// about files this run never opened. Never an entry naming a file its
+/// host could not parse: that file's sites were not looked at, so no
+/// entry about it can be judged unmatched (`src:B2`).
 ///
 /// Reported AT the site when one with the entry's path and sink still
 /// exists (the body changed, so the hash no longer matches), else at the
@@ -542,8 +553,7 @@ fn stale_allows(
     tree: &Tree,
     root: &Path,
     seen: &[Seen],
-    scanned: &BTreeSet<String>,
-    options: &Options,
+    judged: &Judged<'_>,
     langs: &Langs<'_>,
 ) {
     let keys: Vec<SiteKey<'_>> = seen
@@ -554,12 +564,11 @@ fn stale_allows(
             hash: &s.hash,
         })
         .collect();
-    let whole_tree = options.paths.is_empty();
     for (dir, layer) in tree.layers() {
         let file = file_in(dir);
         let config_text = fs::read_to_string(root.join(&file)).unwrap_or_default();
         for (index, allow) in layer.stale_allows(keys.iter().copied()) {
-            if !whole_tree && !scanned.contains(&allow.path) {
+            if !judged.covers(&allow.path) {
                 continue;
             }
             let drifted = seen
@@ -598,6 +607,26 @@ fn stale_allows(
                 }],
             ));
         }
+    }
+}
+
+/// Which files the run can judge an `[[allow]]` about (`src/config:V9`).
+struct Judged<'a> {
+    /// Files at least one claiming host parsed to sites.
+    scanned: &'a BTreeSet<String>,
+    /// Claimed files no claiming host could parse.
+    unparsed: &'a BTreeSet<String>,
+    /// No paths were named: every tracked file was a candidate.
+    whole_tree: bool,
+}
+
+impl Judged<'_> {
+    /// Whether an entry naming `path` can be found stale by this run.
+    fn covers(&self, path: &str) -> bool {
+        if self.unparsed.contains(path) {
+            return false;
+        }
+        self.whole_tree || self.scanned.contains(path)
     }
 }
 
