@@ -18,7 +18,8 @@ sib|languages/api/src/holes|param naming, param refs, hole advice
 ## §I INTERFACES
 
 - fn `laws::check::<H: Host>(fixtures: &Path)` → panics w/ fixture path & broken law; called from each language crate's `cargo test`.
-- `Host::unescape(&Delim, raw) -> Result<String>` (strip common indent, host escapes like nix `''$`; raw w/ holes already replaced by the engine's placeholder; `Err` ∀ `DelimKind` ⊥ this host's → `Unsupported`) & `Host::escape` inverse; `rewrite`/`inline` go through them. `check`: `Err` → site flagged `unparseable <host> string` (`languages:V77` spirit), ⊥ silently raw.
+- `Host::unescape(&Delim, raw) -> Result<String>` (strip common indent, host escapes like nix `''$`; raw w/ holes already replaced by the engine's placeholder; `Err` ∀ `DelimKind` ⊥ this host's → `Unsupported`) & `Host::escape(&Delim, body) -> Result<String>` inverse (default `Unsupported`, `languages/api:V37`); `rewrite`/`inline` go through them.
+- fn `lens::escape_law(&H, &Delim, raw)`: `b = unescape(raw)` ⇒ `unescape(escape(b)) == b` byte-exact; any `Err` = break (V39). `check`: `Err` → site flagged `unparseable <host> string` (`languages:V77` spirit), ⊥ silently raw.
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
 
 ## §V INVARIANTS
