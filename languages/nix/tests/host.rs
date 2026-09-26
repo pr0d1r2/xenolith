@@ -3,8 +3,8 @@
 //!
 //! The per-sink cases live in `tests/fixtures/` and run through
 //! `tests/fixtures.rs`; this file holds what a fixture cannot say -- the
-//! exact spans, the error on a broken file, and the capabilities this
-//! crate does not offer YET.
+//! exact spans and the error on a broken file. The write side, `rewrite`,
+//! `inline` and `escape`, has `tests/rewrite.rs` and `tests/lens.rs`.
 
 use std::path::Path;
 
@@ -160,20 +160,6 @@ fn a_file_that_does_not_parse_is_an_error_not_an_empty_list() {
 }
 
 #[test]
-fn what_is_not_built_yet_says_so() {
-    // `languages/api:V37`: a missing capability is loud. `rewrite` and
-    // `inline` are not T12's; until a task lands them they refuse rather
-    // than answer "nothing here".
-    assert!(matches!(
-        NIX.inline("{ }", &dummy_load(), "echo hi"),
-        Err(Error::Unsupported {
-            lang: LangId::Nix,
-            operation: "inline"
-        })
-    ));
-}
-
-#[test]
 fn loads_reads_the_v53_calls_back_with_their_spans() {
     // `languages/nix:V53`; the table of shapes is
     // `tests/fixtures/neg-loads/loads.txt`. The span is the whole call,
@@ -201,14 +187,6 @@ fn loads_refuses_a_file_that_does_not_parse() {
             ..
         })
     ));
-}
-
-fn dummy_load() -> xenolith_lang_api::LoadRef {
-    xenolith_lang_api::LoadRef {
-        span: Span::new(0, 0),
-        path: "x.sh".into(),
-        guest: LangId::Shell,
-    }
 }
 
 #[test]

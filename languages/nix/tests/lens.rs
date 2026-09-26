@@ -7,11 +7,17 @@
 //! every fixture under `tests/fixtures/`, and over hand vectors for the
 //! corners a fixture does not reach -- quotes next to escapes, a body
 //! whose every line is indented, a last line of spaces.
+//!
+//! `rewrite` and `inline` are the same lens one level up: every site of
+//! every positive fixture is extracted and inlined back, and laws (a)
+//! to (c) of `languages/api/src/lens:V34` are checked on the way. A site
+//! `languages/nix:V170` refuses -- holes, a guest other than shell -- must
+//! be refused, and loudly.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use xenolith_lang_api::{Delim, DelimKind, Error, Host, LangId, Site, Span, lens};
+use xenolith_lang_api::{Delim, DelimKind, Error, Host, Invoke, LangId, LoadRef, Site, Span, lens};
 use xenolith_lang_nix::NixHost;
 
 const NIX: NixHost = NixHost;
@@ -171,5 +177,110 @@ fn escape_refuses_a_delimiter_nix_does_not_write() {
     assert_eq!(
         NIX.escape(&delim(DelimKind::PklMultiline { pounds: 0 }), "x"),
         Err(Error::unsupported(LangId::Nix, "escape"))
+    );
+}
+
+// --- rewrite & inline (`languages/api/src/lens:V34`) -------------------
+
+/// Whitespace-normalized, the comparison law (a) asks for: indentation
+/// is the host's to choose, content is not (`src/extract:V4`).
+fn normalized(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Each site as the guest reads it: its sink and its unescaped body.
+fn bodies(src: &str) -> Vec<(String, String)> {
+    NIX.sites(src)
+        .unwrap_or_else(|e| panic!("{src:?} did not parse: {e}"))
+        .iter()
+        .map(|site| {
+            let body = NIX
+                .unescape(&site.delim, raw(src, site))
+                .unwrap_or_else(|e| panic!("{}: {e}", site.sink));
+            (site.sink.clone(), body)
+        })
+        .collect()
+}
+
+/// The load `rewrite` must leave for `path` in `y`, law (c).
+fn load_of(y: &str, path: &Path) -> LoadRef {
+    let loads = NIX
+        .loads(y)
+        .unwrap_or_else(|e| panic!("{y:?} did not parse: {e}"));
+    let Some(load) = loads.into_iter().find(|load| load.path == path) else {
+        panic!("law (c): no load of {} in {y}", path.display());
+    };
+    assert_eq!(load.guest, LangId::Shell);
+    let call = format!("nix-shebang.lib.readWithoutStrict {}", path.display());
+    assert_eq!(load.span.of(y), Some(call.as_str()), "{y}");
+    load
+}
+
+/// One site through the whole lens, or the refusal it must get.
+fn round_trip(src: &str, index: usize, site: &Site) -> Result<(), String> {
+    let ext = if site.env.dialect.as_deref() == Some("zsh") {
+        "zsh"
+    } else {
+        "sh"
+    };
+    let path = PathBuf::from(format!("./input/site-{index}.{ext}"));
+    let invoke = Invoke {
+        argv: vec!["bash".to_owned(), path.display().to_string()],
+    };
+    let rewritten = NIX.rewrite(src, site, &invoke, &path);
+    if !site.holes.is_empty() || site.guest != LangId::Shell {
+        return match rewritten {
+            Err(Error::Unsupported { .. }) => Ok(()),
+            other => Err(format!("must be refused, got {other:?}")),
+        };
+    }
+    let y = rewritten.map_err(|e| format!("rewrite: {e}"))?;
+    // Law (b): that site is gone, and only that one.
+    let before = bodies(src);
+    let after = bodies(&y);
+    let this = (site.sink.clone(), NIX.unescape(&site.delim, raw(src, site)));
+    let this = (this.0, this.1.map_err(|e| e.to_string())?);
+    if after.contains(&this) || after.len() + 1 != before.len() {
+        return Err(format!("law (b): sites after rewrite {after:?}"));
+    }
+    let load = load_of(&y, &path);
+    // Law (a): inlining the body puts back what was there.
+    let inlined = NIX
+        .inline(&y, &load, &this.1)
+        .map_err(|e| format!("inline: {e}"))?;
+    if normalized(&inlined) != normalized(src) || bodies(&inlined) != before {
+        return Err(format!("law (a): inline gave\n{inlined}"));
+    }
+    Ok(())
+}
+
+#[test]
+fn the_lens_laws_hold_for_every_positive_fixture_site() {
+    let mut extracted = 0;
+    let mut failures = Vec::new();
+    for case in cases() {
+        let name = case.display().to_string();
+        if !name
+            .rsplit('/')
+            .next()
+            .is_some_and(|n| n.starts_with("pos-"))
+        {
+            continue;
+        }
+        let (src, sites) = fixture(&case);
+        for (index, site) in sites.iter().enumerate() {
+            match round_trip(&src, index, site) {
+                Ok(()) if site.holes.is_empty() && site.guest == LangId::Shell => {
+                    extracted += 1;
+                }
+                Ok(()) => {}
+                Err(e) => failures.push(format!("{name} {}: {e}", site.sink)),
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+    assert!(
+        extracted >= 20,
+        "only {extracted} sites went round the lens"
     );
 }
