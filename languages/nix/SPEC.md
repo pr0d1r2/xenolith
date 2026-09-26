@@ -38,25 +38,27 @@ sib|languages/perl|perl grammar, guest rules
 V53: nix host placement: name = last ≤2 attr segments, builders ⊥, kebab (`systemd.services.foo.script` → `foo-script`), dir = `<host_dir>/<host_stem>/`, load = `nix-shebang.lib.readWithoutStrict ./<host_stem>/<name>.<ext>` when prelude present (consumer flake needs `nix-shebang` input — kept a separate package, ⊥ vendored or re-exported by xenolith; absent → `Judgment` direction to add it), `builtins.readFile` when prelude empty. `loads` = either call, anywhere, on a relative path literal `.sh`\|`.bash`\|`.zsh`.
 V54: nix `hole_advice` (fallback when `languages/api/src/holes:V40` params ⊥ apply): `${…}` holes → propose `replaceVars ./<file> { var = …; }` w/ `@var@` placeholders, else pass as argv | env. advice only, ⊥ auto-applied.
 V69: `ExecStart*` = systemd exec line, ⊥ shell grammar: trivial per `[threshold.exec]`; over → extract to shell script w/ simple interface (fixed argv, holes → params per `languages/api/src/holes:V40`, `"$@"` forwarded) & `ExecStart = "${nix-shebang.lib.toShellScript { inherit pkgs; name = "<name>"; src = ./…; }}/bin/<name>"` ∴ logic unit-testable (bats).
+V170: write side: `rewrite` → V53 `readWithoutStrict` form (⊥ sees prelude; shell's has a shebang), path `./`-prefixed, `(…)` unless slot = attr value\|binop\|paren\|body; `Unsupported` ∀ holes (V54 = advice), `ExecStart*` (V69), guest ⊥ shell, body line 1 `set -euo pipefail` (stripStrict eats it). `inline`: body ∋ `\n` → `''…''` else `"…"`, via `escape`; drops parens `rewrite` added. strict line ≠ `set -euo pipefail` stays in string ?
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T161 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T161, T170 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
 T55|x|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
 T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
 T146|x|`src:C139` backfill: `languages/nix/src/tests.rs` (`lib.rs`), `languages/nix/src/sinks/tests.rs`|`src:C139`,`scripts/guard:V140`
-T155|x|sink value built w/ `+` (`''…'' + extra`): ∀ string operand of `+` in sink position = site; fixture: shellHook concat w/ `\|\|` flagged|B1,`languages:V2`,`tests:V118`
-T156|x|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = sinks → shell; fixture: 3-command `preCheck` flagged|B1,`tests:V118`
-T157|x|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
-T158|x|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
-T159|x|home-manager shell init attrs (`initContent`, `initExtra`, `profileExtra`, `bashrcExtra` …) → shell, dialect per program (zsh/bash); fixture|B1,`tests:V118`
-T160|x|T157 ∀ WHOLE text arg of `writeScript`/`writeText` (`writeTextFile { text }` = T157 already); ⊥ shebang → ⊥ site; fixture|B1,`tests:V118`
-T161|x|named sink value wrapped ONCE in `mkBefore`/`mkAfter`/`mkOrder N`/`mkForce`/`mkDefault` = that sink's site; T157 ⊥ unwraps; fixture|B1,`tests:V118`
+T155|x|`+`-built sink value: ∀ string operand = site; fixture|B1,`languages:V2`,`tests:V118`
+T156|x|phase hooks `pre*`/`post*` = shell sinks; fixture|B1,`tests:V118`
+T157|x|shebang-led string in any attr = site, guest by shebang; fixture|B1,`tests:V118`
+T158|x|`''` dedent & escapes before guest sees body (`languages/api/src/lens:V39`); fixture|B1,`tests:V118`
+T159|x|shell init attrs → shell, dialect per program; fixture|B1,`tests:V118`
+T160|x|T157 ∀ whole text arg of `writeScript`/`writeText`; fixture|B1,`tests:V118`
+T161|x|sink value wrapped once in `mk*` order/priority = its site; fixture|B1,`tests:V118`
+T170|.|`rewrite`/`inline`/`escape`; laws (a)-(c) & `escape_law` ∀ fixture site|V170,V53,`languages/api/src/lens:V34`
 
 ## §B BUGS
 
