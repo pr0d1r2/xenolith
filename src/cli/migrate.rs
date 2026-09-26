@@ -321,6 +321,17 @@ fn unusable(root: &Path, path: &str) -> Option<&'static str> {
     if as_path.is_absolute() || as_path.components().any(|c| c == Component::ParentDir) {
         return Some("is outside the repository root");
     }
+    // Every directory on the way, not only the last component: a path
+    // through a symlinked directory is one discovery refuses, and one
+    // entry must not abort the whole migration (`src/cli:B1`).
+    let mut dir = root.to_path_buf();
+    let parents = as_path.parent().into_iter().flat_map(Path::components);
+    for part in parents {
+        dir.push(part);
+        if fs::symlink_metadata(&dir).is_ok_and(|meta| meta.file_type().is_symlink()) {
+            return Some("runs through a symlinked directory, which xnl never follows (src:V128)");
+        }
+    }
     match fs::symlink_metadata(root.join(as_path)) {
         Err(_) => Some("does not exist"),
         Ok(meta) if meta.file_type().is_symlink() => {

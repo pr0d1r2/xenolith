@@ -61,3 +61,4 @@ T144|x|`src:C139` backfill: `src/main.rs` → shim; verb dispatch & `refuse` →
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|`migrate` screened listed path by last component only ∴ path through symlinked dir → engine exit 2, whole migration aborted|∀ dir on path checked → per-entry `legacy-missing`
