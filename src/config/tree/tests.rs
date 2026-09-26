@@ -340,6 +340,29 @@ fn load_reads_every_file_on_the_way_down_and_skips_directories_without_one() {
 }
 
 #[test]
+fn load_merges_each_layer_once_to_the_same_tree_with_builds() {
+    // `src/config:B2`: one merge per layer, onto its resolved parent,
+    // and the same tree as rebuilding the chain for every file.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("t");
+    let dirs = ["a", "a/b", "a/b/c", "a-b", "d"];
+    let mut files = Vec::new();
+    let mut expected = Tree::new(Config::default());
+    for (depth, dir) in dirs.iter().enumerate() {
+        let text = format!("version = 1\n[extract]\ndepth = {}\n", depth + 1);
+        write(&root, &format!("{dir}/xenolith.toml"), &text);
+        files.push(format!("{dir}/x.nix"));
+        expected = expected
+            .with(dir, ok(&text))
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+    let loaded = Tree::load(&root, Config::default(), files.iter().map(String::as_str))
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(loaded, expected);
+    assert_eq!(int(loaded.config_for("a/b/c/x.nix"), "extract.depth"), 3);
+}
+
+#[test]
 fn load_keeps_the_root_config_it_is_given() {
     // The root file is the caller's: it is never read again here, so a
     // library user's in-memory config stands.

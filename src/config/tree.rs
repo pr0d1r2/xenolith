@@ -131,6 +131,9 @@ impl Tree {
                 dir = parent(dir);
             }
         }
+        // Each layer is merged ONCE, onto its parent's resolved config
+        // (`src/config:B2`): `dirs` is sorted, so a directory comes
+        // before everything beneath it.
         let mut tree = Tree::new(config);
         for dir in dirs {
             let name = file_in(&dir);
@@ -150,7 +153,8 @@ impl Tree {
                     format!("{}: {}", e.key, e.message)
                 },
             })?;
-            tree = tree.with(&dir, config)?;
+            let own = rebased(&config, &dir);
+            tree.insert(dir, own)?;
         }
         Ok(tree)
     }
@@ -195,24 +199,32 @@ impl Tree {
     fn build(root: Config, layers: BTreeMap<String, Config>) -> Result<Tree, TreeError> {
         let mut tree = Tree::new(root);
         for (dir, own) in layers {
-            let above = tree.nearest(&format!("{dir}/{FILE}")).to_owned();
-            let parent = tree.config_for(&format!("{dir}/{FILE}"));
-            if parent.version != own.version {
-                return Err(TreeError {
-                    file: file_in(&dir),
-                    message: format!(
-                        "declares version {}, but {} declares {}: every xenolith.toml in one \
-                         merge chain declares the same version (src/config:V70)",
-                        own.version,
-                        file_in(&above),
-                        parent.version
-                    ),
-                });
-            }
-            let effective = merge(parent, &own);
-            tree.nested.insert(dir, (own, effective));
+            tree.insert(dir, own)?;
         }
         Ok(tree)
+    }
+
+    /// Add `dir`'s layer (`own`, already rebased), merged onto the
+    /// config effective above it. Every directory above `dir` that holds
+    /// a file must already be in the tree.
+    fn insert(&mut self, dir: String, own: Config) -> Result<(), TreeError> {
+        let above = self.nearest(&format!("{dir}/{FILE}")).to_owned();
+        let parent = self.config_for(&format!("{dir}/{FILE}"));
+        if parent.version != own.version {
+            return Err(TreeError {
+                file: file_in(&dir),
+                message: format!(
+                    "declares version {}, but {} declares {}: every xenolith.toml in one \
+                     merge chain declares the same version (src/config:V70)",
+                    own.version,
+                    file_in(&above),
+                    parent.version
+                ),
+            });
+        }
+        let effective = merge(parent, &own);
+        self.nested.insert(dir, (own, effective));
+        Ok(())
     }
 }
 

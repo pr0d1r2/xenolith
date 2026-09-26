@@ -71,3 +71,4 @@ T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/g
 
 id|date|cause|fix
 B1|2026-09-26|§I listed 14 construct names (`pipe`, `and`, `or`, `subst`, `backtick` …) while `languages/shell` classifier emits 12 others (`pipeline`, `and-or`, `command-substitution` …) ∴ T56 validated names the classifier never produces; an `allow` naming a real construct was refused|§I adopts the classifier's names; `SHELL_CONSTRUCTS` follows
+B2|2026-09-26|`Tree::load` rebuilt ∀ layer per file read ∴ O(N²) merges|1 merge/layer onto resolved parent
