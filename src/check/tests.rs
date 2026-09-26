@@ -1129,6 +1129,22 @@ mod nix_shell {
     }
 
     #[test]
+    fn a_multi_command_zsh_init_content_is_flagged() {
+        // `languages/nix:T159`: home-manager's zsh init is zsh.
+        let why = flagged_at(
+            "{\n  programs.zsh.initContent = ''\n    bindkey -e\n    \
+             autoload -U compinit && compinit\n  '';\n}\n",
+            2,
+        );
+        assert!(why.contains("sequence"), "{why}");
+    }
+
+    #[test]
+    fn a_single_export_in_bash_init_is_clean() {
+        clean("{\n  programs.bash.initExtra = \"export PATH=$HOME/bin:$PATH\";\n}\n");
+    }
+
+    #[test]
     fn an_indented_heredoc_is_judged_by_construct_not_as_unparseable() {
         // `languages/nix:T158`: nix strips the common indent before bash
         // runs the body, so the terminator IS `EOF`; the guest must see

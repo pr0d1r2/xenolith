@@ -12,8 +12,8 @@ use xenolith_lang_api::{GuestEnv, LangId};
 
 use super::{
     Sink, TEXT_BUILDER, apply_chain, attr_name, attr_segments, attr_sink, attr_value_sink,
-    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, shebang_sink,
-    shell_dialect, sink_path, sink_value, string_text,
+    call_sink, callee_name, classify, is_builder, is_function_of_parent_apply, program_of,
+    shebang_sink, shell_dialect, shell_init_sink, sink_path, sink_value, string_text,
 };
 
 /// The tree for `src`, or a panic naming the parse errors. The workspace
@@ -133,6 +133,21 @@ fn a_shebang_sink_names_its_guest_and_every_other_sink_shell() {
     ] {
         assert_eq!(sink.guest(), LangId::Shell, "{sink:?}");
     }
+    assert_eq!(Sink::ShellInit { dialect: "zsh" }.guest(), LangId::Shell);
+}
+
+#[test]
+fn a_shell_init_sink_declares_its_program_and_no_options() {
+    // `languages/nix:T159`: the program's init file is sourced into its
+    // interactive shell, which imposes no options on it.
+    assert_eq!(
+        Sink::ShellInit { dialect: "zsh" }.env(),
+        GuestEnv {
+            dialect: Some("zsh".to_owned()),
+            options: Vec::new(),
+        }
+    );
+    assert_eq!(Sink::ShellInit { dialect: "bash" }.env(), bash(&[]));
 }
 
 #[test]
@@ -680,6 +695,99 @@ fn a_shebang_counts_only_as_a_whole_attribute_value() {
     assert_eq!(sink_of(&format!("{{ t = [ {body} ]; }}"), body), None);
     assert_eq!(sink_of(&format!("{{ t = f {body}; }}"), body), None);
     assert_eq!(sink_of(&format!("writeText \"n\" {body}"), body), None);
+}
+
+// --- program_of / shell_init_sink (`languages/nix:T159`) ---------------
+
+/// The program the `binding`th binding of `src` (preorder) configures.
+fn program(src: &str, binding: usize) -> Option<String> {
+    program_of(&nth(src, SyntaxKind::NODE_ATTRPATH_VALUE, binding))
+}
+
+#[test]
+fn program_of_is_the_segment_before_the_option() {
+    assert_eq!(
+        program("{ programs.zsh.initContent = 1; }", 0),
+        Some("zsh".to_owned())
+    );
+    // Nested sets: the enclosing binding's last segment.
+    let src = "{ programs.bash = { enable = true; initExtra = 1; }; }";
+    assert_eq!(program(src, 2), Some("bash".to_owned()));
+    // Through a function the set is handed to (`mkIf`).
+    let src = "{ programs.zsh = lib.mkIf c { initExtra = 1; }; }";
+    assert_eq!(program(src, 1), Some("zsh".to_owned()));
+}
+
+#[test]
+fn program_of_a_top_level_option_is_none() {
+    assert_eq!(program("{ initExtra = 1; }", 0), None);
+}
+
+#[test]
+fn shell_init_options_take_their_programs_dialect() {
+    let zsh = Some(Sink::ShellInit { dialect: "zsh" });
+    for name in [
+        "initContent",
+        "initExtra",
+        "initExtraFirst",
+        "initExtraBeforeCompInit",
+        "envExtra",
+        "profileExtra",
+        "loginExtra",
+        "logoutExtra",
+        "shellInit",
+        "loginShellInit",
+        "interactiveShellInit",
+        "promptInit",
+    ] {
+        assert_eq!(shell_init_sink("zsh", name), zsh, "zsh {name}");
+    }
+    let bash = Some(Sink::ShellInit { dialect: "bash" });
+    for name in [
+        "initExtra",
+        "bashrcExtra",
+        "profileExtra",
+        "logoutExtra",
+        "shellInit",
+        "loginShellInit",
+        "interactiveShellInit",
+        "promptInit",
+    ] {
+        assert_eq!(shell_init_sink("bash", name), bash, "bash {name}");
+    }
+}
+
+#[test]
+fn other_programs_and_options_are_not_shell_init() {
+    // fish is not the shell guest; an alias table, a history setting or
+    // the other program's option name is not an init file.
+    assert_eq!(shell_init_sink("fish", "interactiveShellInit"), None);
+    assert_eq!(shell_init_sink("zsh", "shellAliases"), None);
+    assert_eq!(shell_init_sink("zsh", "bashrcExtra"), None);
+    assert_eq!(shell_init_sink("bash", "initContent"), None);
+    assert_eq!(shell_init_sink("bash", "historyFile"), None);
+    assert_eq!(shell_init_sink("", "initExtra"), None);
+}
+
+#[test]
+fn a_shell_init_option_is_a_site_under_its_program() {
+    assert_eq!(
+        sink_of("{ programs.zsh.initContent = ''a''; }", "''a''"),
+        Some(Sink::ShellInit { dialect: "zsh" })
+    );
+    assert_eq!(
+        sink_of(r#"{ programs.bash = { bashrcExtra = "a"; }; }"#, r#""a""#),
+        Some(Sink::ShellInit { dialect: "bash" })
+    );
+    assert_eq!(
+        sink_of(r#"{ programs.fish.initExtra = "a"; }"#, r#""a""#),
+        None
+    );
+    assert_eq!(sink_of(r#"{ initExtra = "a"; }"#, r#""a""#), None);
+    assert_eq!(
+        sink_of(r#"let zsh.initExtra = "a"; in zsh"#, r#""a""#),
+        None
+    );
 }
 
 // --- is_function_of_parent_apply ---------------------------------------
