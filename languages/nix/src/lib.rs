@@ -16,6 +16,7 @@
 #![forbid(unsafe_code)]
 
 mod sinks;
+mod unescape;
 
 #[cfg(test)]
 mod tests;
@@ -85,6 +86,12 @@ impl Host for NixHost {
     /// Not offered yet; see [`NixHost::loads`].
     fn inline(&self, _src: &str, _load: &LoadRef, _body: &str) -> Result<String> {
         Err(Error::unsupported(LangId::Nix, "inline"))
+    }
+
+    /// What bash runs: a `''` body dedented and its `''` escapes decoded,
+    /// a `"` body's backslash escapes decoded (`languages/nix:T158`).
+    fn unescape(&self, delim: &Delim, raw: &str) -> Result<String> {
+        unescape::unescape(&delim.kind, raw)
     }
 
     /// `statix`, `deadnix`, `nixfmt --check` (`languages/api` §I).

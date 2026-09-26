@@ -53,7 +53,7 @@ T146|x|`src:C139` backfill: `languages/nix/src/tests.rs` (`lib.rs`), `languages/
 T155|x|sink value built w/ `+` (`''…'' + extra`): ∀ string operand of `+` in sink position = site; fixture: shellHook concat w/ `\|\|` flagged|B1,`languages:V2`,`tests:V118`
 T156|x|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = sinks → shell; fixture: 3-command `preCheck` flagged|B1,`tests:V118`
 T157|.|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
-T158|.|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
+T158|x|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`
 T159|.|home-manager shell init attrs (`initContent`, `initExtra`, `profileExtra`, `bashrcExtra` …) → shell, dialect per program (zsh/bash); fixture|B1,`tests:V118`
 
 ## §B BUGS

@@ -385,6 +385,21 @@ pub trait Host {
     /// [`Error::Unsupported`] when this host cannot inline.
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String>;
 
+    /// The body as its guest reads it: `raw`, the text between the
+    /// delimiters of `delim`, with this host's indentation and escapes
+    /// resolved -- nix strips a `''` string's common indent and decodes
+    /// `''$` (`languages/api/src/lens:V39`).
+    ///
+    /// Holes arrive already replaced by the engine's placeholder word, so
+    /// this sees host escapes and plain text only.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Unsupported`] for a delimiter kind this host does not
+    /// write, and [`Error::Parse`] when `raw` is not the inside of a
+    /// well-formed one.
+    fn unescape(&self, delim: &Delim, raw: &str) -> Result<String>;
+
     /// Checks to run on files of this host language itself -- nix
     /// `statix`, yaml `actionlint` -- as opposed to on the extracts.
     fn checks(&self) -> Vec<LintCmd>;

@@ -11,8 +11,9 @@
 //! 3. sites -- `Host::sites`, from the grammar (`languages:V2`).
 //! 4. guest -- the site's guest from the registry; compiled out, it goes
 //!    to `[langs] missing_guest` and is never guessed about (`src:V42`).
-//! 5. verdict -- `Guest::trivial`, then `[threshold]`, which only RELAXES
-//!    (`src/config:V55`): a trivial body is never flagged.
+//! 5. verdict -- `Guest::trivial` over the body `Host::unescape` gives
+//!    (`languages/api/src/lens:V39`), then `[threshold]`, which only
+//!    RELAXES (`src/config:V55`): a trivial body is never flagged.
 //! 6. allow -- `[[allow]]` by path, sink and body hash (`src/config:V10`);
 //!    an entry matching no site is `stale-allow` (`src/config:V9`).
 //! 7. report -- [`Violation`]s (`src:V1`) into a [`Report`], which keeps
@@ -62,8 +63,9 @@ pub const UNCLAIMED: &str = "host-unsupported";
 /// handed to its guest. A hole is HOST syntax -- nix `${…}`, pkl `\(…)` --
 /// and the guest's grammar would read it as its own, or fail on it; one
 /// plain word keeps the body's shape (a word stays a word, a command
-/// stays a command) until the lens's `unescape` lands
-/// (`languages/api/src/lens:V39`).
+/// stays a command). It is in place before the host's `unescape` runs
+/// (`languages/api/src/lens:V39`), which then sees host escapes and
+/// plain text only.
 const HOLE: &str = "XNL_HOLE";
 
 /// What a run is asked to look at.
@@ -247,16 +249,7 @@ pub(crate) fn check_with(
             match parsed {
                 Ok((src, sites)) => {
                     for site in &sites {
-                        judge_site(
-                            &mut report,
-                            &mut seen,
-                            &tree,
-                            langs,
-                            host.id(),
-                            &name,
-                            src,
-                            site,
-                        )?;
+                        judge_site(&mut report, &mut seen, &tree, langs, host, &name, src, site)?;
                     }
                 }
                 Err(detail) => host_error(&mut report, config, host.id(), &name, &detail),
@@ -316,12 +309,13 @@ fn judge_site(
     seen: &mut Vec<Seen>,
     tree: &Tree,
     langs: &Langs<'_>,
-    host: LangId,
+    host: &dyn Host,
     name: &str,
     src: &str,
     site: &Site,
 ) -> Result<(), CheckError> {
     let config = tree.config_for(name);
+    let lang = host.id();
     let raw = site.delim.body.of(src).unwrap_or_default();
     let hash = body_hash(raw);
     let (line, col) = position(src, site.delim.open.start);
@@ -329,7 +323,7 @@ fn judge_site(
         file: PathBuf::from(name),
         line,
         col,
-        host,
+        host: lang,
         guest: site.guest,
         sink: site.sink.clone(),
         site: site.delim.kind.clone(),
@@ -348,7 +342,15 @@ fn judge_site(
         }
         return Ok(());
     };
-    let Some(why) = verdict(*guest, &guest_text(src, site), config) else {
+    // The guest judges what runs, not the host's bytes
+    // (`languages/api/src/lens:V39`). A body the host cannot unescape is
+    // flagged as such: judging the raw bytes instead would be a verdict
+    // on text nothing executes.
+    let why = match host.unescape(&site.delim, &guest_text(src, site)) {
+        Ok(body) => verdict(*guest, &body, config),
+        Err(e) => Some(format!("unparseable {lang} string: {e}")),
+    };
+    let Some(why) = why else {
         return Ok(());
     };
     let key = SiteKey {

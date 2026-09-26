@@ -317,6 +317,13 @@ impl Host for PklHost {
         )
     }
 
+    /// [`string::unescape`]: the closing line's indent stripped and the
+    /// escapes decoded, as pkl evaluates the literal
+    /// (`languages/api/src/lens:V39`).
+    fn unescape(&self, delim: &Delim, raw: &str) -> Result<String> {
+        string::unescape(delim, raw)
+    }
+
     /// None yet, as a statement rather than a gap: the api lists
     /// `pkl format --diff` for pkl hosts with a `?` (`languages/api` §I),
     /// and a check this crate is unsure of would be a finding nobody can
