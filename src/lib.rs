@@ -21,6 +21,7 @@
 
 pub mod cli;
 pub mod config;
+pub mod discover;
 pub mod model;
 
 /// The package version, from Cargo at compile time.

@@ -63,7 +63,7 @@ T3|x|`Cargo.toml` (edition 2024, rust-version 1.95, MIT, lints), `clippy.toml`, 
 T8|x|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,`src/cli:V24`,`languages/api:T42`
 T40|x|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
 T46|.|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,V30
-T58|.|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
+T58|x|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
 T75|.|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
 T88|.|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11

@@ -1,0 +1,259 @@
+//! Candidate discovery: which files a verb looks at (`src:V57`).
+//!
+//! The first stage of the check engine (`src:V152`): everything after it
+//! -- hosts claiming files, sites, guests -- sees only what this module
+//! returns, so a file dropped here is a file never judged, and a file
+//! added here is a file judged that nobody asked about.
+//!
+//! Two sources, never mixed:
+//!
+//! * NO PATHS: `git ls-files`, tracked only, so `.gitignore` is honoured
+//!   without re-implementing it and a stray build output is never
+//!   scanned. Outside a repository that question has no answer, and the
+//!   answer is a refusal (exit 2), not an empty scan that a gate would
+//!   read as clean.
+//! * EXPLICIT PATHS: what hk (or a person) named. A file is taken as
+//!   given, tracked or not -- hk already decided. A directory means its
+//!   tracked files inside a repository, and a walk outside one.
+//!
+//! git runs in the user's repository and INHERITS the environment on
+//! purpose: inside a hook, git exports `GIT_DIR` and `GIT_INDEX_FILE`,
+//! and the listing should be the hook's view of the repository. Only the
+//! tests isolate git (`tests:V150`), through `discover_with`.
+
+use std::collections::BTreeSet;
+use std::fmt;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use crate::cli::EXIT_USAGE;
+use crate::model::Warning;
+
+#[cfg(test)]
+mod tests;
+
+/// What discovery hands the engine: the files to scan, repo-root
+/// relative and sorted (`src:V11`), and what it has to say about the
+/// ones it left out.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Candidates {
+    /// The files to scan, sorted, each once.
+    pub files: Vec<PathBuf>,
+    /// Files seen and deliberately not scanned. Never an exit code
+    /// (`src/cli` §I).
+    pub warnings: Vec<Warning>,
+}
+
+/// Why discovery refused. Every variant is exit 2 (`src/cli:V24`): the
+/// request could not be carried out, which is neither "clean" nor
+/// "found something".
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DiscoverError {
+    /// No paths were named and `root` is not inside a git work tree.
+    NotARepo {
+        /// The directory discovery ran from.
+        root: PathBuf,
+    },
+    /// git could not be run, or failed for a reason other than "not a
+    /// repository".
+    Git {
+        /// What git (or the attempt to spawn it) said.
+        detail: String,
+    },
+    /// A path named explicitly does not exist.
+    Missing {
+        /// The path as it was named.
+        path: PathBuf,
+    },
+    /// A path could not be read while listing it.
+    Io {
+        /// The path being read.
+        path: PathBuf,
+        /// The operating system's reason.
+        detail: String,
+    },
+}
+
+impl DiscoverError {
+    /// The process exit code this refusal maps to: always 2.
+    #[must_use]
+    pub const fn exit_code(&self) -> u8 {
+        EXIT_USAGE
+    }
+}
+
+impl fmt::Display for DiscoverError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DiscoverError::NotARepo { root } => write!(
+                f,
+                "{} is not a git repository and no paths were given: name the files \
+                 to check, or run inside a repository (src:V57)",
+                root.display()
+            ),
+            DiscoverError::Git { detail } => {
+                write!(f, "git ls-files failed: {detail} (src:V57)")
+            }
+            DiscoverError::Missing { path } => {
+                write!(f, "{}: no such file or directory (src:V57)", path.display())
+            }
+            DiscoverError::Io { path, detail } => {
+                write!(f, "{}: {detail} (src:V57)", path.display())
+            }
+        }
+    }
+}
+
+impl std::error::Error for DiscoverError {}
+
+/// The candidates for a verb run from `root` over `paths` (`src:V57`).
+///
+/// `paths` empty means "the repository": its tracked files. Otherwise
+/// each path is taken relative to `root`, as named. The engine calls
+/// this once per run.
+///
+/// # Errors
+///
+/// [`DiscoverError`], every variant exit 2: outside git with no paths,
+/// git failing, or a named path that does not exist or cannot be read.
+pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverError> {
+    discover_with(root, paths, &|| Command::new("git"))
+}
+
+/// [`discover`], with the `git` command supplied by the caller -- the
+/// seam the tests use to run git sandboxed (`tests:V150`).
+fn discover_with(
+    root: &Path,
+    paths: &[PathBuf],
+    git: &dyn Fn() -> Command,
+) -> Result<Candidates, DiscoverError> {
+    Ok(Candidates {
+        files: list(root, paths, git)?,
+        warnings: Vec::new(),
+    })
+}
+
+/// Every path discovery would scan, sorted and deduplicated.
+fn list(
+    root: &Path,
+    paths: &[PathBuf],
+    git: &dyn Fn() -> Command,
+) -> Result<Vec<PathBuf>, DiscoverError> {
+    let mut files = BTreeSet::new();
+    if paths.is_empty() {
+        files.extend(ls_files(root, None, git)?);
+    }
+    for path in paths {
+        let meta = fs::symlink_metadata(root.join(path)).map_err(|e| match e.kind() {
+            io::ErrorKind::NotFound => DiscoverError::Missing { path: path.clone() },
+            _ => DiscoverError::Io {
+                path: path.clone(),
+                detail: e.to_string(),
+            },
+        })?;
+        if meta.is_dir() {
+            match ls_files(root, Some(path), git) {
+                Ok(found) => files.extend(found),
+                Err(DiscoverError::NotARepo { .. }) => walk(root, path, &mut files)?,
+                Err(e) => return Err(e),
+            }
+        } else {
+            files.insert(path.clone());
+        }
+    }
+    Ok(files.into_iter().collect())
+}
+
+/// `git ls-files` from `root`, optionally limited to one directory.
+///
+/// `-z` because a filename is bytes and git otherwise quotes the unusual
+/// ones; `--literal-pathspecs` because a directory named `d*` means that
+/// directory and not every one starting with `d`. `LC_ALL=C` so "not a
+/// git repository" can be told apart from every other failure in any
+/// locale. Entries the work tree no longer has, or that are directories
+/// (a submodule), have no bytes to scan and are dropped.
+fn ls_files(
+    root: &Path,
+    within: Option<&Path>,
+    git: &dyn Fn() -> Command,
+) -> Result<Vec<PathBuf>, DiscoverError> {
+    let mut cmd = git();
+    cmd.arg("--literal-pathspecs")
+        .arg("-C")
+        .arg(root)
+        .args(["ls-files", "-z", "--"])
+        .env("LC_ALL", "C");
+    if let Some(dir) = within {
+        cmd.arg(dir);
+    }
+    let out = cmd.output().map_err(|e| DiscoverError::Git {
+        detail: format!("could not run git: {e}"),
+    })?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_owned();
+        if stderr.contains("not a git repository") {
+            return Err(DiscoverError::NotARepo {
+                root: root.to_path_buf(),
+            });
+        }
+        return Err(DiscoverError::Git {
+            detail: if stderr.is_empty() {
+                format!("exited with {}", out.status)
+            } else {
+                stderr
+            },
+        });
+    }
+    let mut files = Vec::new();
+    for entry in out.stdout.split(|&b| b == 0).filter(|e| !e.is_empty()) {
+        let path = path_from_bytes(entry)?;
+        match fs::symlink_metadata(root.join(&path)) {
+            Ok(meta) if !meta.is_dir() => files.push(path),
+            _ => {}
+        }
+    }
+    Ok(files)
+}
+
+/// A path from git's raw bytes, exactly: on unix a path IS bytes.
+#[cfg(unix)]
+#[allow(clippy::unnecessary_wraps)] // the non-unix twin can fail
+fn path_from_bytes(bytes: &[u8]) -> Result<PathBuf, DiscoverError> {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+    Ok(PathBuf::from(OsStr::from_bytes(bytes)))
+}
+
+/// A path from git's raw bytes, which elsewhere must be UTF-8.
+#[cfg(not(unix))]
+fn path_from_bytes(bytes: &[u8]) -> Result<PathBuf, DiscoverError> {
+    String::from_utf8(bytes.to_vec())
+        .map(PathBuf::from)
+        .map_err(|_| DiscoverError::Git {
+            detail: format!("non-UTF-8 path: {}", String::from_utf8_lossy(bytes)),
+        })
+}
+
+/// Every non-directory under `dir` (relative to `root`), into `files`.
+///
+/// Outside a repository there is no index to ask, so the directory named
+/// is read as it stands. `DirEntry::file_type` does not follow links: a
+/// symlinked directory is an entry, not a subtree to enter.
+fn walk(root: &Path, dir: &Path, files: &mut BTreeSet<PathBuf>) -> Result<(), DiscoverError> {
+    let io_error = |e: io::Error| DiscoverError::Io {
+        path: dir.to_path_buf(),
+        detail: e.to_string(),
+    };
+    for entry in fs::read_dir(root.join(dir)).map_err(io_error)? {
+        let entry = entry.map_err(io_error)?;
+        let rel = dir.join(entry.file_name());
+        if entry.file_type().map_err(io_error)?.is_dir() {
+            walk(root, &rel, files)?;
+        } else {
+            files.insert(rel);
+        }
+    }
+    Ok(())
+}
