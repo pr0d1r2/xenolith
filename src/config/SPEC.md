@@ -65,7 +65,7 @@ T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pk
 T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
 T80|.|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
-T143|.|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
+T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 

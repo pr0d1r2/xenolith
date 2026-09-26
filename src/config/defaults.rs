@@ -13,6 +13,9 @@
 //! string, so a renamed key is a compile error rather than a silent
 //! fallback.
 
+#[cfg(test)]
+mod tests;
+
 /// `[extract] layout` (`src/extract` §I): host placement only.
 pub const EXTRACT_LAYOUT: &str = "host";
 /// `[extract] root` (`src/extract` §I): where `mirror` and `central`

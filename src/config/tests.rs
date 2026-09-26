@@ -1,18 +1,17 @@
-//! `xenolith.toml` parsing and the defaults table.
+//! `xenolith.toml` parsing: the mirror of `src/config/mod.rs`
+//! (`src:C139`).
 //!
-//! Two halves, tested separately because they fail separately:
+//! Two concerns, tested separately because they fail separately:
 //!
 //! * the PARSER (`src/config:T10`): what a file may say, and the refusal
 //!   when it says something else. A config the tool half-understands is
 //!   worse than one it rejects -- the half it skipped is a rule the user
 //!   believes is in force.
-//! * the DEFAULTS TABLE (`src/config:T73`, `src/config:V73`): every value
-//!   an engine acts on without being told has a key, a row, and a way to
-//!   be overridden. Tested by walking the table rather than by listing
-//!   keys here, so a row added later is covered the day it lands.
-
-use std::fs;
-use std::path::{Path, PathBuf};
+//! * RESOLUTION against the defaults table (`src/config:V73`): every row
+//!   is what an empty config resolves to, and every row can be
+//!   overridden. Tested by walking the table rather than by listing keys
+//!   here, so a row added later is covered the day it lands. The table's
+//!   own shape is `src/config/defaults/tests.rs`'.
 
 use xenolith_lang_api::LangId;
 
@@ -375,7 +374,7 @@ fn a_langs_value_outside_its_choices_is_refused_listing_them() {
 }
 
 // ---------------------------------------------------------------------
-// the defaults table (`src/config:T73`, `src/config:V73`)
+// resolution against the defaults table (`src/config:V73`)
 // ---------------------------------------------------------------------
 
 /// A table key with its `<guest>` placeholder filled in. `nix` for
@@ -401,47 +400,6 @@ fn expected(setting: &Setting) -> Option<Effective> {
         // effective value to report here.
         Setting::Derived(_) => None,
     }
-}
-
-#[test]
-fn the_table_keys_are_unique_and_sorted() {
-    // Sorted so the generated reference (`src/config:V85`) and
-    // `--verbose` have one order without a sort anyone could forget.
-    let keys: Vec<&str> = TABLE.iter().map(|e| e.key).collect();
-    let mut sorted = keys.clone();
-    sorted.sort_unstable();
-    sorted.dedup();
-    assert_eq!(keys, sorted);
-}
-
-#[test]
-fn the_table_holds_every_default_the_spec_names() {
-    // `src/config` §I's defaults list, restated as keys. The ONE place in
-    // this file that lists them: it guards against a row being dropped,
-    // while the tests below walk the table itself.
-    let spec = [
-        "extract.depth",
-        "extract.inactive_rules",
-        "extract.layout",
-        "extract.root",
-        "extract.rule.base",
-        "extract.shell.strict",
-        "langs.missing_guest",
-        "langs.unclaimed",
-        "lint.<guest>.extend",
-        "lint.hosts",
-        "lint.timeout",
-        "parse.host_errors",
-        "threshold.<guest>.max_bytes",
-        "threshold.<guest>.max_lines",
-        "threshold.exec.max_args",
-        "threshold.exec.max_len",
-        "threshold.load.max_params",
-        "threshold.load.param_prefix",
-        "threshold.shell.allow",
-    ];
-    let keys: Vec<&str> = TABLE.iter().map(|e| e.key).collect();
-    assert_eq!(keys, spec);
 }
 
 #[test]
@@ -512,49 +470,4 @@ fn an_unknown_key_has_no_effective_value_or_source() {
     let config = super::Config::default();
     assert_eq!(config.effective("extract.dpeth"), None);
     assert_eq!(config.source("extract.dpeth"), None);
-}
-
-fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            rust_files(&path, out);
-        } else if path.extension().is_some_and(|e| e == "rs") {
-            out.push(path);
-        }
-    }
-}
-
-#[test]
-fn engines_hold_no_literal_defaults() {
-    // `src/config:V73`: engines read the resolved config only. The
-    // checkable proxy: an engine that names a config key as a STRING is
-    // reading raw TOML, and raw TOML is the only place a fallback literal
-    // can hide -- a typed field on `Config` has already been defaulted.
-    // So no `.rs` outside `src/config` may spell a table key's leaf as a
-    // string literal. An engine that needs the name (for a message) takes
-    // it from `defaults::TABLE`.
-    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut files = Vec::new();
-    rust_files(&src, &mut files);
-    let config_dir = src.join("config");
-    let mut offences = Vec::new();
-    for file in files.iter().filter(|f| !f.starts_with(&config_dir)) {
-        let Ok(text) = fs::read_to_string(file) else {
-            continue;
-        };
-        for entry in TABLE {
-            let leaf = entry.key.rsplit('.').next().unwrap_or(entry.key);
-            if text.contains(&format!("\"{leaf}\"")) {
-                offences.push(format!("{}: \"{leaf}\"", file.display()));
-            }
-        }
-    }
-    assert!(
-        offences.is_empty(),
-        "literal config keys in engines: {offences:?}"
-    );
 }
