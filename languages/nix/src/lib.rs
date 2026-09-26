@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod loads;
 mod placement;
 mod sinks;
 mod unescape;
@@ -70,21 +71,22 @@ impl Host for NixHost {
         Ok(found)
     }
 
-    /// Not offered yet: this crate reports sites (`languages/nix:T12`),
-    /// and the load idiom it will recognise -- `builtins.readFile` or
-    /// `nix-shebang.lib.readWithoutStrict` -- is `languages/nix:V53`'s.
-    /// Refused loudly rather than answered with an empty list, which
-    /// would read as "no loads here" (`languages/api:V37`).
-    fn loads(&self, _src: &str) -> Result<Vec<LoadRef>> {
-        Err(Error::unsupported(LangId::Nix, "loads"))
+    /// `builtins.readFile ./x.sh` and
+    /// `nix-shebang.lib.readWithoutStrict ./x.sh`, anywhere in the file
+    /// (`languages/nix:V53`); a broken file is refused as in
+    /// [`NixHost::sites`].
+    fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
+        Ok(loads::loads(&parse(src)?))
     }
 
-    /// Not offered yet; see [`NixHost::loads`].
+    /// Not offered yet: writing the V53 load is its own task
+    /// (`languages/nix:V53`). Refused loudly rather than answered with the
+    /// source unchanged (`languages/api:V37`).
     fn rewrite(&self, _src: &str, _site: &Site, _invoke: &Invoke, _path: &Path) -> Result<String> {
         Err(Error::unsupported(LangId::Nix, "rewrite"))
     }
 
-    /// Not offered yet; see [`NixHost::loads`].
+    /// Not offered yet; see [`NixHost::rewrite`].
     fn inline(&self, _src: &str, _load: &LoadRef, _body: &str) -> Result<String> {
         Err(Error::unsupported(LangId::Nix, "inline"))
     }
