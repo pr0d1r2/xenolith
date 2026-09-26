@@ -128,6 +128,19 @@ impl Guest for ShellGuest {
         classify(body).map(|found| found.simple)
     }
 
+    /// The classifier's construct names (`languages/shell:V3`), the
+    /// vocabulary `[threshold.shell] allow` is validated against
+    /// (`src/config` §I), so the engine can relax per construct.
+    fn constructs(&self, body: &str) -> Result<Vec<&'static str>> {
+        classify(body).map(|found| {
+            found
+                .constructs
+                .iter()
+                .map(|construct| construct.as_str())
+                .collect()
+        })
+    }
+
     fn checks(&self, env: &GuestEnv) -> Vec<LintCmd> {
         match family(env) {
             Family::Bash => vec![
