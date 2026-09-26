@@ -17,6 +17,9 @@
 
 mod sinks;
 
+#[cfg(test)]
+mod tests;
+
 use std::path::Path;
 
 use rnix::{Root, SyntaxKind, SyntaxNode, TextRange};
