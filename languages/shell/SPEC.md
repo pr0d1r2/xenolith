@@ -57,7 +57,7 @@ T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving ex
 T83|.|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82
 T135|.|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
 T136|.|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt`, anon fn, glob qualifier|V138,V82,`languages:V132`
-T149|.|`src:C139` backfill: `languages/shell/src/classify/tests.rs`, `languages/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
+T149|x|`src:C139` backfill: `languages/shell/src/classify/tests.rs`, `languages/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 
