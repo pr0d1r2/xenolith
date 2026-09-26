@@ -35,7 +35,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 pub use crate::shebang::{Prelude, Shebang};
-pub use crate::site::{Delim, DelimKind, GuestEnv, Site};
+pub use crate::site::{Delim, DelimKind, GuestEnv, Placement, Site};
 
 /// Every language xenolith knows, whether or not this build compiled its
 /// crate in.
@@ -335,13 +335,16 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// A language that can ENCLOSE foreign code.
 ///
-/// Every function but one is required. A capability a language lacks is
-/// a missing impl, never a default method returning an empty vector
-/// (`languages/api:V37`): an empty result reads as "nothing here", and a
-/// host that silently finds no sites is indistinguishable from a clean
-/// file. The one default, [`Host::guest_by_shebang`], answers a yes/no
-/// question whose `false` is the TRUE answer for every host that never
-/// reads a shebang to pick a guest.
+/// A capability a language lacks is a missing impl, never a default
+/// method returning an empty vector (`languages/api:V37`): an empty
+/// result reads as "nothing here", and a host that silently finds no
+/// sites is indistinguishable from a clean file. The defaults this trait
+/// does have are refusals, [`Error::Unsupported`] naming the operation,
+/// which is
+/// what lets a language crate compile before it offers
+/// [`Host::placement`]. The exception is [`Host::guest_by_shebang`]: it
+/// answers a yes/no question whose `false` is the TRUE answer for every
+/// host that never reads a shebang to pick a guest.
 ///
 /// Implementations are pure (`languages/api:V36`) and return `Vec`s sorted
 /// by span, so the engines can merge results from a parallel scan and
@@ -420,6 +423,42 @@ pub trait Host {
     /// host that never picks a guest by shebang.
     fn guest_by_shebang(&self, _src: &str, _site: &Site) -> bool {
         false
+    }
+
+    /// Where this host would put the extract of `site`: layer D of
+    /// extract resolution, overridden by `[extract] layout` and
+    /// `[[extract.rule]]` (`src/extract:V45`). The name comes from site
+    /// syntax -- a nix attribute path, a hk step name, a GitHub job id
+    /// (`languages/api/src/site:V43`).
+    ///
+    /// The default is [`Error::Unsupported`], never an invented name
+    /// (`languages/api:V37`): `xnl extract --verbose` explains every
+    /// field by the layer that decided it (`src/extract:V48`), and a
+    /// name no host chose would be explained as the host's.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Unsupported`] when this host has no placement of its own.
+    fn placement(&self, site: &Site) -> Result<Placement> {
+        let _ = site;
+        Err(Error::unsupported(self.id(), "placement"))
+    }
+
+    /// The ways out this host proposes for holes that cannot become
+    /// parameters mechanically -- nix `replaceVars`, pass as an argument,
+    /// an env var (`languages/api/src/holes:V40`). The engine shows each
+    /// as a `Judgment` direction; none is applied automatically.
+    ///
+    /// The default is [`Error::Unsupported`], never an empty list
+    /// (`languages/api:V37`), which would read as "these holes have no
+    /// way out".
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Unsupported`] when this host offers no advice.
+    fn hole_advice(&self, site: &Site) -> Result<Vec<String>> {
+        let _ = site;
+        Err(Error::unsupported(self.id(), "hole_advice"))
     }
 }
 

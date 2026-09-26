@@ -35,7 +35,7 @@ V43: `placement` name deterministic & semantic: derived from site syntax (attr p
 | M1 | nix + pkl + shell end-to-end | T48 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T48|.|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
+T48|x|`Placement`, `Host::placement`, `Host::hole_advice`, `Guest::prelude`, `Guest::executable` in api crate|V43,`languages/api:T42`
 
 ## §B BUGS
 

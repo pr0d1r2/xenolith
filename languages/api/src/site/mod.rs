@@ -30,6 +30,24 @@ pub struct Site {
     pub holes: Vec<Span>,
 }
 
+/// Where a host would put the extract of a site: layer D of extract
+/// resolution, the lowest precedence (`src/extract:V45`).
+///
+/// Both fields are `src/extract:V46` templates the engine renders,
+/// because a [`Site`] does not carry its host's path: nix places beside
+/// the host file (`{host_dir}/{host_stem}`), pkl in a fixed `scripts/hk`,
+/// and only the engine knows which file it is scanning.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Placement {
+    /// The extract's name without extension, deterministic and semantic
+    /// (`languages/api/src/site:V43`): an attribute path tail, a step
+    /// name, a job id -- never a line number or a hash.
+    pub name: String,
+    /// The directory, repo-root relative once rendered
+    /// (`languages/api/src/lens:V66`).
+    pub dir: String,
+}
+
 /// The braces around guest code, taken from a grammar node.
 ///
 /// Never from brace counting over raw bytes
