@@ -461,6 +461,85 @@ fn explicit_files_and_directories_mix_and_merge() {
 }
 
 // ---------------------------------------------------------------------
+// only regular files: a FIFO, socket or device has no source to judge
+// ---------------------------------------------------------------------
+
+/// A named pipe at `rel` under `root`. Opening one for reading blocks
+/// until a writer comes, which is what makes it dangerous as a candidate.
+#[cfg(unix)]
+fn fifo(root: &Path, rel: &str) {
+    let path = root.join(rel);
+    let out = Command::new("mkfifo")
+        .arg(&path)
+        .output()
+        .unwrap_or_else(|e| panic!("mkfifo did not run: {e}"));
+    assert!(out.status.success(), "mkfifo {}", path.display());
+}
+
+/// `job`'s result, or a panic if it is not back within ten seconds: a
+/// candidate the engine blocks on must fail the test, not hang the run.
+#[cfg(unix)]
+fn within<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> T {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(job());
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(10))
+        .unwrap_or_else(|e| panic!("discovery + reading the candidates hung: {e}"))
+}
+
+/// Discover as `found` does, then read every candidate as the engine
+/// does (`src:V152`), all under [`within`].
+#[cfg(unix)]
+fn found_and_read(sandbox: Sandbox, root: PathBuf, rels: &'static [&'static str]) -> Vec<String> {
+    within(move || {
+        let got = found(&sandbox, &root, rels);
+        for file in &got.files {
+            let _ = fs::read(root.join(file));
+        }
+        names(&got.files)
+    })
+}
+
+#[cfg(unix)]
+#[test]
+fn a_fifo_in_a_walked_directory_is_not_a_candidate() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "d/a.sh", "echo a\n");
+    fifo(&root, "d/pipe");
+    assert_eq!(found_and_read(sandbox, root, &["d"]), ["d/a.sh"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_tracked_file_replaced_by_a_fifo_is_not_a_candidate() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "a.sh", "echo a\n");
+    write(&root, "b.sh", "echo b\n");
+    sandbox.run_git(&root, &["add", "."]);
+    fs::remove_file(root.join("b.sh")).unwrap_or_else(|e| panic!("rm: {e}"));
+    fifo(&root, "b.sh");
+    assert_eq!(found_and_read(sandbox, root, &[]), ["a.sh"]);
+}
+
+#[cfg(unix)]
+#[test]
+fn an_explicit_fifo_is_refused_with_exit_2() {
+    // Named, it is refused rather than skipped, as a named symlink is
+    // (`src:V128`): skipping the one path asked about reads as clean.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    fifo(&root, "pipe");
+    let e = refused(&sandbox, &root, &["pipe"]);
+    assert_eq!(e.exit_code(), 2);
+    let text = e.to_string();
+    assert!(text.starts_with("pipe: "), "{text}");
+    assert!(text.contains("not a regular file"), "{text}");
+}
+
+// ---------------------------------------------------------------------
 // the public entry point
 // ---------------------------------------------------------------------
 
