@@ -11,7 +11,7 @@ use std::io::Write;
 use std::path::Path;
 
 use super::args::{OutputFormat, Scan};
-use super::{not_yet, refuse};
+use super::refuse;
 use crate::lint::{LintReport, Options, Status};
 
 #[cfg(test)]
@@ -42,9 +42,6 @@ pub fn run(
     out: &mut impl Write,
     err: &mut impl Write,
 ) -> u8 {
-    if flags.trust_config {
-        return not_yet(err, "lint --trust-config", "src/lint:T92");
-    }
     let config = match super::check::load(root) {
         Ok(config) => config,
         Err(message) => return refuse(err, &message),

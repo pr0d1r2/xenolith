@@ -177,6 +177,7 @@ pub(crate) fn lint_with(
         root,
         tools,
         fix: options.fix,
+        trusted: options.trust_config,
     };
     for (file, name) in candidates.files.iter().zip(&names) {
         let config = tree.config_for(name);
@@ -294,6 +295,8 @@ struct Run<'a> {
     tools: &'a Tools,
     /// `--fix`: fixers before checks, extracts only.
     fix: bool,
+    /// `--trust-config`: config commands run (`src/lint:V91`).
+    trusted: bool,
 }
 
 impl Run<'_> {
@@ -332,7 +335,7 @@ impl Run<'_> {
         };
         if self.fix {
             let fixers: Vec<LintCmd> = guest.fixers(env);
-            let planned = plan::plan(&fixers, Configured::fixers(entry, extend), false);
+            let planned = plan::plan(&fixers, Configured::fixers(entry, extend), self.trusted);
             for cmd in &planned.untrusted {
                 untrusted(report, &target, cmd, true);
             }
@@ -349,7 +352,7 @@ impl Run<'_> {
         let planned = plan::plan(
             &checks,
             Configured::checks(entry, extend, &config.lint.all),
-            false,
+            self.trusted,
         );
         for cmd in &planned.untrusted {
             untrusted(report, &target, cmd, false);

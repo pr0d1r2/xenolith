@@ -45,7 +45,7 @@ V126: ∀ check & fixer killed at `[lint] timeout` (default 60s) → `status: er
 id|status|task|cites
 T24|x|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
 T87|x|multi-check runner, per-check results, `--fix`; defaults table; fixture w/ 2 checks both failing|V8
-T92|.|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
+T92|x|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
 T93|.|findings parsers (shellcheck json, ruff json, sqlfluff json, SARIF) + raw fallback|V92
 T94|.|virtual-extract linting w/ source mapping; fixture: shellcheck finding in nix `script` reported at nix line|V93
 T125|.|timeout per check/fixer + fixture: a sleeping tool errors at the limit|V126
