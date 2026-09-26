@@ -31,7 +31,7 @@ sib|languages/perl|perl grammar, guest rules
 
 ## §I INTERFACES
 
-- sinks: `script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase` → guest shell; load after extract: per `languages/nix:V53`.
+- sinks: `script`, `preStart`, `postStart`, `shellHook`, `ExecStart*`, `text` of `writeShellScript*`/`writeShellApplication`, `runCommand` body, `buildPhase`/`installPhase`/`*Phase` → guest shell; value built w/ `+` → ∀ string operand = site (T155); load after extract: per `languages/nix:V53`.
 
 ## §V INVARIANTS
 
@@ -50,7 +50,7 @@ T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`test
 T55|.|nix `Host::placement` & `hole_advice` + fixtures (attr-path names, `${…}` → `replaceVars` advice)|V53,V54
 T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
 T146|x|`src:C139` backfill: `languages/nix/src/tests.rs` (`lib.rs`), `languages/nix/src/sinks/tests.rs`|`src:C139`,`scripts/guard:V140`
-T155|.|sink value built w/ `+` (`''…'' + extra`): ∀ string operand of `+` in sink position = site; fixture: shellHook concat w/ `\|\|` flagged|B1,`languages:V2`,`tests:V118`
+T155|x|sink value built w/ `+` (`''…'' + extra`): ∀ string operand of `+` in sink position = site; fixture: shellHook concat w/ `\|\|` flagged|B1,`languages:V2`,`tests:V118`
 T156|.|phase hooks `pre*`/`post*` (`preCheck`, `postInstall`, `preBuild` …) = sinks → shell; fixture: 3-command `preCheck` flagged|B1,`tests:V118`
 T157|.|shebang-led string (`#!` first line) in any attr (e.g. `environment.etc.<f>.text`) = site, guest by shebang (`languages/shebang`); fixture: `#!/bin/sh` xinitrc flagged|B1,`tests:V118`
 T158|.|indented-string dedent & `''` escapes before guest sees body (`languages/api/src/lens:V39`); fixture: heredoc in `writeShellScript` classified, ⊥ parse error|B1,`tests:V118`

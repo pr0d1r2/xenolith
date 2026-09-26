@@ -16,6 +16,9 @@
 //!   the body of `runCommand*`;
 //! - an attribute of a builder's ARGUMENT set: `text` of
 //!   `writeShellApplication`, which is the only place `text` means shell.
+//!
+//! In each shape the value may be a `+` concatenation: every string
+//! operand of it is in the sink ([`sink_value`], `languages/nix:T155`).
 
 use rnix::{SyntaxKind, SyntaxNode};
 use xenolith_lang_api::GuestEnv;
@@ -123,8 +126,12 @@ fn is_builder(callee: &str) -> bool {
 }
 
 /// The sink a string node sits in, if any.
+///
+/// Judged from the string's [`sink_value`], so every string operand of a
+/// concatenated sink value is in the sink (`languages/nix:T155`).
 pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
-    let parent = string.parent()?;
+    let value = sink_value(string);
+    let parent = value.parent()?;
     match parent.kind() {
         SyntaxKind::NODE_ATTRPATH_VALUE => attr_value_sink(&parent),
         // `ExecStartPre = [ "a" "b" ]`: systemd takes a list of lines, and
@@ -138,7 +145,7 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
         }
         SyntaxKind::NODE_APPLY => {
             // The string must be the ARGUMENT, not the function position.
-            if parent.first_child().as_ref() == Some(string) {
+            if parent.first_child().as_ref() == Some(&value) {
                 return None;
             }
             let (callee, position) = apply_chain(&parent)?;
@@ -147,6 +154,38 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
         }
         _ => None,
     }
+}
+
+/// The node that stands in sink position for `string`: the string
+/// itself, or the outermost `+` chain it is an operand of.
+///
+/// `shellHook = '' … '' + extra;` hands bash every string it
+/// concatenates, so each literal operand is judged where the whole value
+/// sits (`languages/nix:T155`). Parentheses are climbed only around a
+/// concatenation -- `writeShellScript "n" ('' … '' + x)` needs them -- and
+/// never around a lone string, which is not a new shape. Every other
+/// operator (`-`, `//`, `++`, a comparison) is not concatenation, and a
+/// hole is a nix expression of its own: the climb stops at either.
+pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
+    let mut node = string.clone();
+    while let Some(parent) = node.parent() {
+        let climb = match parent.kind() {
+            SyntaxKind::NODE_BIN_OP => is_concatenation(&parent),
+            SyntaxKind::NODE_PAREN => node.kind() == SyntaxKind::NODE_BIN_OP,
+            _ => false,
+        };
+        if !climb {
+            break;
+        }
+        node = parent;
+    }
+    node
+}
+
+/// Whether a binary operation is `+`.
+fn is_concatenation(op: &SyntaxNode) -> bool {
+    op.children_with_tokens()
+        .any(|t| t.kind() == SyntaxKind::TOKEN_ADD)
 }
 
 /// The sink for the value of `binding`, when `binding` lives in an
