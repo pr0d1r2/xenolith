@@ -374,6 +374,148 @@ fn a_langs_value_outside_its_choices_is_refused_listing_them() {
 }
 
 // ---------------------------------------------------------------------
+// [threshold] (`src/config:V55`, `src/config:T56`)
+// ---------------------------------------------------------------------
+
+/// The construct names `[threshold.shell] allow` accepts, as `src/config`
+/// §I spells them. Written out here rather than read from the module, so
+/// a name dropped from the code is a failing test, not a shorter loop.
+const CONSTRUCTS: &[&str] = &[
+    "pipe", "and", "or", "seq", "subst", "backtick", "redirect", "if", "for", "while", "case",
+    "heredoc", "subshell", "function",
+];
+
+#[test]
+fn every_shell_construct_in_the_schema_is_accepted() {
+    // Fixture "allowed construct passes": each name alone, then all of
+    // them at once, read back in file order.
+    for construct in CONSTRUCTS {
+        let config = ok(&format!(
+            "version = 1\n[threshold.shell]\nallow = [\"{construct}\"]\n"
+        ));
+        assert_eq!(
+            config.threshold.shell_allow,
+            vec![(*construct).to_owned()],
+            "{construct}"
+        );
+    }
+    let all: Vec<String> = CONSTRUCTS.iter().map(|c| format!("\"{c}\"")).collect();
+    let config = ok(&format!(
+        "version = 1\n[threshold.shell]\nallow = [{}]\n",
+        all.join(", ")
+    ));
+    assert_eq!(config.threshold.shell_allow, CONSTRUCTS);
+}
+
+#[test]
+fn an_unknown_shell_construct_is_refused_naming_it_and_the_choices() {
+    // Fixture "unknown construct exits 2": the CLI maps a `ConfigError`
+    // to exit 2 (`src/cli` §I). Accepting the name would tolerate
+    // nothing while the user believes `loop` is tolerated.
+    let e = err("version = 1\n[threshold.shell]\nallow = [\"pipe\", \"loop\"]\n");
+    assert_eq!(e.key, "threshold.shell.allow[1]");
+    assert!(e.message.contains("`loop`"), "{e}");
+    for construct in CONSTRUCTS {
+        assert!(e.message.contains(construct), "{construct}: {e}");
+    }
+}
+
+#[test]
+fn a_construct_name_is_matched_exactly() {
+    // Case and spelling variants are refused, not folded: `Pipe` and
+    // `&&` are what a user types expecting them to work.
+    for near in ["Pipe", "PIPE", " pipe", "&&", "pipes", ""] {
+        let e = err(&format!(
+            "version = 1\n[threshold.shell]\nallow = [\"{near}\"]\n"
+        ));
+        assert_eq!(e.key, "threshold.shell.allow[0]", "{near:?}");
+    }
+}
+
+#[test]
+fn an_unknown_threshold_guest_is_refused_listing_the_languages() {
+    let e = err("version = 1\n[threshold.bash]\nmax_lines = 3\n");
+    assert_eq!(e.key, "threshold.bash");
+    assert!(e.message.contains("nix"), "{e}");
+}
+
+#[test]
+fn an_unknown_threshold_key_is_refused() {
+    for (text, key) in [
+        ("[threshold.nix]\nmax_line = 3\n", "threshold.nix.max_line"),
+        (
+            "[threshold.exec]\nmax_argz = 3\n",
+            "threshold.exec.max_argz",
+        ),
+        (
+            "[threshold.load]\nprefix = \"X_\"\n",
+            "threshold.load.prefix",
+        ),
+        // `[threshold.shell]` has its own shape (`src/config` §I): a
+        // line ceiling there would be a second, conflicting rule.
+        (
+            "[threshold.shell]\nmax_lines = 3\n",
+            "threshold.shell.max_lines",
+        ),
+    ] {
+        let e = err(&format!("version = 1\n{text}"));
+        assert_eq!(e.key, key);
+    }
+}
+
+#[test]
+fn a_negative_threshold_is_refused() {
+    for (text, key) in [
+        (
+            "[threshold.nix]\nmax_lines = -1\n",
+            "threshold.nix.max_lines",
+        ),
+        (
+            "[threshold.nix]\nmax_bytes = -80\n",
+            "threshold.nix.max_bytes",
+        ),
+        (
+            "[threshold.exec]\nmax_args = -1\n",
+            "threshold.exec.max_args",
+        ),
+        ("[threshold.exec]\nmax_len = -1\n", "threshold.exec.max_len"),
+        (
+            "[threshold.load]\nmax_params = -1\n",
+            "threshold.load.max_params",
+        ),
+    ] {
+        let e = err(&format!("version = 1\n{text}"));
+        assert_eq!(e.key, key);
+        assert!(e.message.contains("negative"), "{e}");
+    }
+}
+
+#[test]
+fn a_threshold_section_that_is_not_a_table_is_refused() {
+    let e = err("version = 1\n[threshold]\nnix = 3\n");
+    assert_eq!(e.key, "threshold.nix");
+}
+
+#[test]
+fn guest_thresholds_parse_per_guest() {
+    let config = ok("version = 1\n[threshold.nix]\nmax_lines = 3\n\
+                     [threshold.python]\nmax_bytes = 200\n");
+    assert_eq!(
+        config.effective("threshold.nix.max_lines"),
+        Some(Effective::Int(3))
+    );
+    assert_eq!(
+        config.effective("threshold.python.max_bytes"),
+        Some(Effective::Int(200))
+    );
+    // The unset half of each guest still resolves through the table.
+    assert_eq!(
+        config.effective("threshold.nix.max_bytes"),
+        Some(Effective::Int(super::defaults::THRESHOLD_GUEST_MAX_BYTES))
+    );
+}
+
+// ---------------------------------------------------------------------
 // resolution against the defaults table (`src/config:V73`)
 // ---------------------------------------------------------------------
 
