@@ -42,7 +42,7 @@ V3: sink w/ single simple command (argv, optional leading `NAME=value` assignmen
 V51: shell guest defaults: `prelude(env)` = shebang `#!/usr/bin/env <dialect>` + `set`/`setopt` line reproducing `env.options` (V82); ⊥ context → bash + `set -euo pipefail`; `executable` = true; ext `sh` (zsh → `zsh`); `invoke` = `<dialect> {path}`.
 V82: dialects `sh`, `bash`, `zsh` (`dash`/`ksh` ? as sh-family): `env.dialect` from context (`sh -c`, `bash -c`, `zsh -c`, shebang, GH `shell:`, nix systemd `script`; host declares) & `env.options` = effective `set -o`/`setopt` state; prelude reproduces both exactly ∴ semantics preserved. grammar: tree-sitter-bash ∀ sh & bash, zsh best-effort ? (unsupported construct → `Judgment`).
 V137: shell `claims` ⊥ `*.bats` (`languages:V130`, `languages/bats:V134`). measured 2026-09-21: tree-sitter-bash PARSES `@test "x" { run echo hi }` as command + brace group & the classifier calls it `sequence` ∴ a claimed `*.bats` file reads as a script w/ control flow & gets offered for extraction — confident & wrong, which no error message would have been.
-V138: zsh-only syntax (`setopt err_exit`, anon fn `() { print hi }`, glob qualifier `*(.)`) ⊥ parsed by tree-sitter-bash ∴ classifier ! return `Judgment` (`languages:V132`), ⊥ `Err`, ⊥ `host-parse-error`: the body is valid zsh & the gap is OURS. `Classification` carries a 3rd state ∴ engine reports `Judgment` w/ why `zsh construct unsupported`.
+V138: zsh-only syntax (flags `${(f)x}`, anon fn `() { print hi }`, glob qualifier `*(.)`) ⊥ parsed by tree-sitter-bash ∴ classifier ! return `Judgment` (`languages:V132`), ⊥ `Err`, ⊥ `host-parse-error`: the body is valid zsh & the gap is OURS. `Classification` carries a 3rd state ∴ engine reports `Judgment` w/ why `zsh construct unsupported`.
 
 ## §T TASKS
 
@@ -56,7 +56,7 @@ T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fi
 T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving extract passes shellcheck|V51
 T83|.|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82
 T135|.|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
-T136|.|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt`, anon fn, glob qualifier|V138,V82,`languages:V132`
+T136|.|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt` stays simple, flags, anon fn, glob qualifier|V138,V82,`languages:V132`
 T149|x|`src:C139` backfill: `languages/shell/src/classify/tests.rs`, `languages/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
