@@ -29,6 +29,13 @@
 //! ```text
 //! <sink> | <name template> | <dir template>
 //! ```
+//!
+//! And `loads.txt`: the loads `loads` must report, in span order
+//! (`languages/nix:V53`):
+//!
+//! ```text
+//! <path> | <guest> | <load expression as written>
+//! ```
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -163,5 +170,46 @@ fn every_placement_file_names_where_each_site_goes() {
         }
     }
     assert!(checked > 0, "no placement.txt found -- nothing was checked");
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}
+
+#[test]
+fn every_loads_file_lists_the_loads_in_span_order() {
+    // `languages/nix:V53`: the calls an extraction leaves behind, which
+    // `xnl graph` follows to the extract.
+    let mut checked = 0;
+    let mut failures = Vec::new();
+    for case in cases() {
+        let file = case.join("loads.txt");
+        if !file.exists() {
+            continue;
+        }
+        checked += 1;
+        let src = read(&case.join("input.nix"));
+        let actual: Vec<String> = match NixHost.loads(&src) {
+            Ok(loads) => loads
+                .iter()
+                .map(|load| {
+                    format!(
+                        "{} | {} | {}",
+                        load.path.display(),
+                        load.guest,
+                        load.span.of(&src).unwrap_or("?")
+                    )
+                })
+                .collect(),
+            Err(e) => vec![format!("ERROR {e}")],
+        };
+        let expected = expected(&file);
+        if actual != expected {
+            failures.push(format!(
+                "{}\n  expected:\n    {}\n  actual:\n    {}",
+                case_name(&case),
+                expected.join("\n    "),
+                actual.join("\n    ")
+            ));
+        }
+    }
+    assert!(checked > 0, "no loads.txt found -- nothing was checked");
     assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }

@@ -161,21 +161,44 @@ fn a_file_that_does_not_parse_is_an_error_not_an_empty_list() {
 
 #[test]
 fn what_is_not_built_yet_says_so() {
-    // `languages/api:V37`: a missing capability is loud. `loads`,
-    // `rewrite` and `inline` are not T12's; until a task lands them they
-    // refuse rather than answer "nothing here".
-    assert!(matches!(
-        NIX.loads("{ }"),
-        Err(Error::Unsupported {
-            lang: LangId::Nix,
-            operation: "loads"
-        })
-    ));
+    // `languages/api:V37`: a missing capability is loud. `rewrite` and
+    // `inline` are not T12's; until a task lands them they refuse rather
+    // than answer "nothing here".
     assert!(matches!(
         NIX.inline("{ }", &dummy_load(), "echo hi"),
         Err(Error::Unsupported {
             lang: LangId::Nix,
             operation: "inline"
+        })
+    ));
+}
+
+#[test]
+fn loads_reads_the_v53_calls_back_with_their_spans() {
+    // `languages/nix:V53`; the table of shapes is
+    // `tests/fixtures/neg-loads/loads.txt`. The span is the whole call,
+    // which is what `inline` will replace with the body.
+    let src = "{ systemd.services.a.script = builtins.readFile ./a/x.sh; }";
+    let found = NIX
+        .loads(src)
+        .unwrap_or_else(|e| panic!("loads failed: {e}"));
+    let [load] = found.as_slice() else {
+        panic!("expected one load, got {found:#?}");
+    };
+    assert_eq!(load.path, Path::new("./a/x.sh"));
+    assert_eq!(load.guest, LangId::Shell);
+    assert_eq!(load.span.of(src), Some("builtins.readFile ./a/x.sh"));
+    assert_eq!(NIX.loads("{ }"), Ok(Vec::new()));
+}
+
+#[test]
+fn loads_refuses_a_file_that_does_not_parse() {
+    // `languages:V78`, as `sites` does: spans after an error are guesses.
+    assert!(matches!(
+        NIX.loads("{ a = builtins.readFile ./x.sh"),
+        Err(Error::Parse {
+            lang: LangId::Nix,
+            ..
         })
     ));
 }

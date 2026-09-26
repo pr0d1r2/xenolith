@@ -1,0 +1,2 @@
+# Loads, not sites: a call's path argument is nix code, and the one
+# string here (`"${./a/store.sh}"`) is a store path under `source`.

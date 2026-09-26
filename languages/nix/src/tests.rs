@@ -297,10 +297,6 @@ fn unbuilt_operations_are_refused_by_name() {
     };
     let invoke = Invoke { argv: Vec::new() };
     assert_eq!(
-        NixHost.loads(""),
-        Err(Error::unsupported(LangId::Nix, "loads"))
-    );
-    assert_eq!(
         NixHost.rewrite("", &site, &invoke, Path::new("x.sh")),
         Err(Error::unsupported(LangId::Nix, "rewrite"))
     );
