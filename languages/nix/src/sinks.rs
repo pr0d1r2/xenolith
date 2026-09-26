@@ -11,7 +11,7 @@
 //! Three shapes of context, one per way nixpkgs hands a body to bash:
 //!
 //! - an ATTRIBUTE in an attribute set: `script`, `preStart`, `postStart`,
-//!   `shellHook`, `ExecStart*`, `*Phase`;
+//!   `shellHook`, `ExecStart*`, `*Phase`, `pre*` / `post*` hooks;
 //! - a POSITIONAL argument of a builder: the text of `writeShellScript*`,
 //!   the body of `runCommand*`;
 //! - an attribute of a builder's ARGUMENT set: `text` of
@@ -30,7 +30,8 @@ mod tests;
 /// runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Sink {
-    /// NixOS service `script`, `preStart`, `postStart`.
+    /// NixOS service `script`, `preStart`, `postStart`, `preStop`,
+    /// `postStop`.
     ServiceScript,
     /// A systemd `ExecStart`, `ExecStartPre` or `ExecStartPost` line.
     ExecStart,
@@ -40,7 +41,8 @@ pub(crate) enum Sink {
     WriteShellScript,
     /// The `text` of `writeShellApplication`.
     WriteShellApplication,
-    /// The body of `runCommand` and its variants, or a stdenv `*Phase`.
+    /// The body of `runCommand` and its variants, a stdenv `*Phase`, or
+    /// a phase hook (`preCheck`, `postInstall`, ...).
     Stdenv,
 }
 
@@ -87,7 +89,8 @@ fn attr_sink(name: &str) -> Option<Sink> {
         return matches!(suffix, "" | "Pre" | "Post").then_some(Sink::ExecStart);
     }
     match name {
-        "script" | "preStart" | "postStart" => Some(Sink::ServiceScript),
+        // NixOS writes each of these through the same job script.
+        "script" | "preStart" | "postStart" | "preStop" | "postStop" => Some(Sink::ServiceScript),
         "shellHook" => Some(Sink::ShellHook),
         // `buildPhase`, `installPhase`, `checkPhase`, ... -- stdenv runs
         // every `*Phase` string through `eval`. A bare `Phase` is not a
@@ -98,8 +101,25 @@ fn attr_sink(name: &str) -> Option<Sink> {
         {
             Some(Sink::Stdenv)
         }
+        _ if is_phase_hook(name) => Some(Sink::Stdenv),
         _ => None,
     }
+}
+
+/// Whether `name` is a stdenv phase hook: `pre` or `post`, then a
+/// capital -- `preCheck`, `postInstall` -- which `runHook` evaluates
+/// under the phase's options (`languages/nix:T156`).
+///
+/// The capital is what separates a hook from a word that merely starts
+/// that way (`prefix`, `preferLocalBuild`, `postgresql`). A `*Phases`
+/// name (`prePhases`, `preInstallPhases`) LISTS phases to run and holds
+/// no shell of its own.
+fn is_phase_hook(name: &str) -> bool {
+    let rest = name
+        .strip_prefix("pre")
+        .or_else(|| name.strip_prefix("post"));
+    rest.is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_uppercase()))
+        && !name.ends_with("Phases")
 }
 
 /// The builders whose POSITIONAL argument is a shell body, and which
