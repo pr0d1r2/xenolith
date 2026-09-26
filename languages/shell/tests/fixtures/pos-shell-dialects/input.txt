@@ -1,0 +1,15 @@
+set -euo pipefail
+setopt err_exit
+
+bash -c 'ls | wc -l'
+sh -c 'ls | wc -l'
+zsh -c 'print -l a b | wc -l'
+bash -eu -o pipefail -c 'ls | wc -l'
+sh -ec 'ls && date'
+/bin/dash -xc 'ls | wc -l'
+zsh -o err_exit -o PIPE_FAIL -c 'ls | wc -l'
+bash -e +e -c 'ls | wc -l'
+bash -o posix -c 'ls | wc -l'
+bash -x <<'SH'
+ls | wc -l
+SH

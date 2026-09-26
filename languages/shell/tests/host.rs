@@ -13,8 +13,8 @@
 
 use std::path::Path;
 
-use xenolith_lang_api::{Delim, DelimKind, Error, Host, LangId, Site, Span};
-use xenolith_lang_shell::ShellHost;
+use xenolith_lang_api::{Delim, DelimKind, Error, Guest, GuestEnv, Host, LangId, Site, Span};
+use xenolith_lang_shell::{ShellGuest, ShellHost};
 
 fn claims(path: &str, head: &str) -> bool {
     ShellHost.claims(Path::new(path), head)
@@ -225,6 +225,38 @@ fn a_file_that_does_not_parse_is_an_error_not_a_clean_file() {
         ),
         "{found:?}"
     );
+}
+
+#[test]
+fn a_child_shell_extract_runs_under_its_own_options_only() {
+    // `languages/shell:V82` end to end: the site's env is what the
+    // guest's prelude reproduces. The enclosing `set -e` never reached
+    // the `bash -c` child, so its extract gets no strict line; the child
+    // that set `-e` itself keeps it.
+    let src = "set -e\nbash -c 'ls | wc -l'\nbash -e -c 'ls | wc -l'\n";
+    let preludes: Vec<(String, Option<String>)> = sites(src)
+        .iter()
+        .map(|site| {
+            let prelude = ShellGuest.prelude(&site.env);
+            let line = prelude.shebang.map(|s| s.line()).unwrap_or_default();
+            (line, prelude.strict)
+        })
+        .collect();
+    assert_eq!(
+        preludes,
+        [
+            ("#!/usr/bin/env bash".to_owned(), None),
+            ("#!/usr/bin/env bash".to_owned(), Some("set -e".to_owned())),
+        ]
+    );
+}
+
+#[test]
+fn a_non_shell_site_leaves_its_env_to_the_guest() {
+    // Dialect and options are shell facts (`languages/shell:V82`); a
+    // python site states none, so the python guest's defaults apply.
+    let site = only("python3 -u -c 'print(1)'\n");
+    assert_eq!(site.env, GuestEnv::default());
 }
 
 #[test]

@@ -2,4 +2,4 @@
 # command substitution, a loop body.
 python3 -c | python | ' | - | - | "print(\"in a function, in an if\")"
 python3 <<PY | python | <<'PY' | - | - | "print(3)\n"
-bash -c | shell | ' | - | - | "echo \"$0\""
+bash -c | shell | ' | bash | - | "echo \"$0\""
