@@ -7,7 +7,7 @@ crate `xenolith-lang-api`: contract ∀ language crate — `Host` & `Guest` trai
 ## §F FEDERATION
 
 dir|owns|⊥owns|tokens
-src|api modules: site, lens, holes|traits & LangId (this node)|-
+src|api modules: site, lens, holes; hub root `lib.rs` & `shebang.rs` re-export|traits & LangId (this node)|-
 
 ## §N NAV
 

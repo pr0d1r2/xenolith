@@ -8,7 +8,7 @@ repo guardrail scripts hk calls: commit-msg, bats mirror, TDD order, private-nam
 
 rel|path|lens
 up|.|-
-up|scripts|∀ shell in repo: dev shell hook, guardrail scripts
+up|scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`
 self|scripts/guard|repo guardrail scripts hk calls
 
 ## §C CONSTRAINTS

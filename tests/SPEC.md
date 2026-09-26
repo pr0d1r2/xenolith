@@ -11,7 +11,7 @@ up|.|-
 self|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
-sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts
+sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`
 sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 sib|docs|public project docs & notices
 

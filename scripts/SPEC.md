@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-∀ shell in repo: dev shell hook & guardrail scripts, each w/ mirrored bats.
+∀ shell in repo: dev shell hook & guardrail scripts, each w/ mirrored bats. + gate config they run under: `hk.pkl` (T4), vendored hk schema `pkl/Config.pkl` it amends, CI `.github/workflows/` (T27), zizmor ledger `.github/zizmor.yml` (T113).
 
 ## §F FEDERATION
 
@@ -13,7 +13,7 @@ guard|repo guardrail scripts hk calls|product rules (`src`), bats (`tests`)|-
 
 rel|path|lens
 up|.|-
-self|scripts|∀ shell in repo: dev shell hook, guardrail scripts
+self|scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`
 sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
@@ -30,7 +30,7 @@ sib|docs|public project docs & notices
 
 ## §I INTERFACES
 
-- file (this repo): `.context-limits` (itok ceilings), `.coverage` (floor), `.lint-debt` (sherd debt baseline).
+- file (this repo): `.context-limits` (itok ceilings), `.coverage` (floor), `.lint-debt` (sherd debt baseline), `hk.pkl` (gate of record, V122), `pkl/Config.pkl` (upstream hk schema, vendored verbatim ∵ `.:C3`; ⊥ hand-edit, bump only w/ pinned hk), `.github/workflows/ci.yml` (calls `hk`, V122), `.github/zizmor.yml` (declines ledger, V114).
 
 ## §V INVARIANTS
 

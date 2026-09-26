@@ -10,7 +10,7 @@ rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 up|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
-up|languages/api/src|api modules: site, lens, holes
+up|languages/api/src|api modules: site, lens, holes; hub root `lib.rs` & `shebang.rs` re-export
 self|languages/api/src/site|Site/Delim/GuestEnv types, placement, claims, candidates
 sib|languages/api/src/lens|rewrite/inline, escape, runtime base, laws harness
 sib|languages/api/src/holes|param naming, param refs, hole advice

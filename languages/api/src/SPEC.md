@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-api crate modules: `site` (what a host finds), `lens` (the round trip), `holes` (host interpolations as params).
+api crate modules: `site` (what a host finds), `lens` (the round trip), `holes` (host interpolations as params). hub root (this node) owns `lib.rs` (crate root, re-exports) & `shebang.rs` (re-export of `xenolith-shebang` + interpreter → `LangId` map, `languages/api:V32`).
 
 ## §F FEDERATION
 
@@ -16,7 +16,7 @@ rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 up|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
-self|languages/api/src|api modules: site, lens, holes
+self|languages/api/src|api modules: site, lens, holes; hub root `lib.rs` & `shebang.rs` re-export
 
 ## §V INVARIANTS
 
