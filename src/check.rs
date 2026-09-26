@@ -251,15 +251,39 @@ pub(crate) fn check_with(
 /// would bring the host when the extension names a language this build
 /// lacks (`src:V30`).
 fn unclaimed(
-    _report: &mut Report,
-    _config: &Config,
-    _options: &Options,
-    _langs: &Langs<'_>,
-    _name: &str,
+    report: &mut Report,
+    config: &Config,
+    options: &Options,
+    langs: &Langs<'_>,
+    name: &str,
 ) -> Result<(), CheckError> {
-    // RED stub (`src:T75`): every unclaimed file ignored, whatever the
-    // policy says.
-    Ok(())
+    let policy = if options.strict_hosts {
+        Policy::Error
+    } else {
+        config.langs.unclaimed
+    };
+    let missing = Path::new(name)
+        .extension()
+        .and_then(|ext| LangId::from_name(&ext.to_string_lossy()))
+        .filter(|id| !langs.hosts.iter().any(|host| host.id() == *id));
+    match policy {
+        Policy::Ignore => Ok(()),
+        Policy::Warn => {
+            report.warn(Warning {
+                code: UNCLAIMED.to_owned(),
+                file: Some(PathBuf::from(name)),
+                message: format!(
+                    "{name}: host unsupported: no host in this build claims it, so it was \
+                     not scanned (src:V13)"
+                ),
+            });
+            Ok(())
+        }
+        Policy::Error => Err(CheckError::Unclaimed {
+            file: PathBuf::from(name),
+            missing,
+        }),
+    }
 }
 
 /// Stages 4 to 6 for one site.
