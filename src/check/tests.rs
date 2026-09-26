@@ -1508,6 +1508,24 @@ mod nix_shell {
     }
 
     #[test]
+    fn zsh_the_bash_grammar_cannot_read_is_a_judgement_not_unparseable() {
+        // `languages/shell:V138` through `Guest::unsupported`: valid zsh in a
+        // zsh init option is a finding to judge, never "unparseable shell".
+        let why = flagged_at(
+            "{\n  programs.zsh.initContent = ''\n    print -rl -- ''${(f)\"$(ls)\"}\n  '';\n}\n",
+            2,
+        );
+        assert!(why.contains("zsh construct unsupported"), "{why}");
+        assert!(!why.contains("unparseable"), "{why}");
+    }
+
+    #[test]
+    fn a_zsh_setopt_one_liner_is_clean() {
+        // The bash grammar reads `setopt err_exit` as one simple command.
+        clean("{\n  programs.zsh.initContent = \"setopt err_exit\";\n}\n");
+    }
+
+    #[test]
     fn a_single_export_in_bash_init_is_clean() {
         clean("{\n  programs.bash.initExtra = \"export PATH=$HOME/bin:$PATH\";\n}\n");
     }
