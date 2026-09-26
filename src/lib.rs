@@ -23,6 +23,7 @@ pub mod check;
 pub mod cli;
 pub mod config;
 pub mod discover;
+pub mod graph;
 pub mod lint;
 pub mod model;
 pub mod registry;

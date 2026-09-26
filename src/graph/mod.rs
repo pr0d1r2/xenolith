@@ -1,0 +1,10 @@
+//! The graph engine: `xnl graph` as a library call (`src/graph:V7`).
+//!
+//! Which host loads which extract, and the two ways that can be wrong:
+//! a load pointing at nothing (`dangling-load`) and an extract nothing
+//! loads (`orphan-extract`). The parts live in their own modules:
+//!
+//! * [`roots`] -- where extracts live, so the orphan scan walks those
+//!   directories and never the whole repository (`src/graph:V50`).
+
+pub mod roots;
