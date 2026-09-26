@@ -1,0 +1,415 @@
+//! The lint engine: the mirror of `src/lint/mod.rs` (`src:C139`).
+//!
+//! Languages are fakes (as in `src/check/tests.rs`), so every case runs
+//! in every feature subset (`src:V30`); tools are stub scripts on a
+//! `PATH` the test controls and git is the sandbox's (`tests:V150`), so
+//! nothing here depends on which linters the machine has.
+
+use std::fs;
+use std::os::unix::fs::PermissionsExt as _;
+use std::path::{Path, PathBuf};
+
+use xenolith_lang_api::{
+    Delim, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef,
+    Prelude, Result, Site,
+};
+
+use super::{Kind, LintError, LintReport, Options, Outcome, Source, Status, lint_with};
+use crate::check::Langs;
+use crate::config::{self, Config};
+use crate::discover::{Sandbox, write};
+use crate::lint::run::Tools;
+
+// ---------------------------------------------------------------------
+// stubs and fakes
+// ---------------------------------------------------------------------
+
+/// An executable `#!/bin/sh` script `name` in `dir` running `body`. The
+/// `PATH` it runs under is the stub dir alone, so a body uses builtins
+/// or absolute paths.
+pub(super) fn stub(dir: &Path, name: &str, body: &str) {
+    let path = dir.join(name);
+    fs::write(&path, format!("#!/bin/sh\n{body}\n"))
+        .unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o755))
+        .unwrap_or_else(|e| panic!("chmod {}: {e}", path.display()));
+}
+
+fn cmd(argv: &[&str]) -> LintCmd {
+    LintCmd {
+        argv: argv.iter().map(|a| (*a).to_owned()).collect(),
+        file_arg: FileArg::Append,
+        format: Format::Raw,
+    }
+}
+
+/// A guest like shell: extracts end `.sh`, two checks -- the first
+/// saying which dialect it was given -- and one fixer.
+struct FakeGuest;
+
+impl Guest for FakeGuest {
+    fn id(&self) -> LangId {
+        LangId::Shell
+    }
+
+    fn extension(&self, _env: &GuestEnv) -> &'static str {
+        "sh"
+    }
+
+    fn invoke(&self, path: &Path) -> Invoke {
+        Invoke {
+            argv: vec![path.display().to_string()],
+        }
+    }
+
+    fn trivial(&self, _body: &str) -> Result<bool> {
+        Ok(false)
+    }
+
+    fn prelude(&self, _env: &GuestEnv) -> Prelude {
+        Prelude::default()
+    }
+
+    fn executable(&self) -> bool {
+        true
+    }
+
+    fn checks(&self, env: &GuestEnv) -> Vec<LintCmd> {
+        let dialect = format!("--dialect={}", env.dialect.as_deref().unwrap_or("none"));
+        vec![cmd(&["alpha", &dialect]), cmd(&["beta"])]
+    }
+
+    fn fixers(&self, _env: &GuestEnv) -> Vec<LintCmd> {
+        vec![cmd(&["fixit"])]
+    }
+}
+
+/// A host claiming `*.nx`, with one check and one fixer of its own.
+struct FakeHost;
+
+impl Host for FakeHost {
+    fn id(&self) -> LangId {
+        LangId::Nix
+    }
+
+    fn claims(&self, path: &Path, _head: &str) -> bool {
+        path.extension().is_some_and(|e| e == "nx")
+    }
+
+    fn sites(&self, _src: &str) -> Result<Vec<Site>> {
+        Ok(Vec::new())
+    }
+
+    fn loads(&self, _src: &str) -> Result<Vec<LoadRef>> {
+        Err(Error::unsupported(LangId::Nix, "loads"))
+    }
+
+    fn rewrite(&self, _: &str, _: &Site, _: &Invoke, _: &Path) -> Result<String> {
+        Err(Error::unsupported(LangId::Nix, "rewrite"))
+    }
+
+    fn inline(&self, _: &str, _: &LoadRef, _: &str) -> Result<String> {
+        Err(Error::unsupported(LangId::Nix, "inline"))
+    }
+
+    fn unescape(&self, _: &Delim, raw: &str) -> Result<String> {
+        Ok(raw.to_owned())
+    }
+
+    fn checks(&self) -> Vec<LintCmd> {
+        vec![cmd(&["hostcheck"])]
+    }
+
+    fn fixers(&self) -> Vec<LintCmd> {
+        vec![cmd(&["hostfix"])]
+    }
+}
+
+fn fakes() -> Langs<'static> {
+    Langs {
+        hosts: &[&FakeHost],
+        guests: &[&FakeGuest],
+    }
+}
+
+/// A sandbox with a `root` to lint and a `bin` of stub tools.
+struct Fixture {
+    sandbox: Sandbox,
+    root: PathBuf,
+    bin: PathBuf,
+}
+
+impl Fixture {
+    fn new() -> Fixture {
+        let sandbox = Sandbox::new();
+        let root = sandbox.plain("tree");
+        let bin = sandbox.plain("bin");
+        Fixture { sandbox, root, bin }
+    }
+
+    /// Every fake tool present and passing.
+    fn all_pass() -> Fixture {
+        let fixture = Fixture::new();
+        for tool in ["alpha", "beta", "fixit", "hostcheck", "hostfix"] {
+            fixture.tool(tool, "exit 0");
+        }
+        fixture
+    }
+
+    fn tool(&self, name: &str, body: &str) {
+        stub(&self.bin, name, body);
+    }
+
+    fn file(&self, rel: &str, contents: &str) {
+        write(&self.root, rel, contents);
+    }
+
+    fn lint(
+        &self,
+        config: &Config,
+        options: &Options,
+    ) -> std::result::Result<LintReport, LintError> {
+        lint_with(
+            &self.root,
+            config,
+            options,
+            &fakes(),
+            &|| self.sandbox.git(),
+            &Tools::on_path(&self.bin),
+        )
+    }
+
+    fn report(&self, config: &Config, paths: &[&str]) -> LintReport {
+        self.lint(config, &named(paths))
+            .unwrap_or_else(|e| panic!("lint refused: {e}"))
+    }
+}
+
+fn named(paths: &[&str]) -> Options {
+    Options {
+        paths: paths.iter().map(PathBuf::from).collect(),
+        ..Options::default()
+    }
+}
+
+fn parsed(text: &str) -> Config {
+    config::parse(text).unwrap_or_else(|e| panic!("config: {e}"))
+}
+
+fn checks(report: &LintReport) -> Vec<(String, Status)> {
+    report
+        .outcomes()
+        .iter()
+        .map(|o| (o.check.clone(), o.status))
+        .collect()
+}
+
+fn nth(report: &LintReport, n: usize) -> &Outcome {
+    report
+        .outcomes()
+        .get(n)
+        .unwrap_or_else(|| panic!("no outcome {n}: {:?}", report.outcomes()))
+}
+
+fn pair(check: &str, status: Status) -> (String, Status) {
+    (check.to_owned(), status)
+}
+
+// ---------------------------------------------------------------------
+// T24: the linter map, defaults, a missing binary
+// ---------------------------------------------------------------------
+
+#[test]
+fn an_extract_by_extension_runs_each_default_check_in_order() {
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    assert_eq!(
+        checks(&report),
+        [pair("alpha", Status::Pass), pair("beta", Status::Pass)]
+    );
+    let first = nth(&report, 0);
+    assert_eq!(first.kind, Kind::Extract);
+    assert_eq!(first.guest, Some(LangId::Shell));
+    assert_eq!(first.dialect, None);
+    assert_eq!(first.source, Source::Default);
+    assert_eq!(first.argv, ["alpha", "--dialect=none", "a.sh"]);
+    assert_eq!(report.exit_code(), 0);
+}
+
+#[test]
+fn a_shebang_names_the_guest_and_its_dialect() {
+    let fx = Fixture::all_pass();
+    fx.file("bin/tool", "#!/usr/bin/env zsh\necho hi\n");
+    let report = fx.report(&Config::default(), &["bin/tool"]);
+    let first = nth(&report, 0);
+    assert_eq!(first.dialect.as_deref(), Some("zsh"));
+    assert_eq!(first.argv, ["alpha", "--dialect=zsh", "bin/tool"]);
+}
+
+#[test]
+fn a_shebang_naming_no_language_wins_over_the_extension() {
+    let fx = Fixture::all_pass();
+    fx.file("x.sh", "#!/usr/bin/env tclsh\nputs hi\n");
+    let report = fx.report(&Config::default(), &["x.sh"]);
+    assert!(report.outcomes().is_empty(), "{:?}", report.outcomes());
+}
+
+#[test]
+fn a_shebang_naming_a_guest_this_build_lacks_is_a_warning() {
+    let fx = Fixture::all_pass();
+    fx.file("x.py", "#!/usr/bin/env python3\nprint(1)\n");
+    let report = fx.report(&Config::default(), &["x.py"]);
+    assert!(report.outcomes().is_empty());
+    let codes: Vec<&str> = report.warnings().iter().map(|w| w.code.as_str()).collect();
+    assert_eq!(codes, ["missing-guest"]);
+}
+
+#[test]
+fn a_tool_not_on_path_is_an_error_exit_2_and_the_rest_still_run() {
+    // `src/lint:V8`: named, never skipped, and not the end of the run.
+    let fx = Fixture::new();
+    fx.tool("beta", "exit 0");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    assert_eq!(
+        checks(&report),
+        [pair("alpha", Status::Error), pair("beta", Status::Pass)]
+    );
+    let why = nth(&report, 0).raw_tail.clone().unwrap_or_default();
+    assert!(why.contains("`alpha`") && why.contains("install"), "{why}");
+    assert_eq!(report.exit_code(), 2);
+}
+
+#[test]
+fn a_failing_check_is_a_fail_exit_1() {
+    let fx = Fixture::all_pass();
+    fx.tool("beta", "echo \"beta: $1: bad\"\nexit 1");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    let beta = nth(&report, 1);
+    assert_eq!(beta.status, Status::Fail);
+    assert_eq!(beta.exit, Some(1));
+    assert_eq!(beta.raw_tail.as_deref(), Some("beta: a.sh: bad"));
+    assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn a_host_file_runs_its_host_checks_unless_hosts_is_off() {
+    let fx = Fixture::all_pass();
+    fx.file("a.nx", "{}\n");
+    let report = fx.report(&Config::default(), &["a.nx"]);
+    assert_eq!(checks(&report), [pair("hostcheck", Status::Pass)]);
+    let only = nth(&report, 0);
+    assert_eq!(only.kind, Kind::Host);
+    assert_eq!(only.guest, None);
+    let off = parsed("version = 1\n[lint]\nhosts = false\n");
+    assert!(fx.report(&off, &["a.nx"]).outcomes().is_empty());
+}
+
+#[test]
+fn a_file_nothing_lints_follows_unclaimed() {
+    let fx = Fixture::all_pass();
+    fx.file("notes.txt", "hi\n");
+    let quiet = fx.report(&Config::default(), &["notes.txt"]);
+    assert!(quiet.outcomes().is_empty() && quiet.warnings().is_empty());
+    let warn = parsed("version = 1\n[langs]\nunclaimed = \"warn\"\n");
+    let codes: Vec<String> = fx
+        .report(&warn, &["notes.txt"])
+        .warnings()
+        .iter()
+        .map(|w| w.code.clone())
+        .collect();
+    assert_eq!(codes, ["host-unsupported"]);
+    let strict = Options {
+        strict_hosts: true,
+        ..named(&["notes.txt"])
+    };
+    let refused = fx.lint(&Config::default(), &strict);
+    assert!(
+        matches!(&refused, Err(LintError::Unclaimed { file }) if file == Path::new("notes.txt")),
+        "{refused:?}"
+    );
+    assert!(refused.is_err_and(|e| e.exit_code() == 2));
+}
+
+#[test]
+fn an_excluded_file_has_no_result() {
+    let fx = Fixture::all_pass();
+    fx.file("skip.sh", "echo hi\n");
+    let config =
+        parsed("version = 1\n[lint]\nexclude = [{ glob = \"skip.sh\", reason = \"vendored\" }]\n");
+    assert!(fx.report(&config, &["skip.sh"]).outcomes().is_empty());
+}
+
+#[test]
+fn a_config_command_without_trust_is_skipped_with_a_warning_and_defaults_run() {
+    // `src/lint:V91`.
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    let config = parsed(
+        "version = 1\n[lint]\nall = [\"typos {file}\"]\n[lint.shell]\nchecks = [\"own\"]\n\
+         extend = false\n",
+    );
+    let report = fx.report(&config, &["a.sh"]);
+    assert_eq!(
+        checks(&report),
+        [
+            pair("own", Status::Skipped),
+            pair("typos", Status::Skipped),
+            pair("alpha", Status::Pass),
+            pair("beta", Status::Pass),
+        ]
+    );
+    let skipped = nth(&report, 1);
+    assert_eq!(skipped.source, Source::Config);
+    assert_eq!(skipped.argv, ["typos", "a.sh"]);
+    let messages: Vec<&str> = report
+        .warnings()
+        .iter()
+        .filter(|w| w.code == "untrusted-command")
+        .map(|w| w.message.as_str())
+        .collect();
+    assert_eq!(messages.len(), 2, "{messages:?}");
+    assert!(
+        messages.iter().any(|m| m.contains("`typos {file}`")),
+        "{messages:?}"
+    );
+    assert_eq!(report.exit_code(), 0);
+}
+
+#[test]
+fn a_named_path_outside_the_root_is_refused() {
+    let fx = Fixture::all_pass();
+    let elsewhere = fx.sandbox.plain("elsewhere");
+    write(&elsewhere, "a.sh", "echo hi\n");
+    let path = elsewhere.join("a.sh");
+    let options = Options {
+        paths: vec![path],
+        ..Options::default()
+    };
+    let refused = fx.lint(&Config::default(), &options);
+    assert!(
+        matches!(refused, Err(LintError::Outside { .. })),
+        "{refused:?}"
+    );
+}
+
+#[test]
+fn the_whole_tree_is_the_tracked_files_in_order() {
+    let fx = Fixture::all_pass();
+    fx.file("b.sh", "echo b\n");
+    fx.file("a.nx", "{}\n");
+    fx.file("untracked.sh", "echo u\n");
+    fx.sandbox.run_git(&fx.root, &["init", "-q"]);
+    fx.sandbox.run_git(&fx.root, &["add", "b.sh", "a.nx"]);
+    let report = fx
+        .lint(&Config::default(), &Options::default())
+        .unwrap_or_else(|e| panic!("{e}"));
+    let files: Vec<String> = report
+        .outcomes()
+        .iter()
+        .map(|o| o.file.display().to_string())
+        .collect();
+    assert_eq!(files, ["a.nx", "b.sh", "b.sh"]);
+}

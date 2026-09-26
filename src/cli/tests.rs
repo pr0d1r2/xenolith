@@ -171,7 +171,6 @@ fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
         (&["extract", "a.nix:3"][..], "src/extract:T22"),
         (&["extract", "--write", "a.nix"][..], "src/extract:T22"),
         (&["graph", "--verbose"][..], "src/graph:T21"),
-        (&["lint", "--fix", "x.sh"][..], "src/lint:T24"),
     ] {
         let verb = args.first().copied().unwrap_or_default();
         let err = refused(args);
@@ -196,6 +195,22 @@ fn check_is_routed_to_its_engine_not_refused() {
     assert_eq!(code, EXIT_USAGE, "{err}");
     assert!(!err.contains("not implemented"), "{err:?}");
     assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
+fn lint_is_routed_to_its_engine_not_refused() {
+    // `src/lint:T24`: the arm runs the lint engine. A named path that
+    // does not exist is discovery's refusal (`src:V57`), not the not-yet
+    // one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["lint", "nope.sh"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.sh"), "{err:?}");
 }
 
 #[test]

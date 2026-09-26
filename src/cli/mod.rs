@@ -15,6 +15,8 @@
 //! * [`check`] -- `xnl check`: config in, the engine's report out
 //!   (`src:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
+//! * [`lint`] -- `xnl lint`: config in, the lint engine's results out
+//!   (`src/lint:V8`).
 //! * [`migrate`] -- `xnl migrate`: legacy per-file allowlists turned
 //!   into per-site `[[allow]]` entries by running that same engine
 //!   (`src/cli:T97`).
@@ -37,6 +39,7 @@ use self::args::{Invocation, OutputFormat, Scan, Usage, Verb};
 pub mod args;
 pub mod check;
 pub mod langs;
+pub mod lint;
 pub mod migrate;
 
 #[cfg(test)]
@@ -142,7 +145,19 @@ fn dispatch(
             )
         }),
         Verb::Graph(scan) => scanning(err, "graph", scan, "src/graph:T21"),
-        Verb::Lint { scan, .. } => scanning(err, "lint", scan, "src/lint:T24"),
+        Verb::Lint {
+            scan,
+            fix,
+            trust_config,
+        } => sarif(err, "lint", scan).unwrap_or_else(|| {
+            let flags = lint::Flags {
+                fix: *fix,
+                trust_config: *trust_config,
+                verbose: invocation.verbose,
+                strict_hosts: invocation.strict_hosts,
+            };
+            lint::run(root, scan, flags, out, err)
+        }),
         Verb::Extract { .. } => not_yet(err, "extract", "src/extract:T22"),
         Verb::Migrate { write } => migrate::run(
             root,
