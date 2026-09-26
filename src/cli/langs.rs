@@ -6,11 +6,11 @@
 //! has no `lang-sql`", which a list of only the compiled-in languages
 //! cannot say.
 //!
-//! What each entry carries today is id, feature and compiled-in. The rest
-//! of the §I entry -- role, sinks, delimiter kinds, checks, fixers -- is
-//! read from the `Host`/`Guest` impls through the registry, which is
-//! `src:T46`'s; until it lands, [`compiled_in`] is the one stand-in for
-//! it, and it is the only thing here to replace.
+//! What each entry carries today is id, feature and compiled-in, the
+//! last two answered by the registry (`src:V41`), which is the one place
+//! a `lang-*` feature is read (`src:V30`). The rest of the §I entry --
+//! role, sinks, delimiter kinds, checks, fixers -- widens the JSON shape
+//! (`src/cli:V24`) and is a change of its own.
 
 use std::fmt::Write as _;
 
@@ -18,40 +18,10 @@ use serde_json::{Value, json};
 use xenolith_lang_api::LangId;
 
 use crate::model::SCHEMA;
+use crate::registry::{compiled_in, feature};
 
 #[cfg(test)]
 mod tests;
-
-/// Whether this build carries the crate for `id`.
-///
-/// A STAND-IN for the registry (`src:V41`, `src:T46`), which will answer
-/// this as "`id` has an entry in `hosts()` or `guests()`". Until then the
-/// `lang-*` features are read here, in one function, so the `cfg` sits in
-/// exactly one place outside the registry-to-be -- and moves into it,
-/// taking the `src:V30` no-leak rule with it, when `src:T46` lands.
-///
-/// A language absent from the table has no crate and so no feature:
-/// nothing to compile in yet.
-#[must_use]
-pub fn compiled_in(id: LangId) -> bool {
-    // A table rather than a `match`: with every feature on, a match of
-    // `cfg!` arms is `matches!` in disguise and clippy says so, while
-    // with some off it is not -- the table reads the same in every
-    // build `cargo hack --each-feature` makes (`src:V30`).
-    const BUILT: &[(LangId, bool)] = &[
-        (LangId::Nix, cfg!(feature = "lang-nix")),
-        (LangId::Pkl, cfg!(feature = "lang-pkl")),
-        (LangId::Shell, cfg!(feature = "lang-shell")),
-    ];
-    BUILT.iter().any(|(lang, on)| *lang == id && *on)
-}
-
-/// The Cargo feature that carries `id`: `lang-<id>` (`src:C1`), spelled
-/// with `LangId::as_str` like every other name for a language.
-#[must_use]
-pub fn feature(id: LangId) -> String {
-    format!("lang-{id}")
-}
 
 fn state(id: LangId) -> &'static str {
     if compiled_in(id) {

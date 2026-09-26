@@ -1,8 +1,18 @@
 //! The registry: which languages this build carries (`src:V41`).
 //!
-//! RED stub (`src:T46`): the shape the tests in `registry/tests.rs` are
-//! written against, with every answer empty or refused. The GREEN commit
-//! fills the lists behind their `lang-*` features.
+//! ONE file, and the only one in the root crate that names a language
+//! crate or a `lang-*` feature. Every engine iterates [`hosts`] and
+//! [`guests`] and never asks "is shell compiled in?" any other way, so
+//! the `src:V30` no-leak rule is a property of this file rather than a
+//! convention every module has to remember -- and a test
+//! (`registry/tests.rs`) greps the rest of `src/` to keep it that way.
+//!
+//! Each entry sits behind its own `#[cfg(feature = "lang-<lang>")]`, and
+//! the lists are sorted by [`LangId`], so the order an engine meets
+//! hosts in is the same in every subset build (`src:V11`).
+//!
+//! A guest a host names but this build lacks is never guessed about
+//! (`src:V42`): [`require_guest`] says which feature would bring it.
 
 use std::fmt;
 use std::path::PathBuf;
@@ -14,43 +24,61 @@ use crate::cli::EXIT_USAGE;
 #[cfg(test)]
 mod tests;
 
+/// Every compiled-in host, sorted by [`LangId`].
+const HOSTS: &[&dyn Host] = &[
+    #[cfg(feature = "lang-nix")]
+    &xenolith_lang_nix::NixHost,
+    #[cfg(feature = "lang-pkl")]
+    &xenolith_lang_pkl::PklHost,
+];
+
+/// Every compiled-in guest, sorted by [`LangId`].
+const GUESTS: &[&dyn Guest] = &[
+    #[cfg(feature = "lang-shell")]
+    &xenolith_lang_shell::ShellGuest,
+];
+
 /// The hosts this build carries, sorted by [`LangId`] (`src:V41`).
 #[must_use]
 pub fn hosts() -> &'static [&'static dyn Host] {
-    &[]
+    HOSTS
 }
 
 /// The guests this build carries, sorted by [`LangId`] (`src:V41`).
 #[must_use]
 pub fn guests() -> &'static [&'static dyn Guest] {
-    &[]
+    GUESTS
 }
 
 /// The host for `id`, when this build carries one.
 #[must_use]
-pub fn host(_id: LangId) -> Option<&'static dyn Host> {
-    None
+pub fn host(id: LangId) -> Option<&'static dyn Host> {
+    hosts().iter().copied().find(|h| h.id() == id)
 }
 
 /// The guest for `id`, when this build carries one.
 #[must_use]
-pub fn guest(_id: LangId) -> Option<&'static dyn Guest> {
-    None
+pub fn guest(id: LangId) -> Option<&'static dyn Guest> {
+    guests().iter().copied().find(|g| g.id() == id)
 }
 
-/// Whether this build carries the crate for `id`.
+/// Whether this build carries the crate for `id`, as a host, a guest or
+/// both. A language with no crate yet has no feature and is never
+/// compiled in.
 #[must_use]
-pub fn compiled_in(_id: LangId) -> bool {
-    false
+pub fn compiled_in(id: LangId) -> bool {
+    host(id).is_some() || guest(id).is_some()
 }
 
-/// The Cargo feature that carries `id`.
+/// The Cargo feature that carries `id`: `lang-<id>` (`src:C1`), spelled
+/// with `LangId::as_str` like every other name for a language.
 #[must_use]
-pub fn feature(_id: LangId) -> String {
-    String::new()
+pub fn feature(id: LangId) -> String {
+    format!("lang-{id}")
 }
 
-/// A site's guest this build does not carry (`src:V42`).
+/// A site's guest this build does not carry (`src:V42`). Exit 2 under
+/// the default `[langs] missing_guest = "error"`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MissingGuest {
     /// The guest the host named.
@@ -60,7 +88,7 @@ pub struct MissingGuest {
 }
 
 impl MissingGuest {
-    /// The process exit code.
+    /// The process exit code: always 2 (`src/cli:V24`).
     #[must_use]
     pub const fn exit_code(&self) -> u8 {
         EXIT_USAGE
@@ -69,19 +97,31 @@ impl MissingGuest {
 
 impl fmt::Display for MissingGuest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} is missing", self.guest)
+        if let Some(file) = &self.file {
+            write!(f, "{}: ", file.display())?;
+        }
+        write!(
+            f,
+            "a site holds {guest} code, but this build has no {guest} guest: rebuild \
+             with feature `{feature}`, or set `[langs] missing_guest` to `warn` or \
+             `ignore` (src:V42)",
+            guest = self.guest,
+            feature = feature(self.guest),
+        )
     }
 }
 
 impl std::error::Error for MissingGuest {}
 
-/// The guest for `id`, or a [`MissingGuest`].
+/// The guest for `id`, or a [`MissingGuest`] naming the feature that
+/// would bring it -- never a guess at whether the body is trivial
+/// (`src:V42`).
 ///
 /// # Errors
 ///
-/// [`MissingGuest`], always, in this stub.
+/// [`MissingGuest`] when this build does not carry `id` as a guest.
 pub fn require_guest(id: LangId) -> Result<&'static dyn Guest, MissingGuest> {
-    Err(MissingGuest {
+    guest(id).ok_or(MissingGuest {
         guest: id,
         file: None,
     })
