@@ -337,7 +337,7 @@ fn checks_per_family_in_order() {
         argvs(&ShellGuest.checks(&env(Some("bash"), &[]))),
         vec![
             vec!["shellcheck", "--shell=bash", "--format=json"],
-            vec!["shfmt", "--diff", "--language-dialect", "bash"],
+            vec!["shfmt", "--diff"],
         ]
     );
     // No dialect is bash.
@@ -350,7 +350,7 @@ fn checks_per_family_in_order() {
         vec![
             vec!["shellcheck", "--shell=sh", "--format=json"],
             vec!["checkbashisms"],
-            vec!["shfmt", "--diff", "--language-dialect", "posix"],
+            vec!["shfmt", "--diff"],
         ]
     );
     assert_eq!(
@@ -359,15 +359,40 @@ fn checks_per_family_in_order() {
     );
 }
 
+/// shfmt reads `.editorconfig` only when NO parser or printer flag is
+/// given, so a `--language-dialect` here overrode the repo's indent and
+/// re-indented every file with tabs (`languages/shell:B5`). The dialect
+/// needs no flag: every extract carries the shebang its prelude wrote
+/// (`languages/shell:V51`), and shfmt reads the dialect from that.
+#[test]
+fn shfmt_takes_no_flag_that_silences_editorconfig() {
+    for dialect in [None, Some("bash"), Some("sh"), Some("dash")] {
+        let cmds = [
+            ShellGuest.checks(&env(dialect, &[])),
+            ShellGuest.fixers(&env(dialect, &[])),
+        ];
+        let shfmt: Vec<Vec<&str>> = cmds
+            .iter()
+            .flat_map(|cmds| argvs(cmds))
+            .filter(|argv| argv.first() == Some(&"shfmt"))
+            .collect();
+        assert_eq!(
+            shfmt,
+            vec![vec!["shfmt", "--diff"], vec!["shfmt", "--write"]],
+            "{dialect:?}"
+        );
+    }
+}
+
 #[test]
 fn fixers_per_family() {
     assert_eq!(
         argvs(&ShellGuest.fixers(&env(Some("bash"), &[]))),
-        vec![vec!["shfmt", "--write", "--language-dialect", "bash"]]
+        vec![vec!["shfmt", "--write"]]
     );
     assert_eq!(
         argvs(&ShellGuest.fixers(&env(Some("sh"), &[]))),
-        vec![vec!["shfmt", "--write", "--language-dialect", "posix"]]
+        vec![vec!["shfmt", "--write"]]
     );
     assert!(ShellGuest.fixers(&env(Some("zsh"), &[])).is_empty());
     for cmd in ShellGuest.fixers(&env(None, &[])) {
