@@ -1642,3 +1642,23 @@ fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
     assert_eq!(e.exit_code(), 2);
     assert!(e.to_string().contains("`lang-shell`"), "{e}");
 }
+
+/// `--strict-hosts` names only features that exist (`src:V30`, as
+/// `src:B8` did for guests): a `.py` file has no host crate, so the
+/// refusal must not send anyone after `lang-python`.
+#[test]
+fn an_unclaimed_file_names_only_a_feature_that_exists() {
+    let python = CheckError::Unclaimed {
+        file: PathBuf::from("tool.py"),
+        missing: Some(LangId::Python),
+    }
+    .to_string();
+    assert!(!python.contains("lang-python"), "{python}");
+    assert!(python.contains("no support for python"), "{python}");
+    let nix = CheckError::Unclaimed {
+        file: PathBuf::from("a.nix"),
+        missing: Some(LangId::Nix),
+    }
+    .to_string();
+    assert!(nix.contains("`lang-nix`"), "{nix}");
+}
