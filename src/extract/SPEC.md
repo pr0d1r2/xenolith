@@ -70,7 +70,7 @@ T66|x|repo-root placement path → host-relative load path; fixtures w/ host in 
 T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per C17); until then V4 compares normalized whitespace|V4,C17
 T69|.|runtime `languages/api/src/lens:V34` (c) check for rule `invoke`; fixture w/ unrecognisable invoke → exit 2|V68
 T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
-T81|.|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
+T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 T84|.|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 T85|.|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`

@@ -41,7 +41,7 @@ use xenolith_lang_api::{Guest, Host, Invoke, LangId, Prelude, Site, shebang};
 
 use crate::check::{self, CheckError, Langs, repo_name};
 use crate::cli::EXIT_USAGE;
-use crate::config::{Base, Config, Strict, Tree, TreeError, Verb};
+use crate::config::{Base, Config, SiteKey, Strict, Tree, TreeError, Verb};
 use crate::discover::{DiscoverError, discover_with};
 use crate::model::{Rule, Warning};
 use crate::registry;
@@ -277,14 +277,23 @@ pub(crate) fn extract_with(
     git: &dyn Fn() -> Command,
 ) -> Result<Edit, ExtractError> {
     let mut edit = Edit::default();
-    let wanted = targets(root, &options.targets, git, &mut edit)?;
-    let names: Vec<String> = wanted.keys().cloned().collect();
+    let mut wanted = targets(root, &options.targets, git, &mut edit)?;
     let tree = Tree::load(
         root,
         config.clone(),
         Verb::Extract,
-        names.iter().map(String::as_str),
+        wanted.keys().map(String::as_str),
     )?;
+    // An excluded file is never read (`src/config:V79`), and says so
+    // under `--verbose` (`src/extract:V80`).
+    wanted.retain(|name, _| match excluded(&tree, name) {
+        Some(why) => {
+            edit.explain.push(format!("{name}: skipped: {why}"));
+            false
+        }
+        None => true,
+    });
+    let names: Vec<String> = wanted.keys().cloned().collect();
     let flagged = flagged(root, config, options, langs, git, &names, &mut edit)?;
     let mut read = BTreeMap::new();
     let mut planned = Vec::new();
@@ -300,6 +309,9 @@ pub(crate) fn extract_with(
             }
             let key = (name.clone(), site.sink.clone(), line, col);
             if !flagged.contains(&key) {
+                let why = left_alone(&tree, langs, name, &file.text, &site);
+                edit.explain
+                    .push(format!("{name}:{line}:{col} {}: skipped: {why}", site.sink));
                 continue;
             }
             found.insert(line);
@@ -326,6 +338,43 @@ pub(crate) fn extract_with(
     edit.hosts.sort_by(|a, b| a.path.cmp(&b.path));
     edit.refusals.sort();
     Ok(edit)
+}
+
+/// Why `name` is not read at all, or `None` when it is: `[[exclude]]`
+/// or `[extract] exclude` (`src/extract:V80`), or a `[check] exclude`
+/// -- check never judges that file, so nothing in it is flagged, and
+/// saying "may stay inline" of every site would be a guess.
+fn excluded(tree: &Tree, name: &str) -> Option<String> {
+    let config = tree.config_for(name);
+    if let Some(e) = config.excluded(Verb::Extract, name) {
+        return Some(format!(
+            "excluded by `{}` ({}) (src/extract:V80)",
+            e.glob, e.reason
+        ));
+    }
+    config.excluded(Verb::Check, name).map(|e| {
+        format!(
+            "not judged: xnl check skips it, excluded by `{}` ({})",
+            e.glob, e.reason
+        )
+    })
+}
+
+/// Why a site check did not flag is left where it is (`src/extract:V80`).
+fn left_alone(tree: &Tree, langs: &Langs<'_>, name: &str, text: &str, site: &Site) -> String {
+    let hash = check::body_hash(site.delim.body.of(text).unwrap_or_default());
+    let key = SiteKey {
+        path: name,
+        sink: &site.sink,
+        hash: &hash,
+    };
+    if let Some(allow) = tree.config_for(name).allowed(&key) {
+        return format!("allowed by [[allow]] ({}) (src/extract:V80)", allow.reason);
+    }
+    if !langs.guests.iter().any(|g| g.id() == site.guest) {
+        return format!("its guest, {}, is not in this build (src:V42)", site.guest);
+    }
+    "xnl check does not flag it, so it may stay inline".to_owned()
 }
 
 /// The files each target names, repo-root relative, each with the
