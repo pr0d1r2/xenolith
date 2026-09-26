@@ -16,6 +16,10 @@
 //!   given, tracked or not -- hk already decided. A directory means its
 //!   tracked files inside a repository, and a walk outside one.
 //!
+//! Whichever source, a symlink is never scanned (`src:V128`): found, it
+//! is skipped with a warning; named, it is refused. That rule and its
+//! reasons are `symlink`'s.
+//!
 //! git runs in the user's repository and INHERITS the environment on
 //! purpose: inside a hook, git exports `GIT_DIR` and `GIT_INDEX_FILE`,
 //! and the listing should be the hook's view of the repository. Only the
@@ -31,8 +35,14 @@ use std::process::Command;
 use crate::cli::EXIT_USAGE;
 use crate::model::Warning;
 
+mod symlink;
+
 #[cfg(test)]
 mod tests;
+
+/// The warning code for a candidate skipped because it is, or lies under,
+/// a symlink (`src:V128`). Stable, matched like a rule id.
+pub const SYMLINK_SKIPPED: &str = "symlink-skipped";
 
 /// What discovery hands the engine: the files to scan, repo-root
 /// relative and sorted (`src:V11`), and what it has to say about the
@@ -74,6 +84,15 @@ pub enum DiscoverError {
         /// The operating system's reason.
         detail: String,
     },
+    /// A path named explicitly is, or runs through, a symlink
+    /// (`src:V128`).
+    Symlink {
+        /// The path as it was named.
+        path: PathBuf,
+        /// The part of it that is the link: the path itself, or a
+        /// directory it runs through.
+        link: PathBuf,
+    },
 }
 
 impl DiscoverError {
@@ -102,6 +121,19 @@ impl fmt::Display for DiscoverError {
             DiscoverError::Io { path, detail } => {
                 write!(f, "{}: {detail} (src:V57)", path.display())
             }
+            DiscoverError::Symlink { path, link } if path == link => write!(
+                f,
+                "{}: named explicitly but is a symlink; xenolith does not read \
+                 through symlinks, name its target instead (src:V128)",
+                path.display()
+            ),
+            DiscoverError::Symlink { path, link } => write!(
+                f,
+                "{}: named explicitly but runs through the symlink `{}`; xenolith \
+                 does not read through symlinks, name the real path instead (src:V128)",
+                path.display(),
+                link.display()
+            ),
         }
     }
 }
@@ -117,7 +149,9 @@ impl std::error::Error for DiscoverError {}
 /// # Errors
 ///
 /// [`DiscoverError`], every variant exit 2: outside git with no paths,
-/// git failing, or a named path that does not exist or cannot be read.
+/// git failing, or a named path that does not exist, cannot be read, or
+/// is a symlink (`src:V128`). A symlink FOUND rather than named is
+/// skipped with a [`SYMLINK_SKIPPED`] warning instead.
 pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverError> {
     discover_with(root, paths, &|| Command::new("git"))
 }
@@ -129,10 +163,7 @@ fn discover_with(
     paths: &[PathBuf],
     git: &dyn Fn() -> Command,
 ) -> Result<Candidates, DiscoverError> {
-    Ok(Candidates {
-        files: list(root, paths, git)?,
-        warnings: Vec::new(),
-    })
+    symlink::screen(root, paths, list(root, paths, git)?)
 }
 
 /// Every path discovery would scan, sorted and deduplicated.
