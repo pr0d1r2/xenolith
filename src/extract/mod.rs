@@ -796,11 +796,7 @@ fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result
     // Loads in `ready` order are back to front already.
     for (p, m) in ready {
         let Some(load) = loads.iter().find(|l| l.path == Path::new(&m.load)) else {
-            return Err(format!(
-                "the {} host's load of {} is not read back as one (languages/api/src/lens:V34)",
-                host.id(),
-                m.load
-            ));
+            return Err(unread_load(p, m, host.id()));
         };
         back = host.inline(&back, load, &m.body).map_err(|e| {
             format!(
@@ -833,6 +829,34 @@ fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result
         }
     }
     Ok(())
+}
+
+/// Why a rewrite's load did not read back: a rule's `invoke` the host's
+/// `loads` does not recognise is named with its rule and host, since
+/// `xnl graph` would then disagree with the rewrite (`src/extract:V68`);
+/// the guest's own invoke failing it is the host breaking
+/// `languages/api/src/lens:V34` (c).
+fn unread_load(p: &Planned<'_>, m: &Move, host: LangId) -> String {
+    let rule = p
+        .placed
+        .why
+        .iter()
+        .find(|(field, _)| *field == Field::Invoke)
+        .map(|(_, layer)| layer)
+        .filter(|_| p.placed.invoke.is_some());
+    match rule {
+        Some(layer) => format!(
+            "{layer}: invoke `{}` gives a load the {host} host does not read back as {} \
+             (src/extract:V68)",
+            m.invoke.argv.join(" "),
+            m.load
+        ),
+        None => format!(
+            "the {host} host's load of {} is not read back as one \
+             (languages/api/src/lens:V34)",
+            m.load
+        ),
+    }
 }
 
 /// Text compared with whitespace normalised (`src/extract:V4`, until
