@@ -8,7 +8,13 @@
 # rather than a glob: a glob makes a half-written crate a member the moment
 # its directory appears, and `cargo test` then fails for a reason that has
 # nothing to do with the change being made.
-members = ["languages/api", "languages/nix", "languages/shebang", "languages/shell"]
+members = [
+  "languages/api",
+  "languages/nix",
+  "languages/pkl",
+  "languages/shebang",
+  "languages/shell",
+]
 resolver = "3"
 
 [workspace.package]
@@ -91,6 +97,7 @@ toml = { version = "1", default-features = false, features = ["std", "parse", "s
 # the grammars they use -- a tree-sitter grammar is the largest thing in
 # this closure, and `xnl` with two languages should not ship eighteen.
 xenolith-lang-nix = { path = "languages/nix", version = "0.1.0", optional = true }
+xenolith-lang-pkl = { path = "languages/pkl", version = "0.1.0", optional = true }
 xenolith-lang-shell = { path = "languages/shell", version = "0.1.0", optional = true }
 
 # `default` = every language, so `xnl` works out of the box and a subset
@@ -104,8 +111,9 @@ xenolith-lang-shell = { path = "languages/shell", version = "0.1.0", optional = 
 # (`src:V30`), because a module that reaches across a feature gate
 # compiles fine in the default build and breaks only in a consumer's.
 [features]
-default = ["lang-nix", "lang-shell"]
+default = ["lang-nix", "lang-pkl", "lang-shell"]
 lang-nix = ["dep:xenolith-lang-nix"]
+lang-pkl = ["dep:xenolith-lang-pkl"]
 lang-shell = ["dep:xenolith-lang-shell"]
 
 [lints]

@@ -316,6 +316,7 @@ dependencies = [
  "toml",
  "xenolith-lang-api",
  "xenolith-lang-nix",
+ "xenolith-lang-pkl",
  "xenolith-lang-shell",
 ]
 
@@ -331,6 +332,15 @@ name = "xenolith-lang-nix"
 version = "0.1.0"
 dependencies = [
  "rnix",
+ "xenolith-lang-api",
+]
+
+[[package]]
+name = "xenolith-lang-pkl"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter",
  "xenolith-lang-api",
 ]
 
