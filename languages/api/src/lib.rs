@@ -28,6 +28,9 @@
 pub mod shebang;
 pub mod site;
 
+#[cfg(test)]
+mod tests;
+
 use std::fmt;
 use std::path::{Path, PathBuf};
 

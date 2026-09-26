@@ -17,6 +17,9 @@ pub use xenolith_shebang::{
 
 use crate::LangId;
 
+#[cfg(test)]
+mod tests;
+
 /// The interpreters each language answers to, by basename.
 ///
 /// A TABLE rather than a chain of `contains` checks: the property that
