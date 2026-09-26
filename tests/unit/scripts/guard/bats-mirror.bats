@@ -10,6 +10,12 @@
 # script it covered was renamed, and nothing said so.
 
 setup() {
+  # tests:V150: a hook exports GIT_DIR and friends, and they beat `git -C`
+  # (tests:B1). Drop every GIT_* variable, keep git off the user's and the
+  # system's config, and stop repository discovery at the test's own tmpdir.
+  unset "${!GIT_@}"
+  export GIT_CONFIG_GLOBAL="${BATS_TEST_TMPDIR}/gitconfig" GIT_CONFIG_NOSYSTEM=1
+  export GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR"
   SCRIPT="${BATS_TEST_DIRNAME}/../../../../scripts/guard/bats-mirror.sh"
   REPO="${BATS_TEST_TMPDIR}/repo"
   mkdir -p "$REPO"

@@ -36,7 +36,7 @@ id|status|task|cites
 T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
 T117|.|local corpus runner: `xnl check`/`extract --dry-run` over sibling repos, writes aggregate report only; finding → fixture checklist|V118
 T118|.|proptest harness over laws + cargo-fuzz targets (nix, shell, pkl first)|V119
-T151|.|git sandbox in ∀ git-touching bats `setup` + per-file hook-env regression test over a sentinel repo|V150,B1,`scripts:C13`
+T151|x|git sandbox in ∀ git-touching bats `setup` + per-file hook-env regression test over a sentinel repo|V150,B1,`scripts:C13`
 
 ## §B BUGS
 
