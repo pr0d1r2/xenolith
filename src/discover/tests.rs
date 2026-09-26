@@ -396,6 +396,36 @@ fn an_explicit_directory_in_a_repository_means_its_tracked_files() {
 }
 
 #[test]
+fn an_explicit_directory_with_no_tracked_file_is_refused_with_exit_2() {
+    // A directory named in a repository means its tracked files, so one
+    // holding only untracked and ignored files yields nothing -- and an
+    // empty scan exiting 0 reads, in a gate, as that directory clean.
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, ".gitignore", "*.log\n");
+    write(&root, "top.sh", "echo t\n");
+    sandbox.run_git(&root, &["add", "."]);
+    write(&root, "d/untracked.sh", "echo u\n");
+    write(&root, "d/debug.log", "noise\n");
+    let e = refused(&sandbox, &root, &["top.sh", "d"]);
+    assert_eq!(e.exit_code(), 2);
+    let text = e.to_string();
+    assert!(text.starts_with("d: "), "{text}");
+    assert!(text.contains("src:V57"), "{text}");
+}
+
+#[test]
+fn an_explicit_empty_directory_outside_git_is_refused_with_exit_2() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "a.sh", "echo a\n");
+    fs::create_dir_all(root.join("d/e")).unwrap_or_else(|e| panic!("mkdir: {e}"));
+    let e = refused(&sandbox, &root, &["a.sh", "d"]);
+    assert_eq!(e.exit_code(), 2);
+    assert!(e.to_string().starts_with("d: "), "{e}");
+}
+
+#[test]
 fn an_explicit_directory_is_a_literal_path_not_a_glob() {
     // A directory named `d*` must not also pull in `dx/`: git reads
     // pathspecs as globs unless told otherwise.
