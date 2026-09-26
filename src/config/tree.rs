@@ -31,7 +31,7 @@ use std::fmt;
 use std::fs;
 use std::path::Path;
 
-use super::{Config, FILE, parse};
+use super::{Config, FILE, Verb, parse};
 
 #[cfg(test)]
 mod tests;
@@ -110,13 +110,15 @@ impl Tree {
     /// each of `files` (root relative), `root`'s own excluded: that one
     /// is `config`, loaded by the caller. A directory without the file
     /// adds nothing; a path reaching outside the root (`..`, absolute)
-    /// adds nothing either, since nothing above the root is read.
+    /// adds nothing either, since nothing above the root is read. A file
+    /// the configs above it exclude from `verb` is not read either: an
+    /// excluded tree is never opened, its configs included.
     ///
     /// # Errors
     ///
     /// A [`TreeError`] naming the file that cannot be read, does not
     /// parse, or breaks `src/config:V70`.
-    pub fn load<'p, I>(root: &Path, config: Config, files: I) -> Result<Tree, TreeError>
+    pub fn load<'p, I>(root: &Path, config: Config, verb: Verb, files: I) -> Result<Tree, TreeError>
     where
         I: IntoIterator<Item = &'p str>,
     {
@@ -133,10 +135,15 @@ impl Tree {
         }
         // Each layer is merged ONCE, onto its parent's resolved config
         // (`src/config:B2`): `dirs` is sorted, so a directory comes
-        // before everything beneath it.
+        // before everything beneath it -- and so the configs above a
+        // file decide whether `verb` excludes it before it is opened
+        // (`src/config:V79`, `src/config:B3`).
         let mut tree = Tree::new(config);
         for dir in dirs {
             let name = file_in(&dir);
+            if tree.config_for(&name).excluded(verb, &name).is_some() {
+                continue;
+            }
             let path = root.join(&name);
             if !path.is_file() {
                 continue;

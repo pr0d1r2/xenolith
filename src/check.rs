@@ -210,7 +210,12 @@ pub(crate) fn check_with(
 ) -> Result<Report, CheckError> {
     let candidates = discover_with(root, &options.paths, git)?;
     let names: Vec<String> = candidates.files.iter().map(|f| repo_name(f)).collect();
-    let tree = Tree::load(root, config.clone(), names.iter().map(String::as_str))?;
+    let tree = Tree::load(
+        root,
+        config.clone(),
+        Verb::Check,
+        names.iter().map(String::as_str),
+    )?;
     let mut report = Report::new();
     for warning in candidates.warnings {
         report.warn(warning);

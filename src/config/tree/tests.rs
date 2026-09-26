@@ -330,6 +330,7 @@ fn load_reads_every_file_on_the_way_down_and_skips_directories_without_one() {
     let tree = Tree::load(
         &root,
         Config::default(),
+        Verb::Check,
         ["a/b/c/x.nix", "d/y.nix", "top.nix"],
     )
     .unwrap_or_else(|e| panic!("{e}"));
@@ -356,10 +357,40 @@ fn load_merges_each_layer_once_to_the_same_tree_with_builds() {
             .with(dir, ok(&text))
             .unwrap_or_else(|e| panic!("{e}"));
     }
-    let loaded = Tree::load(&root, Config::default(), files.iter().map(String::as_str))
-        .unwrap_or_else(|e| panic!("{e}"));
+    let loaded = Tree::load(
+        &root,
+        Config::default(),
+        Verb::Check,
+        files.iter().map(String::as_str),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(loaded, expected);
     assert_eq!(int(loaded.config_for("a/b/c/x.nix"), "extract.depth"), 3);
+}
+
+#[test]
+fn load_never_opens_a_config_its_verb_excludes() {
+    // `src/config:V79`, `src/config:B3`: the root excludes `vendor` from
+    // every verb and `a` excludes `gen` from `lint` only.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("t");
+    write(&root, "vendor/xenolith.toml", "broken");
+    write(&root, "a/gen/xenolith.toml", "version = 1\n");
+    write(
+        &root,
+        "a/xenolith.toml",
+        "version = 1\n[lint]\nexclude = [{ glob = \"gen\", reason = \"generated\" }]\n",
+    );
+    let given = ok("version = 1\n[[exclude]]\nglob = \"vendor\"\nreason = \"third party\"\n");
+    let files = ["vendor/x.nix", "a/gen/y.nix"];
+    let dirs = |verb| {
+        let tree = Tree::load(&root, given.clone(), verb, files).unwrap_or_else(|e| panic!("{e}"));
+        tree.layers()
+            .map(|(dir, _)| dir.to_owned())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(dirs(Verb::Check), vec!["", "a", "a/gen"]);
+    assert_eq!(dirs(Verb::Lint), vec!["", "a"]);
 }
 
 #[test]
@@ -370,7 +401,8 @@ fn load_keeps_the_root_config_it_is_given() {
     let root = sandbox.plain("t");
     write(&root, "xenolith.toml", "this is not toml");
     let given = ok("version = 1\n[extract]\ndepth = 2\n");
-    let tree = Tree::load(&root, given.clone(), ["x.nix"]).unwrap_or_else(|e| panic!("{e}"));
+    let tree =
+        Tree::load(&root, given.clone(), Verb::Check, ["x.nix"]).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(tree.config_for("x.nix"), &given);
 }
 
@@ -381,7 +413,7 @@ fn load_never_reads_outside_the_root() {
     write(&outer, "xenolith.toml", "broken");
     let root = outer.join("inner");
     write(&root, "x.nix", "");
-    let tree = Tree::load(&root, Config::default(), ["../x.nix", "x.nix"])
+    let tree = Tree::load(&root, Config::default(), Verb::Check, ["../x.nix", "x.nix"])
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(tree.layers().count(), 1);
 }
@@ -395,7 +427,7 @@ fn a_nested_file_that_does_not_parse_is_refused_naming_it_and_the_key() {
         "a/xenolith.toml",
         "version = 1\n[langs]\nbogus = 1\n",
     );
-    let e: TreeError = Tree::load(&root, Config::default(), ["a/x.nix"])
+    let e: TreeError = Tree::load(&root, Config::default(), Verb::Check, ["a/x.nix"])
         .err()
         .unwrap_or_else(|| panic!("a broken nested file is refused"));
     assert_eq!(e.file, "a/xenolith.toml");
@@ -408,7 +440,7 @@ fn a_nested_file_without_version_is_refused() {
     let sandbox = Sandbox::new();
     let root = sandbox.plain("t");
     write(&root, "a/xenolith.toml", "[langs]\nunclaimed = \"warn\"\n");
-    let e = Tree::load(&root, Config::default(), ["a/x.nix"])
+    let e = Tree::load(&root, Config::default(), Verb::Check, ["a/x.nix"])
         .err()
         .unwrap_or_else(|| panic!("version is required in every file"));
     assert_eq!(e.file, "a/xenolith.toml");
