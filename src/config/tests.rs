@@ -26,6 +26,12 @@ fn ok(text: &str) -> super::Config {
     }
 }
 
+fn nth<T>(items: &[T], i: usize) -> &T {
+    items
+        .get(i)
+        .unwrap_or_else(|| panic!("expected an item at {i}, found {}", items.len()))
+}
+
 fn err(text: &str) -> ConfigError {
     match parse(text) {
         Ok(config) => panic!("expected a refusal, got: {config:?}"),
@@ -50,7 +56,7 @@ fn a_file_without_version_is_refused_naming_the_supported_one() {
 fn an_unknown_version_is_refused_naming_the_supported_one() {
     let e = err("version = 2\n");
     assert_eq!(e.key, "version");
-    assert!(e.message.contains("2"), "{e}");
+    assert!(e.message.contains('2'), "{e}");
     assert!(e.message.contains("supported: 1"), "{e}");
 }
 
@@ -145,7 +151,7 @@ base = "ci/scripts"
     assert_eq!(config.extract.shell.strict, Strict::Enforce);
 
     assert_eq!(config.extract.rules.len(), 2);
-    let first = &config.extract.rules[0];
+    let first = nth(&config.extract.rules, 0);
     assert_eq!(first.host, Some(LangId::Nix));
     assert_eq!(first.sink.as_deref(), Some("systemd.services.*.script"));
     assert_eq!(first.guest, Some(LangId::Shell));
@@ -166,7 +172,7 @@ base = "ci/scripts"
     assert_eq!(first.executable, Some(true));
     assert_eq!(first.companion.as_deref(), Some("tests/{path_stem}.bats"));
 
-    let second = &config.extract.rules[1];
+    let second = nth(&config.extract.rules, 1);
     assert_eq!(second.host, None);
     assert_eq!(second.guest, Some(LangId::Python));
     assert_eq!(second.base, Some(Base::Dir("ci/scripts".to_owned())));
@@ -207,7 +213,7 @@ fn a_depth_below_one_is_refused() {
 // [[allow]] (`src/config:V9`, `src/config:V10`)
 // ---------------------------------------------------------------------
 
-const ALLOW: &str = r##"
+const ALLOW: &str = r#"
 version = 1
 
 [[allow]]
@@ -215,13 +221,13 @@ path = "hosts/web/default.nix"
 sink = "systemd.services.foo.script"
 hash = "3f2a9c"
 reason = "upstream module expects an inline script; tracked in #12"
-"##;
+"#;
 
 #[test]
 fn an_allow_entry_is_keyed_by_path_sink_and_hash() {
     let config = ok(ALLOW);
     assert_eq!(config.allow.len(), 1);
-    let allow = &config.allow[0];
+    let allow = nth(&config.allow, 0);
     assert_eq!(allow.path, "hosts/web/default.nix");
     assert_eq!(allow.sink, "systemd.services.foo.script");
     assert_eq!(allow.hash, "3f2a9c");
@@ -253,11 +259,12 @@ fn an_allow_entry_with_a_blank_reason_is_refused() {
 #[test]
 fn an_allow_entry_missing_any_key_part_is_refused() {
     for part in ["path", "sink", "hash"] {
-        let text: String = ALLOW
+        let prefix = format!("{part} =");
+        let kept: Vec<&str> = ALLOW
             .lines()
-            .filter(|line| !line.starts_with(&format!("{part} =")))
-            .map(|line| format!("{line}\n"))
+            .filter(|line| !line.starts_with(&prefix))
             .collect();
+        let text = kept.join("\n");
         let e = err(&text);
         assert_eq!(e.key, format!("allow[0].{part}"));
     }
@@ -298,7 +305,7 @@ fn an_allow_entry_with_a_wildcard_path_is_refused() {
 
 #[test]
 fn the_lint_map_parses() {
-    let config = ok(r##"
+    let config = ok(r#"
 version = 1
 
 [lint]
@@ -313,7 +320,7 @@ extend = false
 
 [lint.python]
 checks = ["ruff check {file}"]
-"##);
+"#);
     assert!(!config.lint.hosts);
     assert_eq!(config.lint.all, vec!["typos {file}".to_owned()]);
     assert_eq!(config.lint.timeout, 30);
@@ -497,7 +504,7 @@ fn the_derived_rule_base_is_overridable_per_rule() {
     let entry = TABLE.iter().find(|e| e.key == "extract.rule.base");
     assert!(matches!(entry.map(|e| &e.value), Some(Setting::Derived(_))));
     let config = ok("version = 1\n[[extract.rule]]\nhost = \"nix\"\nbase = \"host\"\n");
-    assert_eq!(config.extract.rules[0].base, Some(Base::Host));
+    assert_eq!(nth(&config.extract.rules, 0).base, Some(Base::Host));
 }
 
 #[test]
