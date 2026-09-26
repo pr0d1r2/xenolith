@@ -40,9 +40,10 @@ V100: extract whose body is trivial for its guest (incl. threshold) → warning 
 | M1 | nix + pkl + shell end-to-end | T21, T52 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T21|.|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
+T21|x|`graph`: load-edge extraction per host idiom; dangling & orphan detection|V7
 T52|x|extract roots from rules, layout & host dirs; orphan scan over roots only|V50,V7
 
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|shell host registered (`src:B11`), `loads` ⊥ ∴ `loads-unsupported` warned on named-path runs & rootless trees, where no orphan scan runs|warn only when a scan would run: whole-tree ∧ ≥1 root

@@ -220,7 +220,11 @@ impl<'a> Scan<'a> {
     /// The orphan judgement, then the graph (`src/graph:V7`). `whole` is
     /// a run over every tracked file.
     pub(crate) fn finish(mut self, whole: bool) -> Graph {
-        for (lang, count) in &self.unknown {
+        // Said only where an orphan scan would have run: a whole-tree run
+        // with at least one extract root. A named-path run judges no orphan
+        // anyway, and with no root there is nothing to judge (`src/graph:B1`).
+        let scanned = whole && self.roots.prefixes().next().is_some();
+        for (lang, count) in self.unknown.iter().filter(|_| scanned) {
             self.report.warn(Warning {
                 code: LOADS_UNSUPPORTED.to_owned(),
                 file: None,

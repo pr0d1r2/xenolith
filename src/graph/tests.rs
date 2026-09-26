@@ -474,6 +474,23 @@ fn a_named_path_run_judges_no_orphan() {
 }
 
 #[test]
+fn a_host_without_loads_is_not_mentioned_where_no_orphan_scan_runs() {
+    // `src/graph:B1`: the warning explains a skipped orphan scan, so a
+    // named-path run (never scanned) and a tree with no extract root
+    // (nothing to scan) stay silent.
+    let sandbox = Sandbox::new();
+    let mut files = orphan_tree();
+    files.push(("b.noload", "anything\n"));
+    let root = repo(&sandbox, &files);
+    let named = ok(&sandbox, &root, &Config::default(), &["b.noload"]);
+    assert!(codes(&named).is_empty(), "{:?}", codes(&named));
+    let bare = Sandbox::new();
+    let rootless = repo(&bare, &[("b.noload", "anything\n")]);
+    let whole = ok(&bare, &rootless, &Config::default(), &[]);
+    assert!(codes(&whole).is_empty(), "{:?}", codes(&whole));
+}
+
+#[test]
 fn a_host_without_loads_stops_the_orphan_scan_and_says_so() {
     let sandbox = Sandbox::new();
     let mut files = orphan_tree();

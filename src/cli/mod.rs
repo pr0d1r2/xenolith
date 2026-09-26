@@ -15,16 +15,18 @@
 //! * [`check`] -- `xnl check`: config in, the engine's report out
 //!   (`src:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
+//! * [`graph`] -- `xnl graph`: config in, the graph engine's edges and
+//!   findings out (`src/graph:V7`).
 //! * [`lint`] -- `xnl lint`: config in, the lint engine's results out
 //!   (`src/lint:V8`).
 //! * [`migrate`] -- `xnl migrate`: legacy per-file allowlists turned
 //!   into per-site `[[allow]]` entries by running that same engine
 //!   (`src/cli:T97`).
 //!
-//! The scanning verbs whose engines have not landed parse every flag and
-//! path and then REFUSE with exit 2, naming the task that brings their
+//! A verb whose engine has not landed (`extract`) parses every flag and
+//! path and then REFUSES with exit 2, naming the task that brings its
 //! engine. Refusing matters more than it looks: a binary that accepts
-//! `xnl graph` and exits 0 having scanned nothing is indistinguishable,
+//! `xnl extract` and exits 0 having done nothing is indistinguishable,
 //! in a gate, from one that scanned the tree and found it clean. Wiring
 //! an engine in is replacing its arm's [`not_yet`] with one call and a
 //! render, as `check`'s arm did.
@@ -145,7 +147,16 @@ fn dispatch(
                 err,
             )
         }),
-        Verb::Graph(scan) => scanning(err, "graph", scan, "src/graph:T21"),
+        Verb::Graph(scan) => sarif(err, "graph", scan).unwrap_or_else(|| {
+            graph::run(
+                root,
+                scan,
+                invocation.verbose,
+                invocation.strict_hosts,
+                out,
+                err,
+            )
+        }),
         Verb::Lint {
             scan,
             fix,
@@ -184,12 +195,6 @@ fn sarif(err: &mut impl Write, verb: &str, scan: &Scan) -> Option<u8> {
             ),
         )
     })
-}
-
-/// A scanning verb whose engine has not landed; `--format sarif` is
-/// refused first, by [`sarif`].
-fn scanning(err: &mut impl Write, verb: &str, scan: &Scan, task: &str) -> u8 {
-    sarif(err, verb, scan).unwrap_or_else(|| not_yet(err, verb, task))
 }
 
 /// Refuse `verb`, naming the task that brings it.
