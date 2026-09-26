@@ -135,6 +135,47 @@ fn a_newline_inside_an_interpolation_is_not_a_string_line() {
 }
 
 #[test]
+fn a_crlf_body_evaluates_as_its_lf_twin() {
+    // Pkl reads `\r\n`, `\r` and `\n` alike as one newline in a string
+    // and each evaluates to `\n` (`languages/pkl:B1`).
+    for lf in [
+        "\n  a\n    b\n  ",
+        "\na\nb\n",
+        "\n",
+        "\n    ",
+        "\n  a\n\n  b\n  ",
+        "\n    a\n  \n    b\n    ",
+        "\n  a\n\n  ",
+    ] {
+        let want = ok(0, lf);
+        assert_eq!(ok(0, &lf.replace('\n', "\r\n")), want, "{lf:?} as CRLF");
+        assert_eq!(ok(0, &lf.replace('\n', "\r")), want, "{lf:?} as CR");
+    }
+    // `\n\r` is two line breaks, not one.
+    assert_eq!(ok(1, "\r\n  a\\#tb\r\n  c\n\r  "), "a\tb\nc\n");
+    // Inside a hole the line break is pkl expression text, kept as is.
+    assert_eq!(
+        ok(0, "\r\n    a \\(f(\r\n1)) b\r\n    "),
+        "a \\(f(\r\n1)) b"
+    );
+}
+
+#[test]
+fn an_escaped_cr_stays_a_cr() {
+    assert_eq!(ok(0, "\r\n  a\\r\r\n  "), "a\r");
+}
+
+#[test]
+fn a_crlf_layout_is_still_checked() {
+    assert!(is_parse_error(&unescape(&pkl(0), "a\r\n  ")));
+    assert!(is_parse_error(&unescape(&pkl(0), "\r\n  a\r\n  b")));
+    assert!(is_parse_error(&unescape(
+        &pkl(0),
+        "\r\n    a\r\n  b\r\n    "
+    )));
+}
+
+#[test]
 fn unescape_refuses_what_pkl_would_not_parse() {
     assert!(is_parse_error(&unescape(&pkl(0), "\n  a \"\"\" b\n  ")));
     assert!(is_parse_error(&unescape(&pkl(0), "\n  \\(\n  ")));
@@ -296,6 +337,16 @@ fn indentation_skips_newlines_inside_holes() {
         Ok(vec![(0, 1), (11, 14), (1, 3)])
     );
     assert!(is_parse_error(&indentation(raw, &[])));
+}
+
+#[test]
+fn indentation_ranges_cover_a_crlf_whole() {
+    // Host bytes: the opening and closing ranges take both bytes of a
+    // `\r\n`, an indent starts after its `\n`.
+    assert_eq!(
+        indentation("\r\n  a\r\n  ", &[]),
+        Ok(vec![(0, 2), (5, 9), (2, 4)])
+    );
 }
 
 #[test]

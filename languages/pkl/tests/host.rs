@@ -184,6 +184,36 @@ fn interpolations_are_holes() {
 }
 
 #[test]
+fn a_crlf_config_gives_the_sites_and_bodies_of_its_lf_twin() {
+    // `languages/pkl:B1`: the same steps saved with CRLF line endings
+    // are the same sites holding the same scripts, so the guest's
+    // verdict cannot differ. Spans stay on the host's own bytes.
+    let crlf = |text: &str| text.replace('\n', "\r\n");
+    for case in ["hk-step-script", "hk-step-holes"] {
+        let lf = fixture(case);
+        let dos = crlf(&lf);
+        let (lf_sites, dos_sites) = (sites(&lf), sites(&dos));
+        assert_eq!(sinks(&dos_sites), sinks(&lf_sites), "{case}");
+        for (a, b) in lf_sites.iter().zip(&dos_sites) {
+            assert_eq!(b.delim.kind, a.delim.kind, "{case} {}", a.sink);
+            assert_eq!(body(&dos, b), body(&lf, a), "{case} {}", a.sink);
+            let raw = a.delim.body.of(&lf).map(crlf);
+            assert_eq!(b.delim.body.of(&dos).map(str::to_owned), raw, "{case}");
+            let holes = |site: &Site, src: &str| -> Vec<String> {
+                site.holes
+                    .iter()
+                    .map(|hole| crlf(hole.of(src).unwrap_or_default()))
+                    .collect()
+            };
+            assert_eq!(holes(b, &dos), holes(a, &lf), "{case} {}", a.sink);
+        }
+    }
+    for case in ["inert-strings", "not-hk"] {
+        assert!(sites(&crlf(&fixture(case))).is_empty(), "{case}");
+    }
+}
+
+#[test]
 fn inert_strings_are_not_sites() {
     // Comments, a non-sink property and a `check` outside any step entry
     // (`languages:V2`).
