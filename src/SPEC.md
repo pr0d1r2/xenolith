@@ -49,12 +49,13 @@ V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracke
 V95: scan parallel per file, results merged then sorted (V11) ∴ output byte-identical to serial run; `--jobs N` (default cores).
 V120: scan throughput recorded (files/s over the M2 corpus & a synthetic large tree); regression beyond recorded budget = warning `slow-scan`, ⊥ gate failure (timing noise); budget raise only w/ Why.
 V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & discovery ⊥ follows symlinked dirs — a tracked symlink may point outside the repo, & the same bytes would be reported twice under 2 paths. named explicitly → exit 2 saying so (`src/extract:V71`, `src/graph:V72` are the write & graph halves).
+V152: `xenolith::check` = ONE engine: candidates (V57, V128, `src/config:V79`) → registry hosts claim (V41, V13) → `Host::sites` → guest ∈ `guests()` (V42) → `Guest::trivial` relaxed by `[threshold]` (`src/config:V55`) → non-trivial ∧ ⊥ `[[allow]]` → `Violation` (V1); unmatched allow → `stale-allow` (`src/config:V9`). `src/cli` renders & maps exit codes only.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88, T127, T142 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88, T127, T142, T153 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
@@ -69,6 +70,7 @@ T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
 T119|.|benchmark harness + recorded budget file|V120,V95
 T127|.|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
 T142|x|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
+T153|.|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,T46,T58
 
 ## §B BUGS
 
