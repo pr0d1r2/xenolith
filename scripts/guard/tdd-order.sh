@@ -64,8 +64,12 @@ for commit in $commits; do
   # fixture, a Rust test module that sits beside the code rather than
   # under `tests/` -- is the evidence this guard is looking for, not the
   # implementation it gates.
+  #
+  # The literal `test(` is QUOTED rather than backslash-escaped: bash reads
+  # both the same, but tree-sitter-bash 0.25 turns `test\(*` into an ERROR
+  # node, and then `xnl check` cannot read this file at all.
   case "$subject" in
-  test:* | test\(*)
+  test:* | 'test('*)
     seen_test_commit=true
     continue
     ;;
