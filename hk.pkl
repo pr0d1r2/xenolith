@@ -322,6 +322,15 @@ local all = (fast) {
     glob = List("**/*.sh", "**/*.bats")
     check = "scripts/guard/bats-mirror.sh"
   }
+  // Its Rust twin (`scripts/guard:V140`, `src:C139`): every `.rs` with
+  // logic has a `tests.rs` beside it wired by `#[cfg(test)] mod tests;`,
+  // and every `tests.rs` has its module. Push-side for the same reason
+  // (`scripts/guard:B1`): the RED mirror lands a commit before the module
+  // that wires it.
+  ["rust-mirror"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    check = "scripts/guard/rust-mirror.sh"
+  }
 
   // No private repo name in a tracked file (`scripts/guard:V23`,
   // `scripts/guard:C17`). Whole-repo and push-side: the denylist can

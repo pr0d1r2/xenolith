@@ -40,7 +40,7 @@ T7|x|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs
 T29|x|private-name denylist guard (gitignored list) + bats|V23,C17
 T47|.|`scripts/guard/crate-deps.sh` + bats: from `cargo metadata`, api ⊥ grammar dep & ⊥ features, language crate ⊥ depends on root \| other language crate; hk pre-push|`languages/api:V32`,C13
 T115|.|history audit script (`git log -p` over refs to push vs denylist) + bats; run once before first push|V117,V23
-T141|.|`scripts/guard/rust-mirror.sh` + bats: 1-to-1 `.rs` ↔ `tests.rs` over `git ls-files`, closed exemption list, orphan & unwired `tests.rs` fail; hk step in `all` (pre-push, B1)|V140,`src:C139`,`scripts:C13`
+T141|x|`scripts/guard/rust-mirror.sh` + bats: 1-to-1 `.rs` ↔ `tests.rs` over `git ls-files`, closed exemption list, orphan & unwired `tests.rs` fail; hk step in `all` (pre-push, B1)|V140,`src:C139`,`scripts:C13`
 
 ## §B BUGS
 
