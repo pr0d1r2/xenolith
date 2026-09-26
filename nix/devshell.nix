@@ -40,6 +40,10 @@ pkgs.mkShell {
     pkgs.bats
     pkgs.shellcheck
     pkgs.shfmt
+    # `xnl lint`'s default checks for an sh-family extract call it
+    # (`src/lint` §I, `languages/shell` guest), and a missing tool is exit 2,
+    # not a pass: the dogfood lint needs it the day a `#!/bin/sh` file lands.
+    pkgs.checkbashisms
 
     # Nix gates this very file. The flake decides what every other step runs
     # with, so drift here is drift everywhere. statix and deadnix catch what
