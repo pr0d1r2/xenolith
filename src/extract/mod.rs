@@ -707,6 +707,7 @@ fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result
         );
     }
     let path = p.placed.path.clone();
+    write::guard(root, &path)?;
     let present = match fs::read(root.join(&path)) {
         Ok(bytes) if bytes == text.as_bytes() => true,
         Ok(_) => {
