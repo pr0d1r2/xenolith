@@ -33,7 +33,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - `[[detect]]`: `host`?, `sink`? (glob), `path`? (glob), `guest` — forces guest for matching sites, overrides detection.
 - `[langs] missing_guest` ∈ `error` (default) \| `warn` \| `ignore`: site whose guest is compiled out.
 - file: `xenolith.toml` — schema & defaults in `src/config` §I: `version`, `[extract]`, `[[extract.rule]]`, `[extract.shell]`, `[[allow]] path, sink, hash, reason`, `[[exclude]]` & per-verb `exclude`, `[[detect]]`, `[lint.<guest>]`, `[langs]`, `[parse]`, `[threshold.*]`.
-- discovery: `xenolith.toml` in any dir; file's effective config = merge root → file's dir (nearest last): scalars override, tables deep-merge, lists (`allow`, `exclude`, `rule`, `detect`, checks) append; globs relative to declaring file; staleness judged within declaring file's subtree; ⊥ file = defaults (convention over configuration).
+- discovery: `xenolith.toml` in any dir; file's effective config = merge root → file's dir (nearest last): scalars override, tables deep-merge, entry lists (`allow`, `exclude` & per-verb, `rule`, `detect`, `lint.all`, `checks`, `fixers`) append, `threshold.shell.allow` overrides as a scalar; globs & `[[allow]] path` relative to declaring file's dir; staleness judged within declaring file's subtree; root = dir `xnl` runs in, ⊥ ancestor above it (V88); ⊥ file = defaults (convention over configuration).
 - `[threshold.load] param_prefix` (default `""`): prefix for derived param names (e.g. `XNL_`).
 
 ## §V INVARIANTS

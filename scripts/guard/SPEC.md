@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-repo guardrail scripts hk calls: commit-msg, bats mirror, rust mirror, TDD order, private-name denylist.
+repo guardrail scripts hk calls: commit-msg, bats mirror, rust mirror, TDD order, private-name denylist, node config (`.:V90`).
 
 ## §N NAV
 

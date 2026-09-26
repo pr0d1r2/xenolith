@@ -33,7 +33,7 @@ sib|docs|public project docs & notices
 
 ## §I INTERFACES
 
-- lib: `xenolith::check(&Path, &Config, &check::Options) -> Result<Report, CheckError>` (`Options` = paths; `Report` = sorted violations + warnings; `CheckError` = the exit-2 refusals: discovery, missing guest), `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
+- lib: `xenolith::check(&Path, &Config, &check::Options) -> Result<Report, CheckError>` (`Config` = root's; nested `xenolith.toml` read by the engine, per file `src/config` §I; `Options` = paths; `Report` = sorted violations + warnings; `CheckError` = the exit-2 refusals: discovery, nested config, missing guest), `xenolith::extract(...) -> Edit`, `xenolith::graph(...) -> Graph`.
 
 ## §V INVARIANTS
 
