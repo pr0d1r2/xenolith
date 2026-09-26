@@ -58,7 +58,7 @@ T158|x|`''` dedent & escapes before guest sees body (`languages/api/src/lens:V39
 T159|x|shell init attrs → shell, dialect per program; fixture|B1,`tests:V118`
 T160|x|T157 ∀ whole text arg of `writeScript`/`writeText`; fixture|B1,`tests:V118`
 T161|x|sink value wrapped once in `mk*` order/priority = its site; fixture|B1,`tests:V118`
-T170|.|`rewrite`/`inline`/`escape`; laws (a)-(c) & `escape_law` ∀ fixture site|V170,V53,`languages/api/src/lens:V34`
+T170|x|`rewrite`/`inline`/`escape`; laws (a)-(c) & `escape_law` ∀ fixture site|V170,V53,`languages/api/src/lens:V34`
 
 ## §B BUGS
 

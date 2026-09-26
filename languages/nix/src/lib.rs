@@ -18,6 +18,7 @@
 mod escape;
 mod loads;
 mod placement;
+mod rewrite;
 mod sinks;
 mod unescape;
 
@@ -80,16 +81,22 @@ impl Host for NixHost {
         Ok(loads::loads(&parse(src)?))
     }
 
-    /// Not offered yet: writing the V53 load is its own task
-    /// (`languages/nix:V53`). Refused loudly rather than answered with the
-    /// source unchanged (`languages/api:V37`).
-    fn rewrite(&self, _src: &str, _site: &Site, _invoke: &Invoke, _path: &Path) -> Result<String> {
-        Err(Error::unsupported(LangId::Nix, "rewrite"))
+    /// The string becomes `nix-shebang.lib.readWithoutStrict ./<path>`
+    /// (`languages/nix:V53`, `languages/nix:V170`), parenthesised where an
+    /// argument goes; what cannot round-trip is refused by name
+    /// (`rewrite`).
+    ///
+    /// `invoke` is not read: nix runs the text the load reads, in the
+    /// sink that ran the string, so the guest's command line has nowhere
+    /// to go (`languages/api:V35` -- the load IS nix's wrapping).
+    fn rewrite(&self, src: &str, site: &Site, _invoke: &Invoke, path: &Path) -> Result<String> {
+        rewrite::rewrite(src, site, path)
     }
 
-    /// Not offered yet; see [`NixHost::rewrite`].
-    fn inline(&self, _src: &str, _load: &LoadRef, _body: &str) -> Result<String> {
-        Err(Error::unsupported(LangId::Nix, "inline"))
+    /// The load becomes a string holding `body`: `''…''` indented under
+    /// the load's line when the body has a line break, `"…"` when not.
+    fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
+        rewrite::inline(src, load, body)
     }
 
     /// What bash runs: a `''` body dedented and its `''` escapes decoded,
