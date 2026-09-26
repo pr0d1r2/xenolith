@@ -181,7 +181,7 @@ fn format_names_are_exact() {
 
 #[test]
 fn verbose_and_strict_hosts_are_accepted_by_every_verb() {
-    for verb in ["check", "graph", "lint", "langs"] {
+    for verb in ["check", "graph", "lint", "langs", "migrate"] {
         let got = ok(&[verb, "--verbose", "--strict-hosts"]);
         assert!(got.verbose, "{verb}");
         assert!(got.strict_hosts, "{verb}");
@@ -452,6 +452,35 @@ fn langs_has_no_sarif() {
 fn langs_takes_no_paths() {
     let message = usage(&["langs", "x.nix"]);
     assert!(message.contains("`x.nix`"), "{message}");
+}
+
+// ---------------------------------------------------------------------
+// migrate (`src/cli:T97`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn migrate_defaults_to_the_diff() {
+    assert_eq!(ok(&["migrate"]).verb, Verb::Migrate { write: false });
+    assert_eq!(Verb::Migrate { write: false }.name(), "migrate");
+}
+
+#[test]
+fn migrate_takes_write_verbose_and_strict_hosts() {
+    let got = ok(&["migrate", "--write", "--verbose", "--strict-hosts"]);
+    assert_eq!(got.verb, Verb::Migrate { write: true });
+    assert!(got.verbose);
+    assert!(got.strict_hosts);
+}
+
+#[test]
+fn migrate_takes_no_paths_and_no_format() {
+    // The legacy lists sit at the root under fixed names (`src/cli` §I):
+    // a path operand would suggest a choice the verb does not offer.
+    let message = usage(&["migrate", "x.nix"]);
+    assert!(message.contains("`x.nix`"), "{message}");
+    assert!(message.contains("migrate"), "{message}");
+    let message = usage(&["migrate", "--format", "json"]);
+    assert!(message.contains("`--format`"), "{message}");
 }
 
 // ---------------------------------------------------------------------

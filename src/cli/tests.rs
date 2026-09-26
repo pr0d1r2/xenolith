@@ -120,6 +120,8 @@ fn no_arguments_prints_the_usage_on_stderr() {
         "graph",
         "lint",
         "langs",
+        "migrate",
+        "--write",
         "--format",
         "--verbose",
         "--strict-hosts",
@@ -194,6 +196,21 @@ fn check_is_routed_to_its_engine_not_refused() {
     assert_eq!(code, EXIT_USAGE, "{err}");
     assert!(!err.contains("not implemented"), "{err:?}");
     assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
+fn migrate_is_routed_to_its_engine_not_refused() {
+    // `src/cli:T97`: with no legacy list at the root there is nothing to
+    // migrate, which is success and silence (`src/cli` §I).
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["migrate"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, 0, "{err}");
+    assert!(out.is_empty(), "{out:?}");
+    assert!(err.is_empty(), "{err:?}");
 }
 
 #[test]

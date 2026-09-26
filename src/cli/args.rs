@@ -122,6 +122,13 @@ pub enum Verb {
         /// How to render the list.
         format: OutputFormat,
     },
+    /// `xnl migrate`: legacy per-file allowlists into `xenolith.toml`
+    /// (`src/cli:T97`). Takes no paths: the lists sit at the root under
+    /// fixed names.
+    Migrate {
+        /// `--write`: create the file rather than print the diff.
+        write: bool,
+    },
 }
 
 impl Verb {
@@ -135,6 +142,7 @@ impl Verb {
             Verb::Graph(_) => "graph",
             Verb::Lint { .. } => "lint",
             Verb::Langs { .. } => "langs",
+            Verb::Migrate { .. } => "migrate",
         }
     }
 }

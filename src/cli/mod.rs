@@ -34,6 +34,7 @@ use self::args::{Invocation, OutputFormat, Scan, Usage, Verb};
 pub mod args;
 pub mod check;
 pub mod langs;
+pub mod migrate;
 
 #[cfg(test)]
 mod tests;
@@ -139,6 +140,14 @@ fn dispatch(
         Verb::Graph(scan) => scanning(err, "graph", scan, "src/graph:T21"),
         Verb::Lint { scan, .. } => scanning(err, "lint", scan, "src/lint:T24"),
         Verb::Extract { .. } => not_yet(err, "extract", "src/extract:T22"),
+        Verb::Migrate { write } => migrate::run(
+            root,
+            *write,
+            invocation.verbose,
+            invocation.strict_hosts,
+            out,
+            err,
+        ),
     }
 }
 
