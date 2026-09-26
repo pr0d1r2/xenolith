@@ -88,12 +88,9 @@ impl ShellGuest {
     /// (`languages/shell:V138`): zsh the bash grammar cannot read is
     /// ours to support, not the author's to fix.
     ///
-    /// Beside the trait, like [`ShellGuest::invoke_in`]: `trivial` has
-    /// no env, and without the dialect a rejected body is only broken
-    /// shell (`languages:V77`). Asked before `trivial`, a `Some` is the
-    /// finding and neither of the others is.
-    #[must_use]
-    pub fn unsupported(&self, body: &str, env: &GuestEnv) -> Option<&'static str> {
+    /// The body of [`Guest::unsupported`], kept here so its doc sits with
+    /// the other shell-specific answers.
+    fn zsh_unsupported(body: &str, env: &GuestEnv) -> Option<&'static str> {
         classify_in(body, env)
             .is_ok_and(|found| found.unsupported)
             .then_some(ZSH_UNSUPPORTED)
@@ -103,6 +100,10 @@ impl ShellGuest {
 impl Guest for ShellGuest {
     fn id(&self) -> LangId {
         LangId::Shell
+    }
+
+    fn unsupported(&self, body: &str, env: &GuestEnv) -> Option<&'static str> {
+        Self::zsh_unsupported(body, env)
     }
 
     fn extension(&self, env: &GuestEnv) -> &'static str {

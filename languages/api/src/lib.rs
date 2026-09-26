@@ -479,6 +479,21 @@ pub trait Guest {
         Err(Error::unsupported(self.id(), "constructs"))
     }
 
+    /// The reason `body` is owed a judgement INSTEAD of a verdict, when this
+    /// guest meets dialect syntax it cannot judge -- zsh the bash grammar
+    /// cannot read (`languages/shell:V138`). Asked before
+    /// [`Guest::trivial`]: a `Some` is the finding, and neither `trivial`
+    /// nor [`Guest::constructs`] is consulted for that body.
+    ///
+    /// It takes the site's [`GuestEnv`] because the dialect decides it;
+    /// `trivial` has no env, and without the dialect a rejected body is
+    /// only broken code (`languages:V77`). The default is `None`: a guest
+    /// with one dialect judges every body it can parse.
+    fn unsupported(&self, body: &str, env: &GuestEnv) -> Option<&'static str> {
+        let _ = (body, env);
+        None
+    }
+
     /// What goes above the body in an extract file, given the dialect and
     /// options in force at the site.
     ///

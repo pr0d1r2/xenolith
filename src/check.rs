@@ -396,7 +396,12 @@ fn judge_site(
     // flagged as such: judging the raw bytes instead would be a verdict
     // on text nothing executes.
     let why = match host.unescape(&site.delim, &guest_text(src, site)) {
-        Ok(body) => verdict(*guest, &body, config),
+        // Dialect syntax the guest cannot judge is its own finding, a
+        // judgement rather than "unparseable" (`languages/shell:V138`).
+        Ok(body) => guest
+            .unsupported(&body, &site.env)
+            .map(str::to_owned)
+            .or_else(|| verdict(*guest, &body, config)),
         Err(e) => Some(format!("unparseable {lang} string: {e}")),
     };
     let Some(why) = why else {
