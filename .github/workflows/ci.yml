@@ -10,7 +10,8 @@
 #
 # PENDING, listed rather than silently absent, because a gap you can read
 # is not the same failure as a gap you cannot:
-#   * `nix build .#default` -- no package exists yet (`nix:T26`)
+#   * the dogfood check -- `xnl check`/`graph`/`lint` do not exist yet
+#     (`src/cli:T9`, `.:T28`); `nix/checks.nix` names the gap
 #   * cargo steps -- no crate exists yet; the spec federates first (`.:C22`)
 #   * release and publish (`nix:T108`-`nix:T112`)
 
@@ -100,4 +101,9 @@ jobs:
       # The flake itself must evaluate on this platform. It is what every
       # step above ran inside, so a flake that only evaluates on one system
       # is a toolchain claim that holds for one machine.
+      #
+      # It also BUILDS every `checks` output: `packages.default`, the cargo
+      # suite and clippy (`nix/checks.nix`). Those store paths are what the
+      # cachix step above pushes on `main` (`nix:C7`), so the binary a
+      # consumer substitutes is the one this run built and tested.
       - run: nix flake check

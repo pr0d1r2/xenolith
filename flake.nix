@@ -72,6 +72,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       nix-hk,
       itok,
@@ -115,6 +116,24 @@
         ];
     in
     {
+      # The `xnl` binary, from the committed `Cargo.lock` (`nix` §I, `nix:T26`).
+      packages = forAll (
+        { pkgs, ... }:
+        {
+          default = import ./nix/package.nix { inherit pkgs; };
+        }
+      );
+
+      # test and clippy over the package's own source set; dogfood is
+      # pending the CLI verbs (`nix/checks.nix`).
+      checks = forAll (
+        { pkgs, system }:
+        import ./nix/checks.nix {
+          inherit pkgs;
+          package = self.packages.${system}.default;
+        }
+      );
+
       devShells = forAll (
         { pkgs, system }:
         {
