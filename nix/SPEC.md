@@ -48,7 +48,7 @@ V113: packaged content proven: `cargo package` ∀ crate & `cargo test` from the
 
 id|status|task|cites
 T1|x|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
-T26|.|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,`.:V19`
+T26|x|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,`.:V19`
 T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,C8

@@ -124,8 +124,8 @@
         }
       );
 
-      # test and clippy over the package's own source set; dogfood is
-      # pending the CLI verbs (`nix/checks.nix`).
+      # test and clippy over the package's own source set, and dogfood: the
+      # packaged `xnl check` over the whole tree (`nix/checks.nix`).
       checks = forAll (
         { pkgs, system }:
         import ./nix/checks.nix {

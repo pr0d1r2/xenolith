@@ -38,9 +38,18 @@
     dontFixup = true;
   });
 
-  # PENDING: dogfood (`.:C19`, `.:V19`). It is `xnl check`, `xnl graph` and
-  # `xnl lint` over this repo. The CLI parses all three but refuses them
-  # until their engines land (`src:T153` first), and the green run itself is
-  # `.:T28`. Named here rather than stubbed: a check that ran `xnl --version`
-  # under the name `dogfood` would pass while proving nothing it claims.
+  # Dogfood (`.:V19`, `.:C19`, `nix:T26`): the PACKAGED `xnl check` over the
+  # flake's whole source tree, through `scripts/nix/dogfood.sh` -- one
+  # command here, so this file passes the check it runs. The hk `dogfood`
+  # step proves the tree's own build; this proves the binary cachix ships.
+  # git is an input because discovery asks git first even for an explicit
+  # directory, then walks it when the tree is no repository (`src:V57`).
+  # `graph` and `lint` join when their engines land (`src/graph:T21`,
+  # `src/lint:T24`).
+  dogfood = pkgs.runCommand "xenolith-dogfood" {
+    nativeBuildInputs = [
+      package
+      pkgs.git
+    ];
+  } "bash ${../scripts/nix/dogfood.sh} ${../.} $out";
 }
