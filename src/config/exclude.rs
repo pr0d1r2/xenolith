@@ -14,9 +14,10 @@
 //! GLOBS are matched here rather than by a crate (`src:C5`); the syntax
 //! is small and closed:
 //!
-//! * relative to the repo root (to the declaring file once nested
-//!   configs land, `.:T91`), `/`-separated, anchored -- `*.png` is the
-//!   top level only, `**/*.png` is everywhere;
+//! * relative to the declaring file's directory, rebased to the root
+//!   as the file is read (`tree.rs`, `.:T91`), `/`-separated, anchored
+//!   -- `*.png` is that directory's top level only, `**/*.png` is
+//!   everywhere beneath it;
 //! * `*` any run within one segment, `?` one character, `[abc]`,
 //!   `[a-z]`, `[!a]` one character of a class -- none crosses a `/`;
 //! * a `**` segment spans zero or more segments;
