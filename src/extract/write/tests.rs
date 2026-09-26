@@ -157,3 +157,37 @@ fn the_host_keeps_its_own_mode() {
     let mode = fs::metadata(root.join("h.toy")).map_or(0, |m| m.permissions().mode() & 0o777);
     assert_eq!(mode, 0o750);
 }
+
+// ---------------------------------------------------------------------
+// one writer (T126)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_concurrent_write_is_refused_and_writes_nothing() {
+    // src/extract:V127: V64's all-or-nothing assumes one rewriter.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "h.toy", "old\n");
+    let held = crate::extract::lock::Lock::take(&root).unwrap_or_else(|e| panic!("{e}"));
+    let plan = edit(vec![new_file("h/x.sh", "x\n", true, false)]);
+    let err = apply(&root, &plan).err().unwrap_or_default();
+    assert!(err.contains("src/extract:V127"), "{err}");
+    assert!(!root.join("h/x.sh").exists());
+    assert_eq!(read(&root, "h.toy"), "old\n");
+    drop(held);
+    apply(&root, &plan).unwrap_or_else(|e| panic!("{e}"));
+    assert!(!root.join(crate::extract::lock::FILE).exists());
+}
+
+#[test]
+fn a_host_changed_since_the_plan_is_refused_and_nothing_is_written() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "h.toy", "someone else's edit\n");
+    let plan = edit(vec![new_file("h/x.sh", "x\n", true, false)]);
+    let err = apply(&root, &plan).err().unwrap_or_default();
+    assert!(err.contains("h.toy"), "{err}");
+    assert!(err.contains("changed"), "{err}");
+    assert!(!root.join("h/x.sh").exists());
+    assert_eq!(read(&root, "h.toy"), "someone else's edit\n");
+}

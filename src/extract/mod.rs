@@ -30,6 +30,7 @@
 //!   layer decided it (`src/extract:V45`).
 //! * [`diff`] -- unified diffs of whole files.
 //! * [`write`] -- `--write`.
+//! * [`lock`] -- one writer at a time (`src/extract:V127`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -49,6 +50,7 @@ use crate::registry;
 use self::place::{Ask, Field, Placed, Vars};
 
 pub mod diff;
+pub mod lock;
 pub mod place;
 pub mod write;
 
