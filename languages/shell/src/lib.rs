@@ -16,5 +16,5 @@
 pub mod classify;
 pub mod guest;
 
-pub use crate::classify::{Classification, Construct, classify};
+pub use crate::classify::{Classification, Construct, ZSH_UNSUPPORTED, classify, classify_in};
 pub use crate::guest::ShellGuest;

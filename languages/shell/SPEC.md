@@ -56,7 +56,7 @@ T15|.|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fi
 T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving extract passes shellcheck|V51
 T83|.|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82
 T135|.|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
-T136|.|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt` stays simple, flags, anon fn, glob qualifier|V138,V82,`languages:V132`
+T136|x|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt` stays simple, flags, anon fn, glob qualifier|V138,V82,`languages:V132`
 T149|x|`src:C139` backfill: `languages/shell/src/classify/tests.rs`, `languages/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
@@ -65,3 +65,4 @@ id|date|cause|fix
 B1|2026-09-21|`classify` returns `Err` ∀ zsh-only syntax (`setopt err_exit`, `() { print hi }`) ∵ tree-sitter-bash ⊥ parse it, while V82 says unsupported zsh construct → `Judgment`. shipped in `c103f5b`: 2-state `Classification` (simple \| constructs) had ⊥ 3rd state to return ∴ Err was the only exit|V138,T136
 B2|2026-09-26|`classify("cat <<< hi")` → simple ∵ tree-sitter-bash parses `<<<` as `herestring_redirect`, ⊥ `file_redirect`, & `construct_of` had ⊥ row for it ∴ V3 "⊥ redirect" missed herestrings. found by the `src:C139` backfill (`classify/tests.rs`); fix: `herestring_redirect` → `redirect`|V3,T149
 B3|2026-09-26|sh site w/ options = [`pipefail`] → prelude `set -` ∵ `set_line` drops `pipefail` for sh (V51, ⊥ POSIX) & nothing is left, yet `strict_line` still returned `Some`; `set -` ⊥ no-op (bash: turns `-v`/`-x` off). found by the `src:C139` backfill (`guest/tests.rs`); fix: sh w/ only `pipefail` → ⊥ strict line|V51,V82,T149
+B4|2026-09-26|zsh site (`languages/nix:T159`) w/ valid `${(f)x}`, `*(N)` → `unparseable shell` ∵ classifier ⊥ saw `env.dialect`. fix: `classify_in`, zsh & grammar rejects → `unsupported`; engine ⊥ asks yet|V138,T136

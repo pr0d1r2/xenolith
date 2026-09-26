@@ -14,7 +14,7 @@ use xenolith_lang_api::{
     FileArg, Format, Guest, GuestEnv, Invoke, LangId, LintCmd, Prelude, Result, Shebang,
 };
 
-use crate::classify;
+use crate::classify::{ZSH_UNSUPPORTED, classify, classify_in};
 
 #[cfg(test)]
 mod tests;
@@ -30,7 +30,7 @@ pub struct ShellGuest;
 
 /// The shell families this crate distinguishes (`languages/shell:V82`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Family {
+pub(crate) enum Family {
     /// POSIX sh, and the shells that stand in for it: dash, ksh.
     Posix,
     /// bash.
@@ -81,6 +81,22 @@ impl ShellGuest {
         Invoke {
             argv: vec![dialect_name(env).to_owned(), path.display().to_string()],
         }
+    }
+
+    /// The why of the `Judgment` a body is owed INSTEAD of a verdict, or
+    /// `None` when `trivial` and `constructs` decide it
+    /// (`languages/shell:V138`): zsh the bash grammar cannot read is
+    /// ours to support, not the author's to fix.
+    ///
+    /// Beside the trait, like [`ShellGuest::invoke_in`]: `trivial` has
+    /// no env, and without the dialect a rejected body is only broken
+    /// shell (`languages:V77`). Asked before `trivial`, a `Some` is the
+    /// finding and neither of the others is.
+    #[must_use]
+    pub fn unsupported(&self, body: &str, env: &GuestEnv) -> Option<&'static str> {
+        classify_in(body, env)
+            .is_ok_and(|found| found.unsupported)
+            .then_some(ZSH_UNSUPPORTED)
     }
 }
 
@@ -210,7 +226,7 @@ fn dialect_name(env: &GuestEnv) -> &str {
 /// An unknown name is treated as sh rather than bash, which is the
 /// conservative direction: a POSIX-only prelude runs under bash, while a
 /// bash prelude does not run under dash.
-fn family(env: &GuestEnv) -> Family {
+pub(crate) fn family(env: &GuestEnv) -> Family {
     match dialect_name(env) {
         "bash" => Family::Bash,
         "zsh" => Family::Zsh,

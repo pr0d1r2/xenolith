@@ -11,7 +11,9 @@
 //! misses every real one, and the grammar already knows the difference.
 
 use tree_sitter::{Node, Parser};
-use xenolith_lang_api::{Error, LangId, Result};
+use xenolith_lang_api::{Error, GuestEnv, LangId, Result};
+
+use crate::guest::{Family, family};
 
 #[cfg(test)]
 mod tests;
@@ -99,6 +101,11 @@ impl Construct {
 }
 
 /// What a body turned out to be.
+///
+/// Three states, not two (`languages/shell:V138`): simple, a script with
+/// named constructs, or zsh the bash grammar cannot read. The third is
+/// neither of the others -- calling it simple would leave a script
+/// inline unseen, and calling it broken would be wrong about valid zsh.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Classification {
     /// Whether this is one simple command, and so may stay inline.
@@ -107,7 +114,15 @@ pub struct Classification {
     /// with three pipes reports `pipeline` once, and the same body always
     /// reports the same list (`src:V11`).
     pub constructs: Vec<Construct>,
+    /// A zsh body the bash grammar rejects: a `Judgment`, never simple
+    /// and with no constructs, since an `ERROR` tree names none reliably
+    /// (`languages:V78`).
+    pub unsupported: bool,
 }
+
+/// The why of the `Judgment` an unsupported zsh body gets
+/// (`languages/shell:V138`).
+pub const ZSH_UNSUPPORTED: &str = "zsh construct unsupported";
 
 /// The one command substitution `languages/shell:V3` permits.
 ///
@@ -118,7 +133,7 @@ pub struct Classification {
 /// itself. Matched EXACTLY, so `$(anything-else)` is still a construct.
 const ALLOWED_SUBSTITUTION: &str = "$(dirname \"${BASH_SOURCE[0]}\")";
 
-/// Classify a shell body.
+/// Classify a shell body, as bash: the site's dialect unknown.
 ///
 /// # Errors
 ///
@@ -127,6 +142,23 @@ const ALLOWED_SUBSTITUTION: &str = "$(dirname \"${BASH_SOURCE[0]}\")";
 /// (`languages:V77`): calling it simple would leave broken shell inline,
 /// and naming a construct in it would name something nobody wrote.
 pub fn classify(body: &str) -> Result<Classification> {
+    classify_in(body, &GuestEnv::default())
+}
+
+/// Classify a shell body in the dialect its site established
+/// (`languages/shell:V82`).
+///
+/// For sh and bash the grammar IS the language, so a rejected body is
+/// broken. For zsh it is only the base (`languages:V132`): a body it
+/// rejects may be valid zsh the grammar has no rule for -- `${(f)x}`,
+/// `*(N)`, `() { … }` -- and is [`Classification::unsupported`]
+/// rather than an error (`languages/shell:V138`). Which of the two it
+/// is takes a zsh parser to say, and this crate has none.
+///
+/// # Errors
+///
+/// As [`classify`], outside zsh.
+pub fn classify_in(body: &str, env: &GuestEnv) -> Result<Classification> {
     let mut parser = Parser::new();
     parser
         .set_language(&tree_sitter_bash::LANGUAGE.into())
@@ -137,6 +169,13 @@ pub fn classify(body: &str) -> Result<Classification> {
 
     let root = tree.root_node();
     if root.has_error() {
+        if family(env) == Family::Zsh {
+            return Ok(Classification {
+                simple: false,
+                constructs: Vec::new(),
+                unsupported: true,
+            });
+        }
         return Err(Error::parse(
             LangId::Shell,
             "this body is not valid shell, so it was neither classified nor extracted",
@@ -159,6 +198,7 @@ pub fn classify(body: &str) -> Result<Classification> {
     Ok(Classification {
         simple: constructs.is_empty(),
         constructs,
+        unsupported: false,
     })
 }
 
