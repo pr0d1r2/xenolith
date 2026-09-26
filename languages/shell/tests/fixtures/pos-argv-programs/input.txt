@@ -1,0 +1,10 @@
+python3 -c 'import sys; print(sys.version)'
+ruby -e 'puts 1'
+perl -ne 'print if /x/' notes.txt
+node --eval 'console.log(1)'
+bash -c 'ls | wc -l'
+sh -c "echo $HOME && date"
+FOO=1 /usr/bin/python3 -c 'print(1)'
+python3 -c 'print(2)' <<EOF
+this heredoc is data: the program came from -c
+EOF

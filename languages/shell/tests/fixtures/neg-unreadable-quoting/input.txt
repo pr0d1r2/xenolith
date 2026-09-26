@@ -1,0 +1,5 @@
+bash -c "echo \"quoted\" | wc -c"
+bash -c $'ls\nwc -l'
+bash -c ls
+bash -c 'ls'"$extra"
+python3 script.py -c 'belongs to script.py'

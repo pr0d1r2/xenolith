@@ -1,0 +1,2 @@
+awk '/^x/ { n++ } END { print n }' notes.txt
+jq -r '.items[] | select(.ok) | .name' data.json

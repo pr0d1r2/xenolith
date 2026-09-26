@@ -1,0 +1,11 @@
+# `-c`/`-e` arguments, in each interpreter's own flag spelling: perl
+# bundles `-ne`, node spells `--eval`. A leading assignment and an
+# absolute interpreter path change nothing. A heredoc under `-c` is data.
+python3 -c | python | ' | - | - | "import sys; print(sys.version)"
+ruby -e | ruby | ' | - | - | "puts 1"
+perl -ne | perl | ' | - | - | "print if /x/"
+node --eval | js | ' | - | - | "console.log(1)"
+bash -c | shell | ' | - | - | "ls | wc -l"
+sh -c | shell | " | - | $HOME | "echo $HOME && date"
+python3 -c | python | ' | - | - | "print(1)"
+python3 -c | python | ' | - | - | "print(2)"

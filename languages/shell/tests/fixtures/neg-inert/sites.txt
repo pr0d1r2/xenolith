@@ -1,0 +1,2 @@
+# `languages:V2`: the same text in a comment or in an inert string is
+# data. Only a command whose NAME is the interpreter makes a site.

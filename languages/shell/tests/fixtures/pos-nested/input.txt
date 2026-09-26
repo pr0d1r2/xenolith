@@ -1,0 +1,13 @@
+report() {
+  if [ -n "${1:-}" ]; then
+    python3 -c 'print("in a function, in an if")'
+  fi
+}
+
+count=$(python3 - <<'PY'
+print(3)
+PY
+)
+echo "$count" | while read -r line; do
+  bash -c 'echo "$0"' "$line"
+done

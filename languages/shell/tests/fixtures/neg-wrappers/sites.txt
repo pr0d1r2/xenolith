@@ -1,0 +1,3 @@
+# The interpreter must be the plain command word (`languages/shell:V139`).
+# Reading through `env`, `sudo`, `command` or `exec` would mean parsing
+# each wrapper's own options first; a `$VAR` command is not known at all.

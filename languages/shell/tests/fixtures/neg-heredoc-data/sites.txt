@@ -1,0 +1,4 @@
+# A heredoc is stdin, and stdin is a program only when the interpreter
+# was given none otherwise (`languages/shell:V139`): `cat` runs nothing,
+# jq's and awk's stdin is their input, a script path or `-m` or `-c`
+# means the heredoc feeds that program.
