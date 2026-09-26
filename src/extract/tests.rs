@@ -384,7 +384,11 @@ fn nothing_flagged_is_an_empty_edit_and_exit_zero() {
     put(&root, "a.toy", "name=shell: echo hi\n");
     put(&root, "notes.md", "not a host\n");
     let edit = plan(&sandbox, &root, &["a.toy", "notes.md"]);
-    assert_eq!(edit, Edit::default());
+    assert!(
+        edit.hosts.is_empty() && edit.refusals.is_empty(),
+        "{edit:?}"
+    );
+    assert!(edit.warnings.is_empty(), "{edit:?}");
     assert_eq!(edit.exit_code(), 0);
     assert_eq!(edit.diff(), "");
 }
@@ -689,4 +693,75 @@ fn an_extract_placed_outside_the_host_directory_is_loaded_through_dot_dot() {
     let edit = plan_with(&sandbox, &root, toml, &["nixos/foo.toy"]);
     let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
     assert_eq!(after, ["build< sh ../scripts/build.sh\n"]);
+}
+
+// ---------------------------------------------------------------------
+// what is left alone, and why (T81)
+// ---------------------------------------------------------------------
+
+#[test]
+fn an_allowed_site_is_untouched_by_write_and_verbose_says_why() {
+    // src/extract:V80.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let body = "make && make test";
+    let toml = format!(
+        "version = 1\n[[allow]]\npath = \"a.toy\"\nsink = \"build\"\nhash = \"{}\"\n\
+         reason = \"kept on purpose\"\n",
+        crate::check::body_hash(body)
+    );
+    put(&root, "a.toy", &format!("build=shell: {body}\n"));
+    let edit = plan_with(&sandbox, &root, &toml, &["a.toy"]);
+    assert!(
+        edit.hosts.is_empty() && edit.refusals.is_empty(),
+        "{edit:?}"
+    );
+    assert_eq!(
+        edit.explain,
+        ["a.toy:1:6 build: skipped: allowed by [[allow]] (kept on purpose) (src/extract:V80)"]
+    );
+    write::apply(&root, &edit).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(read(&root, "a.toy"), format!("build=shell: {body}\n"));
+}
+
+#[test]
+fn a_trivial_site_is_skipped_as_one_that_may_stay_inline() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.toy", "name=shell: echo hi\n");
+    let edit = plan(&sandbox, &root, &["a.toy"]);
+    assert_eq!(
+        edit.explain,
+        ["a.toy:1:5 name: skipped: xnl check does not flag it, so it may stay inline"]
+    );
+}
+
+#[test]
+fn a_file_under_an_extract_exclude_is_not_read() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[extract]\nexclude = [{ glob = \"vendor\", reason = \"theirs\" }]\n";
+    put(&root, "vendor/a.toy", "build=shell: make && make test\n");
+    put(&root, "b.toy", "build=shell: make && make test\n");
+    let edit = plan_with(&sandbox, &root, toml, &["vendor/a.toy", "b.toy"]);
+    let hosts: Vec<&str> = edit.hosts.iter().map(|h| h.path.as_str()).collect();
+    assert_eq!(hosts, ["b.toy"]);
+    assert_eq!(
+        edit.explain.first().map(String::as_str),
+        Some("vendor/a.toy: skipped: excluded by `vendor` (theirs) (src/extract:V80)")
+    );
+}
+
+#[test]
+fn a_file_under_an_exclude_for_every_verb_is_skipped_by_name() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[[exclude]]\nglob = \"gen/**\"\nreason = \"generated\"\n";
+    put(&root, "gen/a.toy", "build=shell: make && make test\n");
+    let edit = plan_with(&sandbox, &root, toml, &["gen/a.toy"]);
+    assert!(edit.hosts.is_empty(), "{edit:?}");
+    assert_eq!(
+        edit.explain,
+        ["gen/a.toy: skipped: excluded by `gen/**` (generated) (src/extract:V80)"]
+    );
 }
