@@ -1,0 +1,5 @@
+# `languages/nix:T160` reads only the WHOLE text of `writeScript` and
+# `writeText`, and only its first line: plain text is the config file it
+# writes, an interpreter the api does not know (`tclsh`) or one hidden in
+# a hole (`runtimeShell`) names no guest, a `+` operand is part of a file
+# whose first line is not known, and `writeTextDir` is not on the list.

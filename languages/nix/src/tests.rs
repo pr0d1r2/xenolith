@@ -70,6 +70,22 @@ fn only_a_site_its_shebang_made_is_guest_by_shebang() {
     assert!(!NixHost.guest_by_shebang("{ broken", first));
 }
 
+#[test]
+fn builder_text_its_shebang_made_is_guest_by_shebang() {
+    // `languages/nix:T160`: the text of `writeScript` / `writeText` is a
+    // site only by its shebang, so the shebang-guest path answers for it.
+    let src = "{\n  a = pkgs.writeScript \"a\" ''\n    #!/bin/sh\n    a && b\n  '';\n  \
+               b = pkgs.writeText \"b\" \"#!/usr/bin/env python3\\nprint(1)\";\n}\n";
+    let by_shebang: Vec<(LangId, bool)> = sites(src)
+        .iter()
+        .map(|site| (site.guest, NixHost.guest_by_shebang(src, site)))
+        .collect();
+    assert_eq!(
+        by_shebang,
+        vec![(LangId::Shell, true), (LangId::Python, true)]
+    );
+}
+
 // --- span --------------------------------------------------------------
 
 #[test]

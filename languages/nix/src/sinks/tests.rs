@@ -292,10 +292,15 @@ fn builders_are_the_positional_ones_and_the_text_builder() {
         "runCommand",
         "runCommandLocal",
         TEXT_BUILDER,
+        // Positional text a shebang may claim (`languages/nix:T160`).
+        "writeScript",
+        "writeText",
     ] {
         assert!(is_builder(callee), "{callee}");
     }
-    for callee in ["mkDerivation", "writeText", "", "writeShellApp"] {
+    // `writeTextFile { text }` is an attribute value, named by its binding
+    // as T157 already names it.
+    for callee in ["mkDerivation", "writeTextFile", "", "writeShellApp"] {
         assert!(!is_builder(callee), "{callee:?}");
     }
 }
@@ -694,7 +699,64 @@ fn a_shebang_counts_only_as_a_whole_attribute_value() {
     assert_eq!(sink_of(&format!("{{ t = {body} + x; }}"), body), None);
     assert_eq!(sink_of(&format!("{{ t = [ {body} ]; }}"), body), None);
     assert_eq!(sink_of(&format!("{{ t = f {body}; }}"), body), None);
-    assert_eq!(sink_of(&format!("writeText \"n\" {body}"), body), None);
+}
+
+// --- shebang-led builder text (`languages/nix:T160`) --------------------
+
+#[test]
+fn a_shebang_led_text_argument_is_a_site() {
+    // T157's first-line read, for the whole text `writeScript` and
+    // `writeText` write out.
+    let body = r##""#!/bin/sh\na""##;
+    for callee in [
+        "writeScript",
+        "pkgs.writeScript",
+        "writeText",
+        "pkgs.writeText",
+    ] {
+        let src = format!("{callee} \"n\" {body}");
+        assert_eq!(sink_of(&src, body), Some(shell_in(Some("sh"))), "{callee}");
+    }
+    let python = r##""#!/usr/bin/env python3\nprint(1)""##;
+    assert_eq!(
+        sink_of(&format!("writeText \"n\" {python}"), python),
+        Some(Sink::Shebang {
+            guest: LangId::Python,
+            dialect: None,
+        })
+    );
+    assert_eq!(
+        path_of(&format!("{{ p = pkgs.writeScript \"n\" {body}; }}"), body),
+        "p.writeScript"
+    );
+}
+
+#[test]
+fn builder_text_without_a_shebang_or_out_of_place_is_no_site() {
+    let body = r##""#!/bin/sh\na""##;
+    // Plain text is the file it writes, a config file (`languages:V2`);
+    // an interpreter the api does not know names no guest.
+    assert_eq!(sink_of(r#"writeText "n" "a && b""#, r#""a && b""#), None);
+    let tcl = r##""#!/usr/bin/env tclsh\nputs 1""##;
+    assert_eq!(sink_of(&format!("writeScript \"n\" {tcl}"), tcl), None);
+    // The NAME argument, a third argument, an operand, another builder.
+    let src = format!("writeScript {body} \"b\"");
+    assert_eq!(sink_of(&src, body), None);
+    assert_eq!(sink_of(&format!("writeText \"n\" x {body}"), body), None);
+    assert_eq!(
+        sink_of(&format!("writeText \"n\" ({body} + x)"), body),
+        None
+    );
+    assert_eq!(sink_of(&format!("writeTextDir \"n\" {body}"), body), None);
+}
+
+#[test]
+fn a_named_builder_outranks_its_texts_shebang() {
+    let python = r##""#!/usr/bin/env python3\nprint(1)""##;
+    assert_eq!(
+        sink_of(&format!("writeShellScript \"n\" {python}"), python),
+        Some(Sink::WriteShellScript)
+    );
 }
 
 // --- program_of / shell_init_sink (`languages/nix:T159`) ---------------
