@@ -71,7 +71,7 @@ T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate
 T69|.|runtime `languages/api/src/lens:V34` (c) check for rule `invoke`; fixture w/ unrecognisable invoke → exit 2|V68
 T72|.|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
 T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
-T84|.|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
+T84|x|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 T85|.|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`

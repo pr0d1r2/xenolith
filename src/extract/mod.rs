@@ -691,7 +691,9 @@ fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result
         .host
         .unescape(&p.site.delim, raw)
         .map_err(|e| format!("the body cannot be read as its guest reads it: {e}"))?;
+    place::charset(&p.placed.path)?;
     let load = place::load_path(name, &p.placed.path, &p.placed.base);
+    place::charset(&load)?;
     let invoke = invoke(p, &load)?;
     let prelude = prelude(p)?;
     let mut body_nl = body.clone();

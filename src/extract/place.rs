@@ -516,6 +516,28 @@ pub fn load_path(host_path: &str, extract: &str, base: &Base) -> String {
     }
 }
 
+/// Refuse a path that could break out of the host syntax it is written
+/// into -- a nix path, a pkl string, a yaml scalar (`src/extract:V83`):
+/// only `[A-Za-z0-9._/-]`, and no segment led by `-`, which a command
+/// would read as a flag.
+///
+/// # Errors
+///
+/// The path and the rule it breaks.
+pub fn charset(path: &str) -> Result<(), String> {
+    let plain = path
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || "._/-".contains(c));
+    let flag = path.split('/').any(|segment| segment.starts_with('-'));
+    if plain && !flag {
+        return Ok(());
+    }
+    Err(format!(
+        "`{path}` holds a character outside [A-Za-z0-9._/-] or a segment led by `-`, which \
+         the host's syntax could read as its own (src/extract:V83)"
+    ))
+}
+
 /// The non-empty, non-`.` segments of a `/`-separated path.
 fn segments(path: &str) -> Vec<&str> {
     path.split('/')
