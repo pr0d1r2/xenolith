@@ -1,0 +1,49 @@
+[package]
+name = "xenolith-lang-pkl"
+description = "Pkl support for xenolith: hk step sinks holding shell, on the vendored tree-sitter-pkl grammar"
+keywords = ["xenolith", "pkl", "hk", "lint"]
+categories = ["development-tools"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+# The vendored C ships in the package, or `cargo test` from crates.io has
+# no grammar to build (`languages:V121`, `tests:V14`).
+include = ["Cargo.toml", "build.rs", "src/**", "tests/**", "vendor/**"]
+
+# `languages/api:V32`: the api contract and the grammar's runtime. The
+# grammar itself is not a dependency at all -- `apple/tree-sitter-pkl` is
+# not on crates.io, so its generated C is VENDORED under
+# `vendor/tree-sitter-pkl` and compiled by `build.rs` (`languages:V121`),
+# never pulled as a git dependency, which could not be published.
+[dependencies]
+xenolith-lang-api = { path = "../api", version = "0.1.0" }
+# The parser runtime the vendored C plugs into. Same version as the shell
+# crate's, so the workspace carries one copy of it.
+tree-sitter = "0.27"
+
+[build-dependencies]
+# Compiles the vendored `parser.c` and `scanner.c`. Already in the lock
+# through tree-sitter's own build, so this adds a use, not a crate.
+cc = "1"
+
+# NOT `lints.workspace = true`, and the one difference is the reason. The
+# workspace FORBIDS `unsafe_code`, and a vendored grammar is a C function
+# reached through FFI (`languages:V121`), unsafe by construction -- a
+# published grammar crate hides the same two lines inside itself. `forbid`
+# cannot be lifted locally, so this crate restates the workspace table
+# with `unsafe_code = "deny"`, and exactly one module (`src/grammar.rs`)
+# allows it. Everything else is the workspace table verbatim; keep the two
+# in step.
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+indexing_slicing = "deny"
+pedantic = { level = "warn", priority = -1 }
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "deny"
