@@ -471,6 +471,47 @@ fn an_allow_for_a_file_this_run_did_not_scan_is_not_judged() {
     assert!(run(&root, &other, &["a.fake"]).violations().is_empty());
 }
 
+/// `[[allow]]` for `a.fake`'s `build` site, `[parse] host_errors` under
+/// `policy`.
+fn allow_under(policy: &str) -> String {
+    format!(
+        "{}[parse]\nhost_errors = \"{policy}\"\n",
+        allow("a.fake", "build", &body_hash("a && b"))
+    )
+}
+
+#[test]
+fn an_allow_for_a_file_that_did_not_parse_is_not_stale() {
+    // `src/config:V9`: stale means no site matches, and a file its host
+    // could not parse had its sites never looked at.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "!\nbuild=shell: a && b\n")]);
+    let ignore = config(&allow_under("ignore"));
+    assert_eq!(run(&root, &ignore, &["a.fake"]), Report::new());
+    std::fs::write(root.join("a.fake"), [0xff, b'\n']).unwrap_or_else(|e| panic!("write: {e}"));
+    assert_eq!(run(&root, &ignore, &["a.fake"]), Report::new());
+}
+
+#[test]
+fn a_whole_tree_run_keeps_the_allows_of_a_file_that_did_not_parse() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "a.fake", "!\nbuild=shell: a && b\n");
+    sandbox.run_git(&root, &["add", "a.fake"]);
+    let report = check_with(
+        &root,
+        &config(&allow_under("error")),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+}
+
 // ---------------------------------------------------------------------
 // candidates and claims (`src:V57`, `src/config:V79`, `src:V13`)
 // ---------------------------------------------------------------------
