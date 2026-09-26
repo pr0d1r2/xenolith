@@ -63,7 +63,7 @@ T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stal
 T56|x|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
 T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
-T80|.|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
+T80|x|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
 T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
 

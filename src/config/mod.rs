@@ -5,6 +5,8 @@
 //! allowlist (`src/config:C16`). This module turns its text into a typed
 //! [`Config`] and nothing else: APPLYING the config is each verb's job
 //! (`src` §F), and discovery and merge across nested files is `.:T91`.
+//! The matching a verb needs to apply `[[allow]]` and the exclude lists
+//! lives beside their types, in `allow.rs` and `exclude.rs`.
 //!
 //! Two rules shape every function below:
 //!
@@ -28,6 +30,7 @@ pub mod defaults;
 mod exclude;
 
 pub use allow::SiteKey;
+pub use exclude::{Exclude, Excludes, Verb};
 
 #[cfg(test)]
 mod tests;
@@ -335,6 +338,8 @@ pub struct Config {
     pub extract: Extract,
     /// `[[allow]]`, in file order.
     pub allow: Vec<Allow>,
+    /// `[[exclude]]` and the per-verb lists (`src/config:V79`).
+    pub exclude: Excludes,
     /// `[lint]` and the linter map.
     pub lint: Lint,
     /// `[langs]`.
@@ -363,6 +368,7 @@ impl Default for Config {
                 rules: Vec::new(),
             },
             allow: Vec::new(),
+            exclude: Excludes::default(),
             lint: Lint {
                 hosts: d::LINT_HOSTS,
                 all: Vec::new(),
@@ -628,12 +634,14 @@ pub fn parse(text: &str) -> Result<Config, ConfigError> {
             "langs" => parse_langs(&mut config, table(key, value)?)?,
             "parse" => parse_parse(&mut config, table(key, value)?)?,
             "threshold" => parse_threshold(&mut config, table(key, value)?)?,
-            // Schema owned by later tasks (`src/config:T80` exclude,
-            // `[[detect]]`, per-verb exclude lists). Accepted rather than
-            // rejected, so a valid file does not fail on a task that has
-            // not landed; interpreted when that task does.
+            "exclude" => config.exclude.all = exclude::parse_list(key, value)?,
+            "check" => exclude::parse_verb_table(Verb::Check, value, &mut config.exclude)?,
+            "graph" => exclude::parse_verb_table(Verb::Graph, value, &mut config.exclude)?,
+            // `[[detect]]` is schema owned by a later task. Accepted
+            // rather than rejected, so a valid file does not fail on a
+            // task that has not landed; interpreted when that task does.
             // `version` was read above.
-            "version" | "exclude" | "detect" | "check" | "graph" => {}
+            "version" | "detect" => {}
             other => return Err(ConfigError::unknown(other)),
         }
     }
@@ -680,8 +688,10 @@ fn parse_extract(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
                     .collect::<Result<_, _>>()?;
                 continue;
             }
-            // `src/config:T80`.
-            "exclude" => continue,
+            "exclude" => {
+                config.exclude.extract = exclude::parse_list(&key, value)?;
+                continue;
+            }
             _ => return Err(ConfigError::unknown(&key)),
         }
         config.set.insert(key);
@@ -818,8 +828,10 @@ fn parse_lint(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
             "hosts" => config.lint.hosts = boolean(&key, value)?,
             "all" => config.lint.all = strings(&key, value)?,
             "timeout" => config.lint.timeout = count(&key, value)?,
-            // `src/config:T80`.
-            "exclude" => continue,
+            "exclude" => {
+                config.exclude.lint = exclude::parse_list(&key, value)?;
+                continue;
+            }
             name => {
                 let guest = LangId::from_name(name).ok_or_else(|| unknown_lang(&key, name))?;
                 let entry = config.lint.guests.entry(guest).or_default();

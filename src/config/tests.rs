@@ -101,9 +101,10 @@ fn a_wrong_type_is_refused_naming_the_key() {
 
 #[test]
 fn sections_owned_by_later_tasks_are_accepted_not_rejected() {
-    // `[[exclude]]` (`src/config:T80`), `[[detect]]` and the per-verb
-    // exclude lists are schema (`src/config` §I). Rejecting them here
-    // would make a valid file fail on a task that has not landed.
+    // `[[detect]]` is schema (`src/config` §I) whose task has not landed:
+    // rejecting it would make a valid file fail. The exclude lists beside
+    // it are parsed (`src/config:T80`; their own tests are
+    // `src/config/exclude/tests.rs`) and must keep parsing alongside it.
     ok("version = 1\n\
         [[exclude]]\nglob = \"vendor/**\"\nreason = \"third party\"\n\
         [[detect]]\nguest = \"shell\"\npath = \"ci/*.nix\"\n\
