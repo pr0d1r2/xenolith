@@ -62,3 +62,4 @@ T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-26|`checks.test` sandbox had no `git`: discovery (`src:V57`) & its tests run git; T26 was verified on a tree before discovery landed ∴ `nix flake check` failed 25 lib tests after both merged|`pkgs.git` in `nativeCheckInputs` of `checks.test`; runtime closure unchanged (V29)
