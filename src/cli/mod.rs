@@ -126,8 +126,16 @@ fn dispatch(
             let _ = out.write_all(text.as_bytes());
             EXIT_OK
         }
-        Verb::Check(scan) => sarif(err, "check", scan)
-            .unwrap_or_else(|| check::run(root, scan, invocation.verbose, out, err)),
+        Verb::Check(scan) => sarif(err, "check", scan).unwrap_or_else(|| {
+            check::run(
+                root,
+                scan,
+                invocation.verbose,
+                invocation.strict_hosts,
+                out,
+                err,
+            )
+        }),
         Verb::Graph(scan) => scanning(err, "graph", scan, "src/graph:T21"),
         Verb::Lint { scan, .. } => scanning(err, "lint", scan, "src/lint:T24"),
         Verb::Extract { .. } => not_yet(err, "extract", "src/extract:T22"),

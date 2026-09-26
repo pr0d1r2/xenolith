@@ -143,6 +143,21 @@ fn a_named_path_that_does_not_exist_is_exit_two() {
     assert!(err.contains("missing.nix: no such file"), "{err:?}");
 }
 
+#[test]
+fn strict_hosts_makes_an_unclaimed_file_exit_two() {
+    // `src:V13`, `src:T75`: hk hands over every staged file; a README is
+    // ignored by default and refused under `--strict-hosts`.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    write(&root, "README.md", "# hi\n");
+    let (code, out, err) = xnl(&root, &["check", "README.md"]);
+    assert_eq!((code, out.as_str(), err.as_str()), (0, "", ""));
+    let (code, out, err) = xnl(&root, &["check", "--strict-hosts", "README.md"]);
+    assert_eq!(code, 2);
+    assert!(out.is_empty(), "{out:?}");
+    assert!(err.contains("README.md: host unsupported"), "{err:?}");
+}
+
 #[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
 #[test]
 fn a_nix_script_is_exit_one_and_a_single_command_exit_zero() {

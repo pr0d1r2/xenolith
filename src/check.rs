@@ -46,6 +46,10 @@ pub const CONFIG_FILE: &str = "xenolith.toml";
 /// under `[parse] host_errors = "warn"` (`languages:V78`).
 pub const HOST_PARSE_ERROR: &str = "host-parse-error";
 
+/// The warning code for a file no host claims, under `[langs] unclaimed
+/// = "warn"` (`src:V13`).
+pub const UNCLAIMED: &str = "host-unsupported";
+
 /// What stands in for a host interpolation (a hole) when a body is
 /// handed to its guest. A hole is HOST syntax -- nix `${…}`, pkl `\(…)` --
 /// and the guest's grammar would read it as its own, or fail on it; one
@@ -60,6 +64,9 @@ pub struct Options {
     /// The paths named, repo-root relative; empty means every tracked
     /// file (`src:V57`).
     pub paths: Vec<PathBuf>,
+    /// `--strict-hosts`: an unclaimed file refuses the run, whatever
+    /// `[langs] unclaimed` says (`src:V13`).
+    pub strict_hosts: bool,
 }
 
 /// Why a run was refused rather than carried out. Every variant is exit
@@ -71,6 +78,15 @@ pub enum CheckError {
     /// A site's guest is compiled out and `[langs] missing_guest` is
     /// `error` (`src:V42`).
     MissingGuest(MissingGuest),
+    /// No compiled-in host claims a candidate, under `--strict-hosts` or
+    /// `[langs] unclaimed = "error"` (`src:V13`).
+    Unclaimed {
+        /// The file, as reports name it.
+        file: PathBuf,
+        /// The language its extension names, when this build lacks that
+        /// language's host (`src:V30`: say which feature would bring it).
+        missing: Option<LangId>,
+    },
 }
 
 impl CheckError {
@@ -86,6 +102,21 @@ impl fmt::Display for CheckError {
         match self {
             CheckError::Discover(e) => e.fmt(f),
             CheckError::MissingGuest(e) => e.fmt(f),
+            CheckError::Unclaimed { file, missing } => {
+                write!(
+                    f,
+                    "{}: host unsupported: no host in this build claims it",
+                    file.display()
+                )?;
+                if let Some(id) = missing {
+                    write!(
+                        f,
+                        "; {id} is compiled out, rebuild with feature `{}`",
+                        registry::feature(*id)
+                    )?;
+                }
+                f.write_str(" (src:V13)")
+            }
         }
     }
 }
@@ -175,6 +206,7 @@ pub(crate) fn check_with(
             .filter(|host| host.claims(file, &head))
             .collect();
         if claimers.is_empty() {
+            unclaimed(&mut report, config, options, langs, &name)?;
             continue;
         }
         scanned.insert(name.clone());
@@ -210,6 +242,24 @@ pub(crate) fn check_with(
     }
     stale_allows(&mut report, config, root, &seen, &scanned, options, langs);
     Ok(report)
+}
+
+/// Stage 2 for a file no host claims (`src:V13`): never scanned, and by
+/// default never mentioned -- most of a tree (docs, images, lockfiles)
+/// is in no language xenolith hosts. `warn` says so per file;
+/// `--strict-hosts` or `error` refuses the run, naming the feature that
+/// would bring the host when the extension names a language this build
+/// lacks (`src:V30`).
+fn unclaimed(
+    _report: &mut Report,
+    _config: &Config,
+    _options: &Options,
+    _langs: &Langs<'_>,
+    _name: &str,
+) -> Result<(), CheckError> {
+    // RED stub (`src:T75`): every unclaimed file ignored, whatever the
+    // policy says.
+    Ok(())
 }
 
 /// Stages 4 to 6 for one site.

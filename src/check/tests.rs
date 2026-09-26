@@ -216,6 +216,7 @@ fn tree(sandbox: &Sandbox, files: &[(&str, &str)]) -> PathBuf {
 fn run_with(root: &Path, config: &Config, paths: &[&str], langs: &Langs<'_>) -> Report {
     let options = Options {
         paths: paths.iter().map(PathBuf::from).collect(),
+        ..Options::default()
     };
     let sandbox_git = || {
         // Paths are named, so discovery only runs git for a directory;
@@ -233,6 +234,7 @@ fn run(root: &Path, config: &Config, paths: &[&str]) -> Report {
 fn refused(root: &Path, config: &Config, paths: &[&str], langs: &Langs<'_>) -> CheckError {
     let options = Options {
         paths: paths.iter().map(PathBuf::from).collect(),
+        ..Options::default()
     };
     match check_with(root, config, &options, langs, &|| {
         std::process::Command::new("false")
@@ -583,6 +585,140 @@ fn a_host_parse_error_follows_parse_host_errors() {
 }
 
 // ---------------------------------------------------------------------
+// unclaimed files (`src:V13`, `src:T75`)
+// ---------------------------------------------------------------------
+
+/// The shape hk hands over: `{{files}}` is every staged file, and most of
+/// them are in no language a host claims.
+const HK_FILES: &[&str] = &["a.fake", "docs/README.md", "logo.png"];
+
+fn hk_tree(sandbox: &Sandbox) -> PathBuf {
+    let root = tree(
+        sandbox,
+        &[
+            ("a.fake", "build=shell: a && b\n"),
+            ("docs/README.md", "# readme\n"),
+        ],
+    );
+    std::fs::write(root.join("logo.png"), [0x89, b'P', b'N', b'G', 0xff, 0x00])
+        .unwrap_or_else(|e| panic!("write logo.png: {e}"));
+    root
+}
+
+fn strict(paths: &[&str]) -> Options {
+    Options {
+        paths: paths.iter().map(PathBuf::from).collect(),
+        strict_hosts: true,
+    }
+}
+
+#[test]
+fn by_default_unclaimed_files_are_neither_scanned_nor_mentioned() {
+    let sandbox = Sandbox::new();
+    let root = hk_tree(&sandbox);
+    let report = run(&root, &Config::default(), HK_FILES);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+    assert!(report.warnings().is_empty(), "{report:?}");
+}
+
+#[test]
+fn unclaimed_warn_is_one_warning_per_file_and_no_exit_code() {
+    let sandbox = Sandbox::new();
+    let root = hk_tree(&sandbox);
+    let warn = config("version = 1\n[langs]\nunclaimed = \"warn\"\n");
+    let report = run(&root, &warn, HK_FILES);
+    let warned: Vec<(&str, String)> = report
+        .warnings()
+        .iter()
+        .map(|w| {
+            let file = w.file.as_deref().map(|f| f.display().to_string());
+            (w.code.as_str(), file.unwrap_or_default())
+        })
+        .collect();
+    assert_eq!(
+        warned,
+        vec![
+            ("host-unsupported", "docs/README.md".to_owned()),
+            ("host-unsupported", "logo.png".to_owned()),
+        ]
+    );
+    assert!(
+        report
+            .warnings()
+            .iter()
+            .all(|w| w.message.contains("host unsupported")),
+        "{report:?}"
+    );
+    // The claimed file is still judged.
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
+}
+
+#[test]
+fn unclaimed_error_refuses_with_exit_two_host_unsupported() {
+    let sandbox = Sandbox::new();
+    let root = hk_tree(&sandbox);
+    let error = config("version = 1\n[langs]\nunclaimed = \"error\"\n");
+    let e = refused(&root, &error, HK_FILES, &fakes());
+    assert_eq!(e.exit_code(), 2);
+    let text = e.to_string();
+    assert!(
+        text.starts_with("docs/README.md: host unsupported"),
+        "the first unclaimed file, in report order: {text}"
+    );
+}
+
+#[test]
+fn strict_hosts_refuses_whatever_the_config_says() {
+    let sandbox = Sandbox::new();
+    let root = hk_tree(&sandbox);
+    let ignore = config("version = 1\n[langs]\nunclaimed = \"ignore\"\n");
+    let e = check_with(&root, &ignore, &strict(HK_FILES), &fakes(), &|| {
+        std::process::Command::new("false")
+    })
+    .err()
+    .unwrap_or_else(|| panic!("--strict-hosts refuses an unclaimed file"));
+    assert!(matches!(e, CheckError::Unclaimed { .. }), "{e:?}");
+    // Every file claimed: strict has nothing to refuse.
+    let clean = check_with(&root, &ignore, &strict(&["a.fake"]), &fakes(), &|| {
+        std::process::Command::new("false")
+    });
+    assert!(clean.is_ok(), "{clean:?}");
+}
+
+#[test]
+fn a_file_of_a_compiled_out_host_names_the_feature_under_strict() {
+    // `src:V30`: the fake build has no nix host, so a `.nix` file is
+    // unclaimed, and the refusal says which feature would claim it.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("default.nix", "{ }\n")]);
+    let e = check_with(
+        &root,
+        &Config::default(),
+        &strict(&["default.nix"]),
+        &fakes(),
+        &|| std::process::Command::new("false"),
+    )
+    .err()
+    .unwrap_or_else(|| panic!("refused"));
+    let text = e.to_string();
+    assert!(text.contains("`lang-nix`"), "{text}");
+    // The same under `[langs] unclaimed = "error"`.
+    let error = config("version = 1\n[langs]\nunclaimed = \"error\"\n");
+    let e = refused(&root, &error, &["default.nix"], &fakes());
+    assert!(e.to_string().contains("`lang-nix`"), "{e}");
+    // An extension naming no language names no feature.
+    write(&root, "x.txt", "");
+    let e = refused(&root, &error, &["x.txt"], &fakes());
+    assert!(!e.to_string().contains("lang-"), "{e}");
+}
+
+// ---------------------------------------------------------------------
 // the parts
 // ---------------------------------------------------------------------
 
@@ -655,6 +791,7 @@ mod nix_shell {
         let root = tree(&sandbox, &[("service.nix", text)]);
         let options = Options {
             paths: vec!["service.nix".into()],
+            ..Options::default()
         };
         check(&root, config, &options).unwrap_or_else(|e| panic!("{e}"))
     }
@@ -742,6 +879,7 @@ fn a_pkl_hk_step_holding_a_script_is_flagged() {
     let root = tree(&sandbox, &[("hk.pkl", hk.as_str())]);
     let options = Options {
         paths: vec!["hk.pkl".into()],
+        ..Options::default()
     };
     let report =
         super::check(&root, &Config::default(), &options).unwrap_or_else(|e| panic!("{e}"));
@@ -766,6 +904,7 @@ fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
     );
     let options = Options {
         paths: vec!["service.nix".into()],
+        ..Options::default()
     };
     let e = super::check(&root, &Config::default(), &options)
         .err()

@@ -21,11 +21,13 @@ use crate::model::{Report, Warning};
 #[cfg(test)]
 mod tests;
 
-/// Run `xnl check` from `root` over `scan`, writing to `out` and `err`.
+/// Run `xnl check` from `root` over `scan`, writing to `out` and `err`;
+/// `strict_hosts` is `--strict-hosts` (`src:V13`).
 pub fn run(
     root: &Path,
     scan: &Scan,
     verbose: bool,
+    strict_hosts: bool,
     out: &mut impl Write,
     err: &mut impl Write,
 ) -> u8 {
@@ -35,6 +37,7 @@ pub fn run(
     };
     let options = Options {
         paths: scan.paths.clone(),
+        strict_hosts,
     };
     match crate::check::check(root, &config, &options) {
         Ok(report) => render(&report, scan.format, verbose, out, err),
