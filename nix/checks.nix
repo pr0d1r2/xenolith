@@ -27,18 +27,14 @@
   });
 
   # Clippy with `-D warnings`, as the gate runs it (`hk.pkl` step `clippy`).
-  # Nothing to install: the verdict is the build succeeding.
+  # Nothing to install: the verdict is the build succeeding. Each phase is
+  # ONE command, so this file passes its own `xnl check` (`.:V19`, `nix:B2`):
+  # the package sets no pre/postBuild hooks for clippy to honour.
   clippy = package.overrideAttrs (old: {
     pname = "xenolith-clippy";
     nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
-    buildPhase = ''
-      runHook preBuild
-      cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
-      runHook postBuild
-    '';
-    installPhase = ''
-      touch $out
-    '';
+    buildPhase = "cargo clippy --workspace --all-targets --all-features --offline -- -D warnings";
+    installPhase = "touch $out";
     dontFixup = true;
   });
 
