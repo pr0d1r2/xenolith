@@ -403,7 +403,7 @@ fn judge_site(
         .and_then(|rest| rest.strip_prefix('/'))
         .unwrap_or(name);
     let file = file_in(dir);
-    report.push(at.violation(
+    let violation = at.violation(
         Rule::Xenolith,
         why,
         vec![
@@ -431,7 +431,8 @@ fn judge_site(
                 ),
             },
         ],
-    ));
+    );
+    report.push_site(violation, hash);
     Ok(())
 }
 
@@ -848,7 +849,7 @@ fn lexical_root(root: &Path) -> Option<PathBuf> {
 
 /// A candidate's name as config and reports spell it: repo-root
 /// relative, `/`-separated, without `./`.
-fn repo_name(path: &Path) -> String {
+pub(crate) fn repo_name(path: &Path) -> String {
     if path.is_absolute() {
         return path.display().to_string();
     }

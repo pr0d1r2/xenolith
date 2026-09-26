@@ -496,6 +496,32 @@ fn every_delimiter_kind_has_its_own_kebab_case_name() {
 }
 
 #[test]
+fn a_warning_renders_as_one_human_line_with_or_without_its_file() {
+    assert_eq!(
+        warning("x-y", Some("a.nix")).to_human(),
+        "a.nix: warning: x-y: x-y happened"
+    );
+    assert_eq!(
+        warning("x-y", None).to_human(),
+        "warning: x-y: x-y happened"
+    );
+}
+
+#[test]
+fn a_site_pushed_with_its_hash_answers_it_and_the_json_never_shows_it() {
+    let mut report = Report::new();
+    report.push_site(at("a.nix", 2, 3, Rule::Xenolith), "cafe".to_owned());
+    report.push(at("b.nix", 1, 1, Rule::StaleAllow));
+    let first = at("a.nix", 2, 3, Rule::Xenolith);
+    assert_eq!(report.allow_hash(&first), Some("cafe"));
+    assert_eq!(
+        report.allow_hash(&at("b.nix", 1, 1, Rule::StaleAllow)),
+        None
+    );
+    assert!(!report.to_json().contains("cafe"), "{}", report.to_json());
+}
+
+#[test]
 fn a_delimiter_name_ignores_the_variant_payload() {
     // The payload is detail for the rewriter; the JSON contract names the
     // kind only, so two heredocs report the same `site`.

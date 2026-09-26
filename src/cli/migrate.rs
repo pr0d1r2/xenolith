@@ -37,10 +37,9 @@ use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 
 use super::{EXIT_OK, refuse};
-use crate::check::{CONFIG_FILE, Options, body_hash};
+use crate::check::{CONFIG_FILE, Options, repo_name};
 use crate::config::{Allow, Config};
-use crate::model::{Rule, Violation, Warning};
-use crate::registry;
+use crate::model::{Rule, Warning};
 
 #[cfg(test)]
 mod tests;
@@ -122,28 +121,16 @@ pub fn parse_legacy(text: &str) -> Vec<Entry> {
                 in_block = false;
             }
             entries.push(Entry {
-                path: normalise(line),
+                // As the engine names a file (`./a//b.nix` is `a/b.nix`); an
+                // absolute path or one with `..` keeps its components, for
+                // [`unusable`] to refuse.
+                path: repo_name(Path::new(line)),
                 line: index + 1,
                 comment: current.clone(),
             });
         }
     }
     entries
-}
-
-/// `./a//b.nix` as the engine names it: `a/b.nix`. An absolute path or
-/// one with `..` keeps its components, for [`unusable`] to refuse.
-fn normalise(path: &str) -> String {
-    let path = Path::new(path);
-    if path.is_absolute() {
-        return path.display().to_string();
-    }
-    let parts: Vec<String> = path
-        .components()
-        .filter(|c| !matches!(c, Component::CurDir))
-        .map(|c| c.as_os_str().to_string_lossy().into_owned())
-        .collect();
-    parts.join("/")
 }
 
 /// The legacy lists at `root`, sorted by name. Only the root: that is
@@ -271,13 +258,18 @@ pub fn plan(root: &Path, lists: &[String], strict_hosts: bool) -> Result<Migrati
         let Some((list, entry)) = listed.get(&path) else {
             continue;
         };
-        let hash = site_hash(root, violation).ok_or_else(|| {
-            format!(
-                "xnl: {path}:{}:{}: the site the engine flagged could not be found again \
-                 to hash, so nothing was migrated",
-                violation.line, violation.col
-            )
-        })?;
+        // The engine hashed the body when it flagged the site
+        // (`src/config:V10`); nothing is parsed a second time.
+        let hash = report
+            .allow_hash(violation)
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                format!(
+                    "xnl: {path}:{}:{}: the engine flagged a site without its allow hash, so \
+                     nothing was migrated",
+                    violation.line, violation.col
+                )
+            })?;
         let allow = Allow {
             path: path.clone(),
             sink: violation.sink.clone(),
@@ -363,51 +355,6 @@ fn reason(list: &str, entry: &Entry) -> String {
     }
 }
 
-/// The allow hash of the site `violation` reports (`src/config:V10`).
-///
-/// A violation carries the site's position and sink but not its hash, so
-/// the flagged file is asked for its sites again, by the host that
-/// reported it, and the one at that position and sink is hashed with the
-/// engine's own [`body_hash`], over the same raw body the engine hashed.
-fn site_hash(root: &Path, violation: &Violation) -> Option<String> {
-    let src = fs::read_to_string(root.join(&violation.file)).ok()?;
-    let host = registry::hosts()
-        .iter()
-        .find(|host| host.id() == violation.host)?;
-    let sites = host.sites(&src).ok()?;
-    let site = sites.iter().find(|site| {
-        site.sink == violation.sink
-            && position(&src, site.delim.open.start) == (violation.line, violation.col)
-    })?;
-    Some(body_hash(site.delim.body.of(&src).unwrap_or_default()))
-}
-
-/// 1-based line and character column of byte `offset`, as the engine
-/// reports a site.
-fn position(src: &str, offset: usize) -> (usize, usize) {
-    let before = src.get(..offset).unwrap_or(src);
-    let line = before.matches('\n').count() + 1;
-    let col = before
-        .rsplit('\n')
-        .next()
-        .map_or(0, |last| last.chars().count())
-        + 1;
-    (line, col)
-}
-
-/// `<file>: warning: <code>: <message>`, as `xnl check` prints one.
-fn human_warning(warning: &Warning) -> String {
-    match &warning.file {
-        Some(file) => format!(
-            "{}: warning: {}: {}",
-            file.display(),
-            warning.code,
-            warning.message
-        ),
-        None => format!("warning: {}: {}", warning.code, warning.message),
-    }
-}
-
 /// Run `xnl migrate` from `root`, writing to `out` and `err`
 /// (`src/cli` §I).
 ///
@@ -457,7 +404,7 @@ pub fn run(
     // As everywhere in the CLI: a failed write to a stream has nowhere
     // to be reported, and the exit code still says what happened.
     for warning in &migration.warnings {
-        let _ = writeln!(err, "{}", human_warning(warning));
+        let _ = writeln!(err, "{}", warning.to_human());
     }
     let text = render(&migration.allows);
     if verbose {

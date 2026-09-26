@@ -14,6 +14,7 @@
 //!   gets suppressed.
 
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde_json::{Map, Value, json};
@@ -224,6 +225,21 @@ pub struct Warning {
 }
 
 impl Warning {
+    /// The human line: `<file>: warning: <code>: <message>`, or without
+    /// the file when there is none (`src/cli` §I).
+    #[must_use]
+    pub fn to_human(&self) -> String {
+        match &self.file {
+            Some(file) => format!(
+                "{}: warning: {}: {}",
+                file.display(),
+                self.code,
+                self.message
+            ),
+            None => format!("warning: {}: {}", self.code, self.message),
+        }
+    }
+
     fn to_value(&self) -> Value {
         let mut map = Map::new();
         map.insert("code".to_owned(), Value::String(self.code.clone()));
@@ -247,6 +263,17 @@ pub const SCHEMA: u32 = 1;
 pub struct Report {
     violations: Vec<Violation>,
     warnings: Vec<Warning>,
+    /// The `[[allow]]` body hash (`src/config:V10`) of each flagged
+    /// site, by (file, line, col, sink). Internal: never rendered, so
+    /// the JSON schema is untouched (`src/cli:V24`).
+    hashes: BTreeMap<SiteAt, String>,
+}
+
+/// Where a site is, as a violation names it.
+type SiteAt = (PathBuf, usize, usize, String);
+
+fn site_at(v: &Violation) -> SiteAt {
+    (v.file.clone(), v.line, v.col, v.sink.clone())
 }
 
 impl Report {
@@ -267,6 +294,20 @@ impl Report {
             .violations
             .partition_point(|existing| existing.report_order(&violation) == Ordering::Less);
         self.violations.insert(at, violation);
+    }
+
+    /// Add a violation at a site whose body hashes to `hash`, keeping
+    /// the hash for [`Report::allow_hash`].
+    pub fn push_site(&mut self, violation: Violation, hash: String) {
+        self.hashes.insert(site_at(&violation), hash);
+        self.push(violation);
+    }
+
+    /// The body hash an `[[allow]]` for `violation`'s site would carry,
+    /// when the engine flagged it at a site (`src/config:V10`).
+    #[must_use]
+    pub fn allow_hash(&self, violation: &Violation) -> Option<&str> {
+        self.hashes.get(&site_at(violation)).map(String::as_str)
     }
 
     /// Add a warning, keeping the list sorted by code, then file, then

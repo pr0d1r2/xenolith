@@ -16,7 +16,7 @@ use super::args::{OutputFormat, Scan};
 use super::{EXIT_OK, refuse};
 use crate::check::{CONFIG_FILE, Options};
 use crate::config::{self, Config};
-use crate::model::{Report, Warning};
+use crate::model::Report;
 
 #[cfg(test)]
 mod tests;
@@ -85,7 +85,7 @@ pub fn render(
                 let _ = writeln!(out, "{}", violation.to_human());
             }
             for warning in report.warnings() {
-                let _ = writeln!(err, "{}", human_warning(warning));
+                let _ = writeln!(err, "{}", warning.to_human());
             }
             if verbose {
                 let _ = writeln!(
@@ -101,18 +101,5 @@ pub fn render(
         EXIT_OK
     } else {
         1
-    }
-}
-
-/// `warning: <code>: <message>`, with the file first when there is one.
-fn human_warning(warning: &Warning) -> String {
-    match &warning.file {
-        Some(file) => format!(
-            "{}: warning: {}: {}",
-            file.display(),
-            warning.code,
-            warning.message
-        ),
-        None => format!("warning: {}: {}", warning.code, warning.message),
     }
 }
