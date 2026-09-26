@@ -72,7 +72,7 @@ T69|.|runtime `languages/api/src/lens:V34` (c) check for rule `invoke`; fixture 
 T72|x|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
 T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 T84|x|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
-T85|.|atomic writes & write order; test kills between extract & host write|V84
+T85|x|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
 T126|.|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64

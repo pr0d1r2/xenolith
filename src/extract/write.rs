@@ -3,13 +3,15 @@
 //! Per host, its extracts first and the host last, so a run that stops
 //! half way leaves an extract nothing loads yet -- an orphan `xnl graph`
 //! reports -- rather than a load of a file that is not there
-//! (`src/extract:V84`).
+//! (`src/extract:V84`). Each file is written whole or not at all: into
+//! a temp file beside it, synced, then renamed over it, so a reader
+//! never sees half an extract or half a host.
 
 use std::fs;
-use std::io;
+use std::io::{self, Write as _};
 use std::path::Path;
 
-use super::{Edit, NewFile};
+use super::Edit;
 
 #[cfg(test)]
 mod tests;
@@ -21,15 +23,37 @@ mod tests;
 ///
 /// The first write that failed or was refused, naming its path.
 pub fn apply(root: &Path, edit: &Edit) -> Result<Vec<String>, String> {
+    apply_with(root, edit, &mut |_| Ok(()))
+}
+
+/// [`apply`], with `before` called on each path right before it is
+/// written -- the seam a test kills a run through (`src/extract:T85`).
+pub(crate) fn apply_with(
+    root: &Path,
+    edit: &Edit,
+    before: &mut dyn FnMut(&str) -> io::Result<()>,
+) -> Result<Vec<String>, String> {
     let mut written = Vec::new();
     for host in &edit.hosts {
         for extract in host.extracts.iter().filter(|e| !e.present) {
+            let fail = |e: io::Error| format!("{}: {e}", extract.path);
             guard(root, &extract.path)?;
-            create(root, extract).map_err(|e| format!("{}: {e}", extract.path))?;
+            before(&extract.path).map_err(fail)?;
+            let path = root.join(&extract.path);
+            if let Some(dir) = path.parent() {
+                fs::create_dir_all(dir).map_err(fail)?;
+            }
+            atomic(&path, &extract.text, mode(extract.executable)).map_err(fail)?;
             written.push(extract.path.clone());
         }
+        let fail = |e: io::Error| format!("{}: {e}", host.path);
         guard(root, &host.path)?;
-        fs::write(root.join(&host.path), &host.after).map_err(|e| format!("{}: {e}", host.path))?;
+        before(&host.path).map_err(fail)?;
+        let path = root.join(&host.path);
+        // The host keeps its own mode: a rename puts the temp file's in
+        // its place otherwise.
+        let kept = fs::metadata(&path).map(|m| m.permissions()).ok();
+        atomic(&path, &host.after, kept).map_err(fail)?;
         written.push(host.path.clone());
     }
     Ok(written)
@@ -71,27 +95,63 @@ pub fn guard(root: &Path, rel: &str) -> Result<(), String> {
     }
 }
 
-/// Create one extract, with its directory and mode.
-fn create(root: &Path, file: &NewFile) -> io::Result<()> {
-    let path = root.join(&file.path);
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
+/// `text` into `path` atomically (`src/extract:V84`): a temp file in
+/// the same directory -- a rename across filesystems is a copy -- then
+/// fsync, then rename, then fsync of the directory so the rename itself
+/// survives a crash. The temp file is removed when any step fails.
+fn atomic(path: &Path, text: &str, perms: Option<fs::Permissions>) -> io::Result<()> {
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let temp = dir.join(format!(".{name}.xnl-{}.tmp", std::process::id()));
+    let result = (|| {
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp)?;
+        file.write_all(text.as_bytes())?;
+        if let Some(perms) = perms {
+            file.set_permissions(perms)?;
+        }
+        file.sync_all()?;
+        fs::rename(&temp, path)?;
+        sync_dir(dir)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temp);
     }
-    fs::write(&path, &file.text)?;
-    set_mode(&path, file.executable)
+    result
 }
 
 /// `0755` for an executable extract, `0644` otherwise.
 #[cfg(unix)]
-fn set_mode(path: &Path, executable: bool) -> io::Result<()> {
+#[allow(clippy::unnecessary_wraps)] // the twin off unix has no mode to give
+fn mode(executable: bool) -> Option<fs::Permissions> {
     use std::os::unix::fs::PermissionsExt;
-    let mode = if executable { 0o755 } else { 0o644 };
-    fs::set_permissions(path, fs::Permissions::from_mode(mode))
+    Some(fs::Permissions::from_mode(if executable {
+        0o755
+    } else {
+        0o644
+    }))
 }
 
-/// No mode bits to set off unix.
+/// No mode bits off unix.
+#[cfg(not(unix))]
+fn mode(_executable: bool) -> Option<fs::Permissions> {
+    None
+}
+
+/// Make a rename in `dir` durable.
+#[cfg(unix)]
+fn sync_dir(dir: &Path) -> io::Result<()> {
+    fs::File::open(dir)?.sync_all()
+}
+
+/// Directories cannot be opened for syncing off unix.
 #[cfg(not(unix))]
 #[allow(clippy::unnecessary_wraps)] // the unix twin can fail
-fn set_mode(_path: &Path, _executable: bool) -> io::Result<()> {
+fn sync_dir(_dir: &Path) -> io::Result<()> {
     Ok(())
 }
