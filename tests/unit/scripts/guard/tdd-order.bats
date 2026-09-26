@@ -93,6 +93,30 @@ run_guard() {
   [[ "$output" == *"test"* ]]
 }
 
+@test "a SCOPED test commit, test(scope):, is a RED commit too" {
+  commit "test(parser)" "cover the parser" src/parser/tests.rs
+  commit "feat(parser)" "add the parser" src/parser/mod.rs
+  run_guard
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+}
+
+@test "a scoped test commit is the RED side even when it adds a .rs file" {
+  commit "test(parser)" "stub the parser the test needs" src/parser/mod.rs
+  run_guard
+  [ "$status" -eq 0 ]
+}
+
+@test "a type that only STARTS with test is not a test commit" {
+  commit "tests(parser)" "not a conventional type" src/parser/tests.rs
+  commit "testing(parser)" "nor this" src/parser/more.rs
+  commit feat "add the parser" src/parser/mod.rs
+  run_guard
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"src/parser/mod.rs"* ]]
+  [[ "$output" == *"src/parser/more.rs"* ]]
+}
+
 @test "a commit that only adds tests passes" {
   commit test "cover the thing" tests/unit/scripts/dev/thing.bats
   run_guard
