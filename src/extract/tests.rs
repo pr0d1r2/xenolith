@@ -612,3 +612,47 @@ fn a_host_that_does_not_parse_is_refused_and_the_rest_proceed() {
     let hosts: Vec<&str> = edit.hosts.iter().map(|h| h.path.as_str()).collect();
     assert_eq!(hosts, ["good.toy"]);
 }
+
+// ---------------------------------------------------------------------
+// many sites in one host (T64)
+// ---------------------------------------------------------------------
+
+#[test]
+fn sites_are_rewritten_back_to_front_so_every_span_holds() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(
+        &root,
+        "a.toy",
+        "one=shell: a && b\ntwo=shell: a much longer body && c\nthree=shell: d | e\n",
+    );
+    let edit = plan(&sandbox, &root, &["a.toy"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
+    assert_eq!(
+        after,
+        ["one< sh ./a/one.sh\ntwo< sh ./a/two.sh\nthree< sh ./a/three.sh\n"]
+    );
+}
+
+#[test]
+fn one_refused_site_leaves_its_whole_file_untouched_and_others_proceed() {
+    // src/extract:V64: all or nothing per file.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let three = "one=shell: a && b\ntwo=shell: {{cc}} && c\nthree=shell: d | e\n";
+    put(&root, "a.toy", three);
+    put(&root, "b.toy", "four=shell: f && g\n");
+    let edit = plan(&sandbox, &root, &["a.toy", "b.toy"]);
+    let hosts: Vec<&str> = edit.hosts.iter().map(|h| h.path.as_str()).collect();
+    assert_eq!(hosts, ["b.toy"]);
+    let why = refusals(&edit);
+    assert!(why.contains("a.toy:2: "), "{why}");
+    assert!(why.contains("a.toy: "), "{why}");
+    assert!(why.contains("src/extract:V64"), "{why}");
+    assert_eq!(edit.exit_code(), 2);
+    write::apply(&root, &edit).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(read(&root, "a.toy"), three);
+    assert!(!root.join("a/one.sh").exists());
+    assert_eq!(read(&root, "b.toy"), "four< sh ./b/four.sh\n");
+}
