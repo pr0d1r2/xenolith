@@ -291,7 +291,7 @@ fn a_script_is_a_violation_carrying_every_field() {
     assert_eq!(v.site, DelimKind::JustRecipe);
     assert!(v.why.contains("and-or"), "{}", v.why);
     let kinds: Vec<Fix> = v.directions.iter().map(|d| d.kind).collect();
-    assert_eq!(kinds, vec![Fix::Mechanical, Fix::Judgment]);
+    assert_eq!(kinds, vec![Fix::Judgment, Fix::Judgment]);
     let allow = v
         .directions
         .last()
@@ -302,6 +302,35 @@ fn a_script_is_a_violation_carrying_every_field() {
         "the allow direction carries the key to paste: {allow}"
     );
     assert_eq!(report.exit_code(), 1);
+}
+
+#[test]
+fn the_extract_direction_never_claims_to_run_before_extract_can() {
+    // `xnl extract` refuses every host until `src/extract:T22` lands, so
+    // no direction may promise a mechanical fix -- least of all for a
+    // body the guest or the host cannot even read.
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[(
+            "a.fake",
+            "one=shell: a && b\ntwo=shell: BAD\nthree=shell: x \\!\n",
+        )],
+    );
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    assert_eq!(report.violations().len(), 3, "{report:?}");
+    for v in report.violations() {
+        let first = v
+            .directions
+            .first()
+            .unwrap_or_else(|| panic!("{v:?} has a direction"));
+        assert_eq!(first.kind, Fix::Judgment, "{v:?}");
+        assert!(first.action.contains("src/extract:T22"), "{}", first.action);
+        assert!(
+            v.directions.iter().all(|d| d.kind != Fix::Mechanical),
+            "{v:?}"
+        );
+    }
 }
 
 #[test]
