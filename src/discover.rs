@@ -90,6 +90,14 @@ pub enum DiscoverError {
         /// The directory as it was named.
         path: PathBuf,
     },
+    /// A path named explicitly is neither a directory nor a regular file
+    /// (nor a symlink, refused as [`DiscoverError::Symlink`]): a FIFO, a
+    /// socket, a device. It has no source to judge, and opening a FIFO
+    /// blocks until something writes to it.
+    NotAFile {
+        /// The path as it was named.
+        path: PathBuf,
+    },
     /// A path could not be read while listing it.
     Io {
         /// The path being read.
@@ -138,6 +146,12 @@ impl fmt::Display for DiscoverError {
                  (src:V57)",
                 path.display()
             ),
+            DiscoverError::NotAFile { path } => write!(
+                f,
+                "{}: named explicitly but is not a regular file (a FIFO, socket or \
+                 device); it has no source to scan (src:V57)",
+                path.display()
+            ),
             DiscoverError::Io { path, detail } => {
                 write!(f, "{}: {detail} (src:V57)", path.display())
             }
@@ -170,7 +184,8 @@ impl std::error::Error for DiscoverError {}
 ///
 /// [`DiscoverError`], every variant exit 2: outside git with no paths,
 /// git failing, or a named path that does not exist, cannot be read, or
-/// is a symlink (`src:V128`), or a named directory with no file to scan.
+/// is a symlink (`src:V128`) or not a regular file, or a named directory
+/// with no file to scan.
 /// A symlink FOUND rather than named is
 /// skipped with a [`SYMLINK_SKIPPED`] warning instead.
 pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverError> {
@@ -217,8 +232,10 @@ fn list(
                 return Err(DiscoverError::EmptyDir { path: path.clone() });
             }
             files.append(&mut found);
-        } else {
+        } else if scannable(meta.file_type()) {
             files.insert(path.clone());
+        } else {
+            return Err(DiscoverError::NotAFile { path: path.clone() });
         }
     }
     Ok(files.into_iter().collect())
@@ -230,8 +247,9 @@ fn list(
 /// ones; `--literal-pathspecs` because a directory named `d*` means that
 /// directory and not every one starting with `d`. `LC_ALL=C` so "not a
 /// git repository" can be told apart from every other failure in any
-/// locale. Entries the work tree no longer has, or that are directories
-/// (a submodule), have no bytes to scan and are dropped.
+/// locale. Entries the work tree no longer has, that are directories (a
+/// submodule), or that are no longer regular files (a FIFO where a file
+/// was) have no bytes to scan and are dropped.
 fn ls_files(
     root: &Path,
     within: Option<&Path>,
@@ -268,7 +286,7 @@ fn ls_files(
     for entry in out.stdout.split(|&b| b == 0).filter(|e| !e.is_empty()) {
         let path = path_from_bytes(entry)?;
         match fs::symlink_metadata(root.join(&path)) {
-            Ok(meta) if !meta.is_dir() => files.push(path),
+            Ok(meta) if scannable(meta.file_type()) => files.push(path),
             _ => {}
         }
     }
@@ -294,11 +312,22 @@ fn path_from_bytes(bytes: &[u8]) -> Result<PathBuf, DiscoverError> {
         })
 }
 
-/// Every non-directory under `dir` (relative to `root`), into `files`.
+/// Whether an entry of this kind can be a candidate: a regular file, or
+/// a symlink for `symlink::screen` to judge (`src:V128`). A FIFO, socket
+/// or device has no source to scan, and the engine opening a FIFO would
+/// block until something wrote to it -- a gate that hangs.
+fn scannable(kind: fs::FileType) -> bool {
+    kind.is_file() || kind.is_symlink()
+}
+
+/// Every regular file and symlink under `dir` (relative to `root`), into
+/// `files`.
 ///
 /// Outside a repository there is no index to ask, so the directory named
 /// is read as it stands. `DirEntry::file_type` does not follow links: a
-/// symlinked directory is an entry, not a subtree to enter.
+/// symlinked directory is an entry, not a subtree to enter. Anything else
+/// found -- a FIFO, a socket, a device -- is passed over, as git itself
+/// never lists one.
 fn walk(root: &Path, dir: &Path, files: &mut BTreeSet<PathBuf>) -> Result<(), DiscoverError> {
     let io_error = |e: io::Error| DiscoverError::Io {
         path: dir.to_path_buf(),
@@ -307,9 +336,10 @@ fn walk(root: &Path, dir: &Path, files: &mut BTreeSet<PathBuf>) -> Result<(), Di
     for entry in fs::read_dir(root.join(dir)).map_err(io_error)? {
         let entry = entry.map_err(io_error)?;
         let rel = dir.join(entry.file_name());
-        if entry.file_type().map_err(io_error)?.is_dir() {
+        let kind = entry.file_type().map_err(io_error)?;
+        if kind.is_dir() {
             walk(root, &rel, files)?;
-        } else {
+        } else if scannable(kind) {
             files.insert(rel);
         }
     }

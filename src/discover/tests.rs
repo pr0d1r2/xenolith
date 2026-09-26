@@ -572,6 +572,9 @@ fn every_refusal_names_its_spec_rule() {
         DiscoverError::EmptyDir {
             path: PathBuf::from("d"),
         },
+        DiscoverError::NotAFile {
+            path: PathBuf::from("p"),
+        },
         DiscoverError::Io {
             path: PathBuf::from("a"),
             detail: "denied".to_owned(),
