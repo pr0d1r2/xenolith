@@ -58,7 +58,7 @@ V89: convention over configuration: key whose value ≡ inherited effective valu
 
 id|status|task|cites
 T10|x|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
-T25|.|allow staleness check: unmatched `[[allow]]` = violation|V9
+T25|x|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
 T56|.|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
