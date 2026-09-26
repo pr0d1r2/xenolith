@@ -60,9 +60,9 @@ V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advi
 | M4 | CI languages -- yaml, dockerfile, just | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
-T22|.|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
+T22|x|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
 T23|.|`extract` remaining hosts (just, Dockerfile, rust, ruby, html)|V4,V5,V6
-T50|.|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
+T50|x|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
 T51|.|companion creation under `--write` w/ V4–V6 laws|V49
 T64|.|back-to-front multi-site rewrite + all-or-nothing file write; fixture w/ 3 sites, 1 refused|V64
 T65|.|fixpoint extraction w/ depth limit; fixture nix → shell → python (3 levels) & one over limit|V65

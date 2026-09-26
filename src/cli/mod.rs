@@ -15,6 +15,8 @@
 //! * [`check`] -- `xnl check`: config in, the engine's report out
 //!   (`src:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
+//! * [`extract`] -- `xnl extract`: config in, the extract engine's edit
+//!   out as a diff, or written under `--write` (`src/extract:T22`).
 //! * [`graph`] -- `xnl graph`: config in, the graph engine's edges and
 //!   findings out (`src/graph:V7`).
 //! * [`lint`] -- `xnl lint`: config in, the lint engine's results out
@@ -23,9 +25,9 @@
 //!   into per-site `[[allow]]` entries by running that same engine
 //!   (`src/cli:T97`).
 //!
-//! A verb whose engine has not landed (`extract`) parses every flag and
-//! path and then REFUSES with exit 2, naming the task that brings its
-//! engine. Refusing matters more than it looks: a binary that accepts
+//! A verb whose engine has not landed (`extract --relocate`) parses
+//! every flag and path and then REFUSES with exit 2, naming the task
+//! that brings its engine. Refusing matters more than it looks: a binary that accepts
 //! `xnl extract` and exits 0 having done nothing is indistinguishable,
 //! in a gate, from one that scanned the tree and found it clean. Wiring
 //! an engine in is replacing its arm's [`not_yet`] with one call and a
@@ -171,7 +173,17 @@ fn dispatch(
             };
             lint::run(root, scan, flags, out, err)
         }),
-        Verb::Extract { .. } => not_yet(err, "extract", "src/extract:T22"),
+        Verb::Extract { relocate: true, .. } => {
+            not_yet(err, "extract --relocate", "src/extract:T101")
+        }
+        Verb::Extract { write, targets, .. } => {
+            let flags = extract::Flags {
+                write: *write,
+                verbose: invocation.verbose,
+                strict_hosts: invocation.strict_hosts,
+            };
+            extract::run(root, targets, flags, out, err)
+        }
         Verb::Migrate { write } => migrate::run(
             root,
             *write,
