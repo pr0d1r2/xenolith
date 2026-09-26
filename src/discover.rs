@@ -31,7 +31,7 @@ use std::collections::BTreeSet;
 use std::fmt;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use crate::cli::EXIT_USAGE;
@@ -200,7 +200,43 @@ pub(crate) fn discover_with(
     paths: &[PathBuf],
     git: &dyn Fn() -> Command,
 ) -> Result<Candidates, DiscoverError> {
-    symlink::screen(root, paths, list(root, paths, git)?)
+    let named: Vec<PathBuf> = paths.iter().map(|p| normalise(root, p)).collect();
+    symlink::screen(root, &named, list(root, paths, git)?)
+}
+
+/// `path` as the one name its file is reported under: relative to
+/// `root` when it lies below it, `.` components and doubled separators
+/// gone, and `x/..` folded away when `x` is a real directory. Named as
+/// `./a.nix`, `a.nix` and by its absolute path, a file would otherwise
+/// be scanned, and reported, once per spelling.
+///
+/// `..` is folded only past a directory, never past a symlink: through
+/// a link, `link/..` is the link target's parent, and the unfolded path
+/// is what `symlink::screen` refuses (`src:V128`). A path outside `root`
+/// keeps its absolute form.
+fn normalise(root: &Path, path: &Path) -> PathBuf {
+    let below = match path.strip_prefix(root) {
+        Ok(rel) if path.is_absolute() => rel,
+        _ if path.is_absolute() => return path.components().collect(),
+        _ => path,
+    };
+    let mut out = PathBuf::new();
+    for component in below.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir
+                if matches!(out.components().next_back(), Some(Component::Normal(_)))
+                    && fs::symlink_metadata(root.join(&out)).is_ok_and(|m| m.is_dir()) =>
+            {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    if out.as_os_str().is_empty() {
+        out.push(Component::CurDir);
+    }
+    out
 }
 
 /// Every path discovery would scan, sorted and deduplicated.
@@ -213,11 +249,14 @@ fn list(
     if paths.is_empty() {
         files.extend(ls_files(root, None, git)?);
     }
-    for path in paths {
+    for named in paths {
+        let path = &normalise(root, named);
         let meta = fs::symlink_metadata(root.join(path)).map_err(|e| match e.kind() {
-            io::ErrorKind::NotFound => DiscoverError::Missing { path: path.clone() },
+            io::ErrorKind::NotFound => DiscoverError::Missing {
+                path: named.clone(),
+            },
             _ => DiscoverError::Io {
-                path: path.clone(),
+                path: named.clone(),
                 detail: e.to_string(),
             },
         })?;
@@ -229,13 +268,17 @@ fn list(
                 Err(e) => return Err(e),
             }
             if found.is_empty() {
-                return Err(DiscoverError::EmptyDir { path: path.clone() });
+                return Err(DiscoverError::EmptyDir {
+                    path: named.clone(),
+                });
             }
             files.append(&mut found);
         } else if scannable(meta.file_type()) {
             files.insert(path.clone());
         } else {
-            return Err(DiscoverError::NotAFile { path: path.clone() });
+            return Err(DiscoverError::NotAFile {
+                path: named.clone(),
+            });
         }
     }
     Ok(files.into_iter().collect())
@@ -335,7 +378,12 @@ fn walk(root: &Path, dir: &Path, files: &mut BTreeSet<PathBuf>) -> Result<(), Di
     };
     for entry in fs::read_dir(root.join(dir)).map_err(io_error)? {
         let entry = entry.map_err(io_error)?;
-        let rel = dir.join(entry.file_name());
+        // `.` (the root, named) adds nothing to a name: `a.sh`, not `./a.sh`.
+        let rel = if dir == Path::new(".") {
+            PathBuf::from(entry.file_name())
+        } else {
+            dir.join(entry.file_name())
+        };
         let kind = entry.file_type().map_err(io_error)?;
         if kind.is_dir() {
             walk(root, &rel, files)?;

@@ -249,6 +249,37 @@ fn an_explicitly_named_dangling_symlink_is_a_symlink_refusal_not_missing() {
     assert!(matches!(e, DiscoverError::Symlink { .. }), "{e:?}");
 }
 
+#[test]
+fn a_symlink_named_with_a_dot_prefix_is_still_refused() {
+    // Named paths are normalised before dedup; the screen must see the
+    // same normal form, or `./alias.sh` would slip through as "found".
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "real.sh", "echo real\n");
+    link(&root, "real.sh", "alias.sh");
+    let e = refused(&sandbox, &root, &["./alias.sh"]);
+    assert!(matches!(e, DiscoverError::Symlink { .. }), "{e:?}");
+}
+
+#[test]
+fn dot_dot_is_not_folded_past_a_symlinked_directory() {
+    // Through a link, `vendor/..` is the target's parent, not the root:
+    // folding it lexically would hide the link the path runs through.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    write(&root, "a.sh", "echo a\n");
+    write(&root, "lib/b.sh", "echo b\n");
+    link(&root, "lib", "vendor");
+    let e = refused(&sandbox, &root, &["vendor/../a.sh"]);
+    assert_eq!(
+        e,
+        DiscoverError::Symlink {
+            path: PathBuf::from("vendor/../a.sh"),
+            link: PathBuf::from("vendor"),
+        }
+    );
+}
+
 // ---------------------------------------------------------------------
 // `symlinked_component`
 // ---------------------------------------------------------------------

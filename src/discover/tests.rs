@@ -395,6 +395,29 @@ fn a_directory_named_with_a_dot_prefix_merges_with_its_files() {
 }
 
 #[test]
+fn a_dot_prefixed_directory_in_a_repository_merges_too() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "d/a.sh", "echo a\n");
+    sandbox.run_git(&root, &["add", "."]);
+    let got = found(&sandbox, &root, &["./d/", "./d/a.sh", "."]);
+    assert_eq!(names(&got.files), ["d/a.sh"]);
+}
+
+#[test]
+fn a_refusal_names_the_path_as_it_was_named_not_its_normal_form() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("p");
+    let e = refused(&sandbox, &root, &["./nope.sh"]);
+    assert_eq!(
+        e,
+        DiscoverError::Missing {
+            path: PathBuf::from("./nope.sh")
+        }
+    );
+}
+
+#[test]
 fn an_explicit_path_that_does_not_exist_is_refused_with_exit_2() {
     let sandbox = Sandbox::new();
     let root = sandbox.repo("r");
