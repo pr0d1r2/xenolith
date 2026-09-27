@@ -39,6 +39,7 @@ pub mod findings;
 pub mod plan;
 pub mod report;
 pub mod run;
+pub mod sites;
 
 pub use findings::Finding;
 pub use report::{Kind, LintReport, Outcome, Source, Status};
