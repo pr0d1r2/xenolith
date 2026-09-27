@@ -139,6 +139,65 @@ run_audit() {
   [ "$status" -eq 1 ]
 }
 
+# scripts/guard:V23, V117: an entry matches as a WHOLE word, or a short
+# name is found inside unrelated words in every commit ever made.
+@test "a name inside a longer word is not a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: macme and acmeinternal" docs/x_acme/acme9.md "ACMEs macme"
+  run_audit
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"0 hits"* ]]
+}
+
+@test "a name bounded by punctuation is a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: more" docs/a.md "the acme-api client"
+  run_audit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(short HEAD)"* ]]
+}
+
+@test "a whole word after a false one on the same line is a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: macme, then Acme." docs/a.md "plain"
+  run_audit
+  [ "$status" -eq 1 ]
+}
+
+# Only the diff header holds the path: the message and content are plain.
+@test "a name as a path segment is a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: more" path/acme/x "plain"
+  run_audit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(short HEAD)"* ]]
+}
+
+# git quotes a non-ASCII path in a diff header as octal escapes by
+# default, and in "\303\251acme" the name follows a digit.
+@test "a name next to a non-ASCII letter in a path is a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: more" "docs/$(printf '\303\251')acme.md" "plain"
+  run_audit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(short HEAD)"* ]]
+}
+
+@test "a name filling the whole line is a match" {
+  printf 'acme\n' >"${REPO}/.private-names"
+  commit "docs: more" docs/a.md "acme"
+  run_audit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"1 hits"* ]]
+}
+
+@test "an entry is a fixed string, never a regex" {
+  printf 'ac.e\n' >"${REPO}/.private-names"
+  commit "docs: acme" docs/a.md "acme"
+  run_audit
+  [ "$status" -eq 0 ]
+}
+
 @test "a name in an annotated tag message is found" {
   git -C "$REPO" tag -a v0.1.0 -m "cut for acmeinternal"
   run_audit

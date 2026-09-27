@@ -79,6 +79,89 @@ run_guard() {
   [ "$status" -ne 0 ]
 }
 
+# scripts/guard:V23: an entry matches as a WHOLE word. A substring match
+# found short names inside unrelated words -- a licence's MERCHANTABILITY,
+# every path holding two letters in a row -- and a guard that fails on
+# every tree is a guard nobody can run.
+@test "a name inside a longer word is not a match" {
+  denylist "acme"
+  track docs/notes.md "acmeinternal macme x_acme acme9 ACMEs"
+  track docs/acmeinternal/macme.md "plain"
+  run_guard
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+}
+
+@test "a name standing alone is a match" {
+  denylist "acme"
+  track docs/notes.md "acme"
+  run_guard
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"docs/notes.md"* ]]
+}
+
+@test "a name bounded by punctuation is a match" {
+  denylist "acme"
+  track docs/notes.md "the acme-api client"
+  run_guard
+  [ "$status" -ne 0 ]
+}
+
+@test "a whole word after a false one on the same line is a match" {
+  denylist "acme"
+  track docs/notes.md "macme, then Acme."
+  run_guard
+  [ "$status" -ne 0 ]
+}
+
+@test "a name as a path segment is a match" {
+  denylist "acme"
+  track path/acme/x "plain"
+  run_guard
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"path/acme/x"* ]]
+}
+
+@test "a path holding the name inside a longer word is not a match" {
+  denylist "acme"
+  track docs/macme-acmeinternal.md "plain"
+  run_guard
+  [ "$status" -eq 0 ]
+}
+
+@test "a path matching after a false match in the same path is a match" {
+  denylist "acme"
+  track docs/macme/Acme.md "plain"
+  run_guard
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"docs/macme/Acme.md"* ]]
+}
+
+# git quotes a non-ASCII path as octal escapes by default, and in
+# "\303\251acme" the name follows a digit -- a word character.
+@test "a name next to a non-ASCII letter in a path is a match" {
+  denylist "acme"
+  track "docs/$(printf '\303\251')acme.md" "plain"
+  run_guard
+  [ "$status" -ne 0 ]
+}
+
+# ... and a tab as "\t", so the name would follow a "t".
+@test "a name after a tab in a path is a match" {
+  denylist "acme"
+  track "docs/x$(printf '\t')acme.md" "plain"
+  run_guard
+  [ "$status" -ne 0 ]
+}
+
+@test "an entry is a fixed string, never a regex" {
+  denylist "ac.e"
+  track docs/notes.md "acme"
+  track docs/acme.md "plain"
+  run_guard
+  [ "$status" -eq 0 ]
+}
+
 @test "comments and blank lines in the denylist are not patterns" {
   denylist "# a comment" "" "acmeinternal"
   track docs/notes.md "a comment about nothing"
