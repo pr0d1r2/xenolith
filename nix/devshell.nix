@@ -48,6 +48,10 @@ pkgs.mkShell {
     # §I): `xnl lint` runs it on every claimed justfile, and a missing tool
     # is exit 2, not a pass.
     pkgs.just
+    # `xmllint --noout`, the xml host's check on every claimed `.xml` and
+    # text `.plist` (`languages/data/xml` §I). The `bin` output, pinned
+    # here, so the gate never runs whatever libxml2 the machine carries.
+    pkgs.libxml2.bin
 
     # Nix gates this very file. The flake decides what every other step runs
     # with, so drift here is drift everywhere. statix and deadnix catch what

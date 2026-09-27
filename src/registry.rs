@@ -44,6 +44,8 @@ const HOSTS: &[&dyn Host] = &[
     &xenolith_lang_shell::ShellHost,
     #[cfg(feature = "lang-tcl")]
     &xenolith_lang_tcl::TclHost,
+    #[cfg(feature = "lang-xml")]
+    &xenolith_lang_xml::XmlHost,
 ];
 
 /// Every compiled-in guest, sorted by [`LangId`].
@@ -104,6 +106,7 @@ const FEATURED: &[LangId] = &[
     LangId::Pkl,
     LangId::Shell,
     LangId::Tcl,
+    LangId::Xml,
 ];
 
 /// [`feature`] for `id` when that feature exists, else `None`: no crate

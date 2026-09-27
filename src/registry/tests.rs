@@ -25,6 +25,7 @@ fn built_with(id: LangId) -> bool {
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
         (LangId::Tcl, cfg!(feature = "lang-tcl")),
+        (LangId::Xml, cfg!(feature = "lang-xml")),
     ]
     .contains(&(id, true))
 }
@@ -43,13 +44,14 @@ fn guest_ids() -> Vec<LangId> {
 
 #[test]
 fn hosts_are_exactly_the_compiled_in_hosts() {
-    // just, nix, pkl, shell and tcl are hosts; shell and tcl are guests as well.
+    // just, nix, pkl, shell, tcl and xml are hosts; shell and tcl are guests as well.
     let expected: Vec<LangId> = [
         LangId::Just,
         LangId::Nix,
         LangId::Pkl,
         LangId::Shell,
         LangId::Tcl,
+        LangId::Xml,
     ]
     .into_iter()
     .filter(|id| built_with(*id))
@@ -128,6 +130,59 @@ fn the_tcl_host_claims_tcl_and_expect_files_alone() {
     assert_eq!(claiming("bin/login.exp", ""), [LangId::Tcl]);
     assert_eq!(claiming("bin/run", "#!/usr/bin/env tclsh"), [LangId::Tcl]);
     assert!(!claiming("scripts/a.sh", "#!/usr/bin/env bash").contains(&LangId::Tcl));
+}
+
+/// The xml HOST claims text plists and `.xml`, never a binary plist
+/// (`languages/data/xml:V188`), and no other host claims either.
+#[cfg(feature = "lang-xml")]
+#[test]
+fn the_xml_host_claims_text_plists_and_xml_files() {
+    let claiming = |path: &str, head: &str| {
+        hosts()
+            .iter()
+            .filter(|h| h.claims(Path::new(path), head))
+            .map(|h| h.id())
+            .collect::<Vec<_>>()
+    };
+    let text = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+    assert_eq!(claiming("org.example.job.plist", text), [LangId::Xml]);
+    assert_eq!(claiming("pom.xml", ""), [LangId::Xml]);
+    assert!(claiming("org.example.job.plist", "bplist00").is_empty());
+}
+
+/// A launchd job's `sh -c` script is judged by the SHELL guest, whose
+/// verdict decides what is flagged (`languages/data/xml:T192`): a
+/// script is not trivial, `bash -c` with one simple command is.
+#[cfg(all(feature = "lang-xml", feature = "lang-shell"))]
+#[test]
+fn a_launchd_script_is_judged_by_the_shell_guest() {
+    let (Some(xml), Some(shell)) = (host(LangId::Xml), guest(LangId::Shell)) else {
+        panic!("lang-xml and lang-shell are on in this build");
+    };
+    let job = |argv0: &str, script: &str| {
+        format!(
+            "<?xml version=\"1.0\"?>\n<plist version=\"1.0\">\n<dict>\n\
+             <key>ProgramArguments</key>\n<array>\n<string>{argv0}</string>\n\
+             <string>-c</string>\n<string>{script}</string>\n</array>\n</dict>\n</plist>\n"
+        )
+    };
+    let trivial = |src: &str| -> Vec<bool> {
+        let sites = xml.sites(src).unwrap_or_else(|e| panic!("{e}"));
+        sites
+            .iter()
+            .map(|site| {
+                let raw = site.delim.body.of(src).unwrap_or_default();
+                let body = xml
+                    .unescape(&site.delim, raw)
+                    .unwrap_or_else(|e| panic!("{e}"));
+                shell.trivial(&body).unwrap_or_else(|e| panic!("{e}"))
+            })
+            .collect()
+    };
+    let flagged = job("/bin/sh", "cd /tmp &amp;&amp; ls | wc -l");
+    assert_eq!(trivial(&flagged), [false]);
+    let single = job("/bin/bash", "exec /usr/local/bin/tool --quiet");
+    assert_eq!(trivial(&single), [true]);
 }
 
 #[test]

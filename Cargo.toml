@@ -13,6 +13,7 @@ members = [
   "languages/ci/just",
   "languages/ci/nix",
   "languages/ci/pkl",
+  "languages/data/xml",
   "languages/shebang",
   "languages/shells/shell",
   "languages/shells/tcl",
@@ -103,6 +104,7 @@ xenolith-lang-nix = { path = "languages/ci/nix", version = "0.1.0", optional = t
 xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.1.0", optional = true }
 xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", optional = true }
 xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.1.0", optional = true }
+xenolith-lang-xml = { path = "languages/data/xml", version = "0.1.0", optional = true }
 
 # `default` = every language, so `xnl` works out of the box and a subset
 # is an explicit `default-features = false` choice (`src:C1`). A feature
@@ -115,12 +117,13 @@ xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.1.0", optional
 # (`src:V30`), because a module that reaches across a feature gate
 # compiles fine in the default build and breaks only in a consumer's.
 [features]
-default = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl"]
+default = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl", "lang-xml"]
 lang-just = ["dep:xenolith-lang-just"]
 lang-nix = ["dep:xenolith-lang-nix"]
 lang-pkl = ["dep:xenolith-lang-pkl"]
 lang-shell = ["dep:xenolith-lang-shell"]
 lang-tcl = ["dep:xenolith-lang-tcl"]
+lang-xml = ["dep:xenolith-lang-xml"]
 
 [lints]
 workspace = true
