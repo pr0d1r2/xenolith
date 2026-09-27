@@ -81,6 +81,11 @@
     # subset build from breaking in a consumer's tree and nowhere else.
     pkgs.cargo-hack
 
+    # The release runner `release.toml` configures (`nix:V109`), as in every
+    # published sibling. It lives here so the runbook runs from the one
+    # pinned toolchain; the release is still cut by hand from `main`.
+    pkgs.cargo-release
+
     # Tools for steps that touch files no compiler reads.
     pkgs.editorconfig-checker
     pkgs.taplo
