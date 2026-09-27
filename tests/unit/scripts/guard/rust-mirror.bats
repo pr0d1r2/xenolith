@@ -72,8 +72,8 @@ run_guard() {
 }
 
 @test "lib.rs with a wired sibling tests.rs passes" {
-  track languages/nix/src/lib.rs "$WIRED"
-  track languages/nix/src/tests.rs
+  track languages/ci/nix/src/lib.rs "$WIRED"
+  track languages/ci/nix/src/tests.rs
   run_guard
   [ "$status" -eq 0 ]
 }
@@ -94,10 +94,10 @@ run_guard() {
 }
 
 @test "lib.rs with logic and no tests.rs names the sibling tests.rs" {
-  track languages/nix/src/lib.rs
+  track languages/ci/nix/src/lib.rs
   run_guard
   [ "$status" -ne 0 ]
-  [[ "$output" == *"languages/nix/src/tests.rs"* ]]
+  [[ "$output" == *"languages/ci/nix/src/tests.rs"* ]]
 }
 
 @test "a tests.rs its module never declares fails as unwired" {
@@ -194,13 +194,13 @@ fn run() {}'
 
 @test "build.rs is exempt at any depth" {
   track build.rs
-  track languages/pkl/build.rs
+  track languages/ci/pkl/build.rs
   run_guard
   [ "$status" -eq 0 ]
 }
 
 @test "the pkl grammar FFI shim is exempt" {
-  track languages/pkl/src/grammar.rs
+  track languages/ci/pkl/src/grammar.rs
   run_guard
   [ "$status" -eq 0 ]
 }
@@ -214,8 +214,8 @@ fn run() {}'
 }
 
 @test "a crate's tests/ integration files are exempt" {
-  track languages/pkl/Cargo.toml '[package]'
-  track languages/pkl/tests/host.rs
+  track languages/ci/pkl/Cargo.toml '[package]'
+  track languages/ci/pkl/tests/host.rs
   run_guard
   [ "$status" -eq 0 ]
 }
@@ -229,7 +229,7 @@ fn run() {}'
 
 @test "vendored code is exempt at any depth" {
   track vendor/upstream/src/parser.rs
-  track languages/pkl/vendor/x.rs
+  track languages/ci/pkl/vendor/x.rs
   run_guard
   [ "$status" -eq 0 ]
 }

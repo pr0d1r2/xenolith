@@ -118,7 +118,7 @@ pub struct Prelude {
     /// The strict-mode line, written exactly as it should appear.
     ///
     /// Owned rather than `&'static str`: the line has to reproduce the
-    /// options in force at the site (`languages/shell:V82`), and an
+    /// options in force at the site (`languages/shells/shell:V82`), and an
     /// arbitrary `set -o` state -- `set -eu`, `set -eo pipefail`,
     /// `setopt err_exit`-- cannot be one of a fixed set of literals. A
     /// prelude that could only say `set -euo pipefail` would either add

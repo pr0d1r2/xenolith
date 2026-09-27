@@ -1,0 +1,4 @@
+# `languages/ci/nix:T159` is about the init options OF zsh and bash: fish's
+# init is not the shell guest's language, an alias table and a history
+# path are not init files, and an `initExtra` under no program names no
+# dialect to run it in.

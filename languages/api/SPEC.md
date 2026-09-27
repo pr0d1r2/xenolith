@@ -15,34 +15,23 @@ rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 self|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
-sib|languages/nix|nix parser, sinks, load idiom
-sib|languages/pkl|pkl parser, hk step sinks, load idiom
-sib|languages/shell|bash parser & host sinks, single-command classifier, shell linters
-sib|languages/just|just parser, recipe sinks, load idiom
-sib|languages/python|python grammar, guest rules
-sib|languages/sql|sql grammar, guest rules
-sib|languages/jq|jq grammar, guest rules
-sib|languages/awk|awk grammar, guest rules
-sib|languages/bats|bats grammar (based-on shell), `@test` sinks, test-host rules
-sib|languages/yaml|yaml parser, GH Actions sinks, placement
-sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
+sib|languages/shells|hub: shell family -- shell, bats
+sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile
+sib|languages/data|hub: data & text guests -- python, sql, jq, awk, perl
+sib|languages/web|hub: web host & its guests -- html, js, css
 sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
-sib|languages/html|html parser, inline script/style sinks
-sib|languages/js|javascript grammar, guest rules
-sib|languages/css|css grammar, guest rules
-sib|languages/perl|perl grammar, guest rules
 
 ## §I INTERFACES
 
 - trait `Host`: `id() -> LangId`; `sites(src: &str) -> Result<Vec<Site>>` (sinks holding guest code); `loads(src) -> Result<Vec<LoadRef>>` (for `src/graph`); `rewrite(src, &Site, &Invoke, path) -> Result<String>` (extract direction: body out, load in); `inline(src, &LoadRef, body) -> Result<String>` (inverse direction); `unescape(&Delim, raw) -> Result<String>` (body as the guest reads it, `languages/api/src/lens:V39`).
-- trait `Guest`: `id() -> LangId`; `extension(&GuestEnv) -> &'static str` (dialect decides: zsh → `zsh`, `languages/shell:V51`); `invoke(path) -> Invoke` (how to run a file of me: `bash x.sh`, `jq -f x.jq`); `trivial(body) -> Result<bool>` (may stay inline — shell = single simple command, `languages/shell:V3`); `constructs(body) -> Result<Vec<&'static str>>` (sorted, empty iff `trivial`; `[threshold.<guest>] allow` names; default `Unsupported` (V37) → `max_lines`/`max_bytes`); `unsupported(body, &GuestEnv) -> Option<&'static str>` (dialect syntax the guest cannot judge → that reason, a Judgment, `languages/shell:V138`; default `None`); `checks(&GuestEnv) -> Vec<LintCmd>`, `fixers(&GuestEnv) -> Vec<LintCmd>`.
-- `Host::guest_by_shebang(src, &Site) -> bool`: site's guest named by a shebang in its body (`languages/nix:T157`), ⊥ by its sink (`src:V42`); default `false` = host never reads one (a fact, ⊥ missing capability, V37).
+- trait `Guest`: `id() -> LangId`; `extension(&GuestEnv) -> &'static str` (dialect decides: zsh → `zsh`, `languages/shells/shell:V51`); `invoke(path) -> Invoke` (how to run a file of me: `bash x.sh`, `jq -f x.jq`); `trivial(body) -> Result<bool>` (may stay inline — shell = single simple command, `languages/shells/shell:V3`); `constructs(body) -> Result<Vec<&'static str>>` (sorted, empty iff `trivial`; `[threshold.<guest>] allow` names; default `Unsupported` (V37) → `max_lines`/`max_bytes`); `unsupported(body, &GuestEnv) -> Option<&'static str>` (dialect syntax the guest cannot judge → that reason, a Judgment, `languages/shells/shell:V138`; default `None`); `checks(&GuestEnv) -> Vec<LintCmd>`, `fixers(&GuestEnv) -> Vec<LintCmd>`.
+- `Host::guest_by_shebang(src, &Site) -> bool`: site's guest named by a shebang in its body (`languages/ci/nix:T157`), ⊥ by its sink (`src:V42`); default `false` = host never reads one (a fact, ⊥ missing capability, V37).
 - crate impl: host-only | guest-only | both. guest-only language (python, sql, jq, …) ⊥ needs host grammar.
 - type `LangId`: closed enum ∀ language in root host × sink matrix + guest-only (python, sql, js, css, perl, awk, jq, ruby); ⊥ feature-gated.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg, format: Json(parser) | Sarif | Raw }`, `Error`.
-- `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<String> }` (owned: `languages/shell:V82` wants the site's exact `set -o` state, ⊥ a fixed literal set) (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
+- `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<String> }` (owned: `languages/shells/shell:V82` wants the site's exact `set -o` state, ⊥ a fixed literal set) (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
 - `Host::checks() -> Vec<LintCmd>` & `Host::fixers()`: checks for host files themselves (nix `statix`, `deadnix`, `nixfmt --check`; GH `actionlint`, `zizmor`; Dockerfile `hadolint`; just `just --fmt --check --unstable`; pkl `pkl format --diff` ?).
 - kinship, beside `LangId` & ungated like it (V33): `base_of(LangId) -> Option<LangId>` (bats → shell) & `lookalikes(LangId) -> &'static [LangId]` (shell ~ awk, perl, jq) ∴ relation stated even when neither crate compiled in (`languages:V130`, `languages:V131`).
 - `Host::claims` ⊥ true ∀ file of a language based-on it (`.bats` ⊥ claimed by shell): parent grammar either MISREADS child syntax confidently or errors on it, & both are wrong answers (`languages:V130`).
@@ -64,7 +53,7 @@ V37: missing capability = missing impl, ⊥ default method returning empty. ⊥ 
 
 id|status|task|cites
 T42|x|scaffold `languages/api` crate: `LangId`, `Site`, `LoadRef`, `Invoke`, `LintCmd`, `Error`, `Host`, `Guest`; workspace member, ⊥ features|V33,V36,V37,C24
-T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shell:T11`, `languages/shell:T15`), nix `Host` (`languages/nix:T12`), pkl `Host` (`languages/pkl:T13`); each crate runs `laws::check`|`languages/api/src/lens:V34`,V35
+T44|.|port per-language tasks onto traits: shell `Host`+`Guest` (`languages/shells/shell:T11`, `languages/shells/shell:T15`), nix `Host` (`languages/ci/nix:T12`), pkl `Host` (`languages/ci/pkl:T13`); each crate runs `laws::check`|`languages/api/src/lens:V34`,V35
 T131|.|kinship table (`base_of`, `lookalikes`) + `claims` refusal ∀ based-on child; test: ∀ base pair parent ⊥ claims child's ext, ∀ lookalike pair both directions present|V33,`languages:V130`,`languages:V131`
 
 ## §B BUGS

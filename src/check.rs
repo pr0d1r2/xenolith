@@ -415,7 +415,7 @@ fn judge_site(
     // on text nothing executes.
     let why = match host.unescape(&site.delim, &guest_text(src, site)) {
         // Dialect syntax the guest cannot judge is its own finding, a
-        // judgement rather than "unparseable" (`languages/shell:V138`).
+        // judgement rather than "unparseable" (`languages/shells/shell:V138`).
         Ok(body) => guest
             .unsupported(&body, &site.env)
             .map(str::to_owned)

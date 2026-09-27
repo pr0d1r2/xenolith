@@ -144,7 +144,7 @@ impl Layout {
     }
 }
 
-/// `strict` for a shell prelude (`languages/shell` §I).
+/// `strict` for a shell prelude (`languages/shells/shell` §I).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Strict {
     /// Reproduce the options the site ran under, add none.
@@ -184,7 +184,7 @@ pub enum Base {
     Dir(String),
 }
 
-/// `[extract.shell]` (`languages/shell` §I).
+/// `[extract.shell]` (`languages/shells/shell` §I).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExtractShell {
     /// Prelude policy.

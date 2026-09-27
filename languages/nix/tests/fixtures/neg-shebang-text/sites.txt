@@ -1,5 +1,0 @@
-# `languages/nix:T157` reads the FIRST line of a whole attribute value
-# and never guesses: plain text is a config file, a `#!` further down is
-# text, an interpreter the api does not know (`tclsh`) or one hidden in a
-# hole (`runtimeShell`) names no guest, and a `let`-bound string is a
-# variable until something uses it.

@@ -1,5 +1,0 @@
-# Three sinks of one service: the service name tells them apart only
-# with the sink name beside it (`languages/nix:V53`).
-systemd.services.backup.preStart | backup-pre-start | {host_dir}/{host_stem}
-systemd.services.backup.script | backup-script | {host_dir}/{host_stem}
-systemd.services.backup.postStart | backup-post-start | {host_dir}/{host_stem}

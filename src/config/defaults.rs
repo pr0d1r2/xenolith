@@ -25,7 +25,7 @@ pub const EXTRACT_ROOT: &str = "scripts";
 pub const EXTRACT_DEPTH: u64 = 5;
 /// `[extract] inactive_rules` (`src/config:V44`).
 pub const EXTRACT_INACTIVE_RULES: &str = "warn";
-/// `[extract.shell] strict` (`languages/shell` §I): reproduce the
+/// `[extract.shell] strict` (`languages/shells/shell` §I): reproduce the
 /// options the site ran under, add none.
 pub const EXTRACT_SHELL_STRICT: &str = "preserve";
 /// `[langs] missing_guest` (`src:V42`): a site whose guest is compiled
@@ -56,7 +56,7 @@ pub const THRESHOLD_EXEC_MAX_LEN: u64 = 120;
 pub const THRESHOLD_LOAD_MAX_PARAMS: u64 = 6;
 /// `[threshold.load] param_prefix` (`src/config` §I).
 pub const THRESHOLD_LOAD_PARAM_PREFIX: &str = "";
-/// `[threshold.shell] allow` (`languages/shell:V3`): no construct is
+/// `[threshold.shell] allow` (`languages/shells/shell:V3`): no construct is
 /// tolerated inline until a config says so.
 pub const THRESHOLD_SHELL_ALLOW: &[&str] = &[];
 
@@ -64,10 +64,10 @@ pub const THRESHOLD_SHELL_ALLOW: &[&str] = &[];
 pub const POLICIES: &[&str] = &["ignore", "warn", "error"];
 /// `[extract] layout` choices (`src/extract` §I).
 pub const LAYOUTS: &[&str] = &["host", "mirror", "sibling", "central"];
-/// `[extract.shell] strict` choices (`languages/shell` §I).
+/// `[extract.shell] strict` choices (`languages/shells/shell` §I).
 pub const STRICTNESS: &[&str] = &["preserve", "enforce"];
 /// `[threshold.shell] allow` choices (`src/config` §I, `src/config:V55`):
-/// the constructs `languages/shell:V3` flags, spelled exactly as the
+/// the constructs `languages/shells/shell:V3` flags, spelled exactly as the
 /// shell classifier's `Construct::as_str` emits them (`src/config:B1`:
 /// one vocabulary, or a threshold can never match). Here rather than in
 /// the shell crate so the config validates the same with `lang-shell`

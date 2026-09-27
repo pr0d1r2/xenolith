@@ -835,7 +835,7 @@ fn extract_file(root: &Path, p: &Planned<'_>, m: &Move) -> Result<NewFile, Strin
 /// The argv the load runs: a rule's template rendered with the path as
 /// loaded, else the guest's own `invoke` (`languages/api:V35`) -- run by
 /// the interpreter the extract's prelude names when that interpreter is
-/// one of the guest's own (`languages/pkl:V52`): an extract saying
+/// one of the guest's own (`languages/ci/pkl:V52`): an extract saying
 /// `#!/usr/bin/env sh` loaded as `bash x.sh` would run under a shell it
 /// never named.
 fn invoke(p: &Planned<'_>, load: &str, prelude: &Prelude) -> Result<Invoke, String> {

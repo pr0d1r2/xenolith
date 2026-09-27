@@ -1,0 +1,54 @@
+# SPEC
+
+## §G GOAL
+
+crate `xenolith-lang-shell` (feature `lang-shell`): tree-sitter-bash; bash as host (heredoc to interpreter, `-c`/`-e` args), single-command classifier shared by ∀ shell sink, shell extract load idiom, default linters shellcheck + shfmt.
+
+## §N NAV
+
+rel|path|lens
+up|.|-
+up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
+up|languages/shells|hub: shell family -- shell, bats
+self|languages/shells/shell|bash parser & host sinks, single-command classifier, shell linters
+sib|languages/shells/bats|bats grammar (based-on shell), `@test` sinks, test-host rules
+
+## §I INTERFACES
+
+- `claims`: `*.sh`, `*.bash`, `.envrc`, shebang resolving to a shell dialect (`shebang::resolves_to`) — ⊥ `*.bats` (`languages/shells/bats:V134`, V137).
+- sinks: heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? → guest python \| ruby \| sql \| js \| perl \| awk \| jq; load after extract: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
+- `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` regardless of context, diff marks it `Judgment` (semantic change).
+- placement prototype ? (T86 evaluates): bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (whitelisted in V3).
+
+## §V INVARIANTS
+
+V3: sink w/ single simple command (argv, optional leading `NAME=value` assignments; generated load may use exactly `"$(dirname "${BASH_SOURCE[0]}")"` as path prefix; otherwise ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation, unless construct ∈ `[threshold.shell] allow` (`src/config` §I). classification via shell AST (tree-sitter-bash), ⊥ substring grep.
+V51: shell guest defaults: `prelude(env)` = shebang `#!/usr/bin/env <dialect>` + `set`/`setopt` line reproducing `env.options` (V82); ⊥ context → bash + `set -euo pipefail`; `executable` = true; ext `sh` (zsh → `zsh`); `invoke` = `<dialect> {path}`.
+V82: dialects `sh`, `bash`, `zsh` (`dash`/`ksh` ? as sh-family): `env.dialect` from context (`sh -c`, `bash -c`, `zsh -c`, shebang, GH `shell:`, nix systemd `script`; host declares) & `env.options` = effective `set -o`/`setopt` state; prelude reproduces both exactly. grammar: tree-sitter-bash ∀ sh & bash, zsh best-effort ? (unsupported construct → `Judgment`).
+V137: shell `claims` ⊥ `*.bats` (`languages:V130`, `languages/shells/bats:V134`). measured 2026-09-21: tree-sitter-bash PARSES `@test "x" { run echo hi }` as command + brace group, classified `sequence` ∴ claimed `*.bats` = script offered for extraction: confident & wrong.
+V138: zsh-only syntax (flags `${(f)x}`, anon fn `() { print hi }`, glob qualifier `*(.)`) ⊥ parsed by tree-sitter-bash ∴ classifier ! return `Judgment` (`languages/shells:V132`), ⊥ `Err`, ⊥ `host-parse-error`: the body is valid zsh & the gap is OURS. `Classification` carries a 3rd state ∴ engine reports `Judgment` w/ why `zsh construct unsupported`.
+V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` stdin = data); `-c`/`-e` arg `'…'` \| `"…"` w/o `\`; env ← ITS argv, ⊥ enclosing `set`.
+
+## §T TASKS
+
+| id | scope | tasks | done-when |
+|----|-------|-------|-----------|
+| M1 | nix + pkl + shell end-to-end | T11, T15, T53, T83, T135, T136, T149 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+
+id|status|task|cites
+T11|x|shell single-command classifier on tree-sitter-bash AST (shared by all shell sinks)|V3,`languages:V2`
+T15|x|host bash: heredoc-to-interpreter, `-c`/`-e` args, awk/jq threshold ? + fixtures|V139,`languages:V2`,`tests:V14`,`tests:V15`
+T53|x|shell `Guest::prelude`/`executable`/`invoke` defaults + fixture proving extract passes shellcheck|V51
+T83|x|dialect & option capture per shell host context; fixtures: `sh -c`, `bash -c` under `set -e`, `zsh -c` w/ `setopt`|V82,V139
+T135|x|`claims` ∀ shell excl. `*.bats`; fixtures: `.bats` file ⊥ claimed, `.sh` & shebang-only file claimed|V137,`languages:V130`
+T136|x|`Judgment` state in `Classification` ∀ unsupported zsh construct (fixes B1); fixtures: `setopt` stays simple, flags, anon fn, glob qualifier|V138,V82,`languages/shells:V132`
+T149|x|`src:C139` backfill: `languages/shells/shell/src/classify/tests.rs`, `languages/shells/shell/src/guest/tests.rs`|`src:C139`,`scripts/guard:V140`
+
+## §B BUGS
+
+id|date|cause|fix
+B1|2026-09-21|`classify` returns `Err` ∀ zsh-only syntax (`setopt err_exit`, `() { print hi }`) ∵ tree-sitter-bash ⊥ parse it, while V82 says unsupported zsh construct → `Judgment`. shipped in `c103f5b`: 2-state `Classification` (simple \| constructs) had ⊥ 3rd state to return ∴ Err was the only exit|V138,T136
+B2|2026-09-26|`classify("cat <<< hi")` → simple ∵ tree-sitter-bash parses `<<<` as `herestring_redirect`, ⊥ `file_redirect`, & `construct_of` had ⊥ row for it ∴ V3 "⊥ redirect" missed herestrings. found by the `src:C139` backfill (`classify/tests.rs`); fix: `herestring_redirect` → `redirect`|V3,T149
+B3|2026-09-26|sh site w/ options = [`pipefail`] → prelude `set -` ∵ `set_line` drops `pipefail` for sh (V51, ⊥ POSIX) & nothing is left, yet `strict_line` still returned `Some`; `set -` ⊥ no-op (bash: turns `-v`/`-x` off). found by the `src:C139` backfill (`guest/tests.rs`); fix: sh w/ only `pipefail` → ⊥ strict line|V51,V82,T149
+B4|2026-09-26|zsh site (`languages/ci/nix:T159`) w/ valid `${(f)x}`, `*(N)` → `unparseable shell` ∵ classifier ⊥ saw `env.dialect`. fix: `classify_in`, zsh & grammar rejects → `unsupported`; engine ⊥ asks yet|V138,T136
+B5|2026-09-26|dogfood `xnl lint`: 10 `.sh` fail shfmt, tabs ∵ guest shfmt got `--language-dialect`; ANY parser/printer flag → shfmt ignores `.editorconfig` (measured 3.13.1). fix: bare `shfmt --diff`/`--write`; dialect from the shebang V51 writes|V51,`.:V19`

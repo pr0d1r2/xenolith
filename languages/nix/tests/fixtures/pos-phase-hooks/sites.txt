@@ -1,8 +1,0 @@
-# `languages/nix:T156`: stdenv runs `pre<Phase>` / `post<Phase>` hooks
-# through `runHook`, under a phase's `set -eu -o pipefail`. A NixOS
-# service's `postStop` goes through the same job script as `preStart`.
-# Being a site is not being flagged: the one-command `postInstall` stays
-# inline (`languages/shell:V3`), the three-command `preCheck` does not.
-demo.preCheck | '' | bash errexit nounset pipefail | - | "\n      export HOME=$TMPDIR\n      mkdir -p \"$HOME/.cache\"\n      patchShebangs tests\n    "
-demo.postInstall | " | bash errexit nounset pipefail | - | "installManPage demo.1"
-systemd.services.demo.postStop | '' | bash errexit | - | "\n    rm -f /run/demo.pid\n  "

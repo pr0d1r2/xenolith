@@ -467,7 +467,7 @@ pub trait Host {
     /// Whether `site`, one of [`Host::sites`] over `src`, has its guest
     /// named by a shebang in its body rather than decided by its sink
     /// (`languages/api` §I) -- nix's shebang-led attribute value
-    /// (`languages/nix:T157`). The engine needs to know: a guest the
+    /// (`languages/ci/nix:T157`). The engine needs to know: a guest the
     /// build lacks is a warning when a shebang named it, and follows
     /// `[langs] missing_guest` when the sink did (`src:V42`).
     ///
@@ -526,7 +526,7 @@ pub trait Guest {
     /// The extension an extract of this language gets, without the dot.
     ///
     /// Takes the env because the dialect decides it
-    /// (`languages/shell:V51`): a zsh body extracted as `.sh` invites
+    /// (`languages/shells/shell:V51`): a zsh body extracted as `.sh` invites
     /// shellcheck to report zsh syntax as errors, which are findings
     /// about the wrong language.
     fn extension(&self, env: &GuestEnv) -> &'static str;
@@ -535,7 +535,7 @@ pub trait Guest {
     fn invoke(&self, path: &Path) -> Invoke;
 
     /// Whether this body is trivial enough to stay inline -- for shell, a
-    /// single simple command (`languages/shell:V3`).
+    /// single simple command (`languages/shells/shell:V3`).
     ///
     /// The judgement is the guest's, because triviality is a fact about
     /// the guest language and the host cannot know it.
@@ -548,7 +548,7 @@ pub trait Guest {
     /// The named constructs that make `body` more than trivial, sorted
     /// and deduplicated, in the vocabulary `[threshold.<guest>] allow`
     /// matches (`src/config` §I) -- for shell, `pipeline`, `and-or`,
-    /// `sequence` and the rest (`languages/shell:V3`). Empty exactly
+    /// `sequence` and the rest (`languages/shells/shell:V3`). Empty exactly
     /// when [`Guest::trivial`] is true.
     ///
     /// The engine needs the NAMES, not only the verdict, because a
@@ -572,7 +572,7 @@ pub trait Guest {
 
     /// The reason `body` is owed a judgement INSTEAD of a verdict, when this
     /// guest meets dialect syntax it cannot judge -- zsh the bash grammar
-    /// cannot read (`languages/shell:V138`). Asked before
+    /// cannot read (`languages/shells/shell:V138`). Asked before
     /// [`Guest::trivial`]: a `Some` is the finding, and neither `trivial`
     /// nor [`Guest::constructs`] is consulted for that body.
     ///
@@ -595,7 +595,7 @@ pub trait Guest {
     /// language it does not parse.
     ///
     /// Takes the env, so the prelude can reproduce the options the site
-    /// established (`languages/shell:V82`): a body that ran under
+    /// established (`languages/shells/shell:V82`): a body that ran under
     /// `set -e` inside its host must still run under it once extracted,
     /// or extraction changed what the code does.
     fn prelude(&self, env: &GuestEnv) -> Prelude;

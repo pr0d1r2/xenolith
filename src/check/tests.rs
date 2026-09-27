@@ -1462,7 +1462,7 @@ mod nix_shell {
 
     #[test]
     fn a_script_with_holes_extract_would_move_is_mechanical_too() {
-        // `languages/nix:V174`: the hole goes back through
+        // `languages/ci/nix:V174`: the hole goes back through
         // `replaceStrings`, so extract moves it.
         let text = "{ pkgs, ... }:\n{\n  systemd.services.a.script = ''\n    \
                     ${pkgs.hello}/bin/hello\n    echo done > /tmp/x\n  '';\n}\n";
@@ -1495,7 +1495,7 @@ mod nix_shell {
 
     #[test]
     fn a_three_command_pre_check_is_flagged() {
-        // `languages/nix:T156`: a phase hook is shell like a phase.
+        // `languages/ci/nix:T156`: a phase hook is shell like a phase.
         let why = flagged_at(
             "{ stdenv }:\nstdenv.mkDerivation {\n  name = \"d\";\n  preCheck = ''\n    \
              export HOME=$TMPDIR\n    mkdir -p \"$HOME/.cache\"\n    patchShebangs tests\n  \
@@ -1520,7 +1520,7 @@ mod nix_shell {
 
     #[test]
     fn a_shebang_led_etc_text_is_flagged() {
-        // `languages/nix:T157`: five commands under `#!/bin/sh`.
+        // `languages/ci/nix:T157`: five commands under `#!/bin/sh`.
         let why = flagged_at(XINITRC, 2);
         assert!(why.contains("sequence"), "{why}");
     }
@@ -1569,7 +1569,7 @@ mod nix_shell {
 
     #[test]
     fn a_multi_command_zsh_init_content_is_flagged() {
-        // `languages/nix:T159`: home-manager's zsh init is zsh.
+        // `languages/ci/nix:T159`: home-manager's zsh init is zsh.
         let why = flagged_at(
             "{\n  programs.zsh.initContent = ''\n    bindkey -e\n    \
              autoload -U compinit && compinit\n  '';\n}\n",
@@ -1580,7 +1580,7 @@ mod nix_shell {
 
     #[test]
     fn zsh_the_bash_grammar_cannot_read_is_a_judgement_not_unparseable() {
-        // `languages/shell:V138` through `Guest::unsupported`: valid zsh in a
+        // `languages/shells/shell:V138` through `Guest::unsupported`: valid zsh in a
         // zsh init option is a finding to judge, never "unparseable shell".
         let why = flagged_at(
             "{\n  programs.zsh.initContent = ''\n    print -rl -- ''${(f)\"$(ls)\"}\n  '';\n}\n",
@@ -1603,7 +1603,7 @@ mod nix_shell {
 
     #[test]
     fn an_indented_heredoc_is_judged_by_construct_not_as_unparseable() {
-        // `languages/nix:T158`: nix strips the common indent before bash
+        // `languages/ci/nix:T158`: nix strips the common indent before bash
         // runs the body, so the terminator IS `EOF`; the guest must see
         // the body that runs, not the host's bytes.
         let why = flagged_at(
@@ -1618,7 +1618,7 @@ mod nix_shell {
 
     #[test]
     fn a_concatenated_shell_hook_is_flagged_in_its_literal() {
-        // `languages/nix:T155`: the literal half of `''…'' + extra`.
+        // `languages/ci/nix:T155`: the literal half of `''…'' + extra`.
         let why = flagged_at(
             "{ pkgs, extra }:\npkgs.mkShell {\n  shellHook = ''\n    [ -f x ] || cmd\n  ''\n  \
              + extra;\n}\n",

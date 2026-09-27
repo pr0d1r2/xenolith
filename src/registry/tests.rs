@@ -60,7 +60,7 @@ fn guests_are_exactly_the_compiled_in_guests() {
 
 /// The shell HOST is the one the registry hands out for a shell file:
 /// it claims `.sh` and a shell shebang, and leaves `.bats` to the bats
-/// host (`languages/shell:V137`), so an engine iterating [`hosts`]
+/// host (`languages/shells/shell:V137`), so an engine iterating [`hosts`]
 /// scans this repo's scripts at all.
 #[cfg(feature = "lang-shell")]
 #[test]

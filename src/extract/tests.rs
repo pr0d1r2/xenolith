@@ -584,7 +584,7 @@ fn threshold_load_param_prefix_leads_every_param_name() {
 }
 
 // ---------------------------------------------------------------------
-// the load runs what the prelude names (T175, `languages/pkl:V52`)
+// the load runs what the prelude names (T175, `languages/ci/pkl:V52`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -702,7 +702,7 @@ fn real(sandbox: &Sandbox, root: &Path, targets: &[&str]) -> Edit {
 #[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
 #[test]
 fn a_nix_script_calling_a_package_moves_with_its_hole_through_replace_strings() {
-    // `languages/nix:V174`: no import from derivation, the hole's text
+    // `languages/ci/nix:V174`: no import from derivation, the hole's text
     // back in the host, the rest in the extract.
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");
@@ -749,7 +749,7 @@ fn a_nix_hole_in_single_quotes_stays_a_judgement() {
 #[cfg(all(feature = "lang-pkl", feature = "lang-shell"))]
 #[test]
 fn a_hk_step_loads_its_extract_with_the_shell_hk_ran_it_under() {
-    // `languages/pkl:V52`, `languages/pkl:V172`: hk's default step shell
+    // `languages/ci/pkl:V52`, `languages/ci/pkl:V172`: hk's default step shell
     // is `sh -o errexit -c`, so the prelude says `sh` and so must the
     // load -- `bash` would run the script under a shell it never saw.
     let hk = [

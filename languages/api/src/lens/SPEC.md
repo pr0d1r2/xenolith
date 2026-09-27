@@ -20,7 +20,7 @@ sib|languages/api/src/holes|param naming, param refs, hole advice
 - fn `laws::check::<H: Host>(fixtures: &Path)` → panics w/ fixture path & broken law; called from each language crate's `cargo test`.
 - `Host::unescape(&Delim, raw) -> Result<String>` (strip common indent, host escapes like nix `''$`; raw w/ holes already replaced by the engine's placeholder; `Err` ∀ `DelimKind` ⊥ this host's → `Unsupported`) & `Host::escape(&Delim, body) -> Result<String>` inverse (default `Unsupported`, `languages/api:V37`); `rewrite`/`inline` go through them.
 - fn `lens::escape_law(&H, &Delim, raw)`: `b = unescape(raw)` ⇒ `unescape(escape(b)) == b` byte-exact; any `Err` = break (V39). `check`: `Err` → site flagged `unparseable <host> string` (`languages:V77` spirit), ⊥ silently raw.
-- `Host::rewrite_bound(src, &Site, &Invoke, path, body, &[Param]) -> Result<Rewrite { src, body }>`: `rewrite` w/ `holes::bind`'s params → host text & extract body in the host's form (nix `__NAME__`, `languages/nix:V170`); default: ⊥ params → `rewrite` & `body` as given, else `Unsupported` (`languages/api:V37`).
+- `Host::rewrite_bound(src, &Site, &Invoke, path, body, &[Param]) -> Result<Rewrite { src, body }>`: `rewrite` w/ `holes::bind`'s params → host text & extract body in the host's form (nix `__NAME__`, `languages/ci/nix:V170`); default: ⊥ params → `rewrite` & `body` as given, else `Unsupported` (`languages/api:V37`).
 - `Host::runtime_base(&Site) -> Base` ∈ `HostDir` (default) \| `RepoRoot` \| `Dir(path)`: directory the host's runtime resolves load paths from.
 
 ## §V INVARIANTS

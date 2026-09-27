@@ -13,7 +13,7 @@ use crate::{Delim, Host};
 ///
 /// Two values rather than one, because with holes the HOST decides the
 /// body's form: the guest's env references by default, `__NAME__` for a
-/// nix load that substitutes text (`languages/nix:V174`). The engine
+/// nix load that substitutes text (`languages/ci/nix:V174`). The engine
 /// writes the extract from this body, never from its own guess.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rewrite {

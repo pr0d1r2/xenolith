@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract]` & `[[extract.rule]]` → `src/extract`, `[extract.shell]` → `languages/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
+`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract]` & `[[extract.rule]]` → `src/extract`, `[extract.shell]` → `languages/shells/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
 
 ## §N NAV
 
@@ -21,7 +21,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 
 ## §I INTERFACES
 
-- `[threshold.shell]`: `allow` ⊆ {`and-or`, `case`, `command-substitution`, `for`, `function-definition`, `heredoc`, `if`, `pipeline`, `redirect`, `sequence`, `subshell`, `while`} (= `languages/shell` `Construct` names, ONE vocabulary) (default `[]`) — constructs tolerated inline, relaxes `languages/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
+- `[threshold.shell]`: `allow` ⊆ {`and-or`, `case`, `command-substitution`, `for`, `function-definition`, `heredoc`, `if`, `pipeline`, `redirect`, `sequence`, `subshell`, `while`} (= `languages/shells/shell` `Construct` names, ONE vocabulary) (default `[]`) — constructs tolerated inline, relaxes `languages/shells/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
 - `[threshold.exec]`: `max_args` (default 8), `max_len` (default 120) — systemd `ExecStart*` line kept inline when within.
 - top-level `version = 1`: required config schema version.
 - defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; `[langs] unclaimed = "ignore"`; `[threshold.load] max_params = 6`; `[parse] host_errors = "error"`; `[extract.shell] strict = "preserve"`; `[lint.<guest>] extend = true`; `[langs] missing_guest = "error"`; `[lint] hosts = true`; `[threshold.load] param_prefix = ""`; rule `base` = host's `runtime_base`.
@@ -70,6 +70,6 @@ T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/g
 ## §B BUGS
 
 id|date|cause|fix
-B1|2026-09-26|§I listed 14 construct names (`pipe`, `and`, `or`, `subst`, `backtick` …) while `languages/shell` classifier emits 12 others (`pipeline`, `and-or`, `command-substitution` …) ∴ T56 validated names the classifier never produces; an `allow` naming a real construct was refused|§I adopts the classifier's names; `SHELL_CONSTRUCTS` follows
+B1|2026-09-26|§I listed 14 construct names (`pipe`, `and`, `or`, `subst`, `backtick` …) while `languages/shells/shell` classifier emits 12 others (`pipeline`, `and-or`, `command-substitution` …) ∴ T56 validated names the classifier never produces; an `allow` naming a real construct was refused|§I adopts the classifier's names; `SHELL_CONSTRUCTS` follows
 B2|2026-09-26|`Tree::load` rebuilt ∀ layer per file read ∴ O(N²) merges|1 merge/layer onto resolved parent
 B3|2026-09-26|`Tree::load` read ∀ candidate's nested config before exclusion ∴ excluded tree's config read (V79), broken one → exit 2|load root → down, skip dir its chain excludes

@@ -11,23 +11,12 @@ up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 self|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
-sib|languages/nix|nix parser, sinks, load idiom
-sib|languages/pkl|pkl parser, hk step sinks, load idiom
-sib|languages/shell|bash parser & host sinks, single-command classifier, shell linters
-sib|languages/just|just parser, recipe sinks, load idiom
-sib|languages/python|python grammar, guest rules
-sib|languages/sql|sql grammar, guest rules
-sib|languages/jq|jq grammar, guest rules
-sib|languages/awk|awk grammar, guest rules
-sib|languages/bats|bats grammar (based-on shell), `@test` sinks, test-host rules
-sib|languages/yaml|yaml parser, GH Actions sinks, placement
-sib|languages/dockerfile|Dockerfile parser, `RUN` sinks, placement
+sib|languages/shells|hub: shell family -- shell, bats
+sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile
+sib|languages/data|hub: data & text guests -- python, sql, jq, awk, perl
+sib|languages/web|hub: web host & its guests -- html, js, css
 sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
-sib|languages/html|html parser, inline script/style sinks
-sib|languages/js|javascript grammar, guest rules
-sib|languages/css|css grammar, guest rules
-sib|languages/perl|perl grammar, guest rules
 
 ## §I INTERFACES
 

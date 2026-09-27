@@ -1,2 +1,0 @@
-# awk and jq program arguments wait on their threshold, which the spec
-# leaves open (`languages/shell` §I, `?`): no site until it is decided.

@@ -1,0 +1,18 @@
+# The dialect is the interpreter's name, and the options are the ones
+# ITS argv sets (`languages/shells/shell:V82`, `languages/shells/shell:V139`). The
+# enclosing `set -euo pipefail` and `setopt err_exit` are NOT inherited:
+# `bash -c` starts a new shell with its own defaults, so capturing them
+# would add errexit to an extract that never ran under it. zsh option
+# names are case- and underscore-blind and map to the portable names;
+# `+e` turns an option back off; an option this host does not know is
+# kept as written.
+bash -c | shell | ' | bash | - | "ls | wc -l"
+sh -c | shell | ' | sh | - | "ls | wc -l"
+zsh -c | shell | ' | zsh | - | "print -l a b | wc -l"
+bash -c | shell | ' | bash errexit nounset pipefail | - | "ls | wc -l"
+sh -c | shell | ' | sh errexit | - | "ls && date"
+dash -c | shell | ' | dash xtrace | - | "ls | wc -l"
+zsh -c | shell | ' | zsh errexit pipefail | - | "ls | wc -l"
+bash -c | shell | ' | bash | - | "ls | wc -l"
+bash -c | shell | ' | bash posix | - | "ls | wc -l"
+bash <<SH | shell | <<'SH' | bash xtrace | - | "ls | wc -l\n"

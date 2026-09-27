@@ -5,7 +5,7 @@
 //! The host here is a toy whose `unescape` is the identity, and the guest
 //! a toy that writes `$NAME` and refuses a marker inside `'…'`, so what is
 //! under test is the naming, the counting and the order of the steps --
-//! the real shell contexts are `languages/shell`'s to pin.
+//! the real shell contexts are `languages/shells/shell`'s to pin.
 
 use std::path::Path;
 

@@ -1,0 +1,8 @@
+# `ExecStart*` sinks, including each element of a list: systemd takes a
+# list of exec lines and every element is a line of its own.
+# `ExecStartSec` is not a systemd key; the suffix set is closed.
+# No env: an exec line is not shell grammar (`languages/ci/nix:V69`).
+systemd.services.web.serviceConfig.ExecStart | " | - | ${pkgs.nginx} | "${pkgs.nginx}/bin/nginx -g 'daemon off;'"
+systemd.services.web.serviceConfig.ExecStartPre | " | - | ${pkgs.coreutils} | "${pkgs.coreutils}/bin/mkdir -p /run/web"
+systemd.services.web.serviceConfig.ExecStartPre | " | - | ${pkgs.nginx} | "${pkgs.nginx}/bin/nginx -t"
+systemd.services.web.serviceConfig.ExecStartPost | " | - | ${pkgs.coreutils} | "${pkgs.coreutils}/bin/true"

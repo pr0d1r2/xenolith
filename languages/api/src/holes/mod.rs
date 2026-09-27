@@ -10,7 +10,7 @@
 //!
 //! [`bind`] runs the steps in order. Its parts are public for a host that
 //! writes the body its own way -- nix writes `__NAME__`
-//! (`languages/nix:V174`) -- and so needs the holes and names without the
+//! (`languages/ci/nix:V174`) -- and so needs the holes and names without the
 //! guest's references.
 
 use std::fmt;
@@ -362,7 +362,7 @@ fn marked(src: &str, body: Span, holes: &[Hole]) -> String {
 /// an error.
 ///
 /// Not asked here: whether the host can write the load one-liner and
-/// whether it stays trivial (`languages/shell:V3`) -- that is the host's
+/// whether it stays trivial (`languages/shells/shell:V3`) -- that is the host's
 /// `rewrite`, given the params.
 ///
 /// # Errors

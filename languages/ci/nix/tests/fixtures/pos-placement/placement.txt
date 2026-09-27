@@ -1,0 +1,9 @@
+# `languages/ci/nix:V53`: the last two attribute segments, builder names
+# dropped, kebab-cased (`languages/api/src/site:V43`); the dir beside the
+# host file, as `src/extract:V46` templates the engine renders.
+systemd.services.web-app.script | web-app-script | {host_dir}/{host_stem}
+systemd.services.web.serviceConfig.ExecStartPre | service-config-exec-start-pre | {host_dir}/{host_stem}
+packages.deploy.writeShellApplication.text | deploy-text | {host_dir}/{host_stem}
+environment.etc.X11/xinit/xinitrc.text | x11-xinit-xinitrc-text | {host_dir}/{host_stem}
+devShells.default.shellHook | default-shell-hook | {host_dir}/{host_stem}
+greet.writeShellScript | greet | {host_dir}/{host_stem}

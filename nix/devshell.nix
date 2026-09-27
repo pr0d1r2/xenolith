@@ -41,7 +41,7 @@ pkgs.mkShell {
     pkgs.shellcheck
     pkgs.shfmt
     # `xnl lint`'s default checks for an sh-family extract call it
-    # (`src/lint` §I, `languages/shell` guest), and a missing tool is exit 2,
+    # (`src/lint` §I, `languages/shells/shell` guest), and a missing tool is exit 2,
     # not a pass: the dogfood lint needs it the day a `#!/bin/sh` file lands.
     pkgs.checkbashisms
 

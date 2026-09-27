@@ -87,7 +87,7 @@ exempt() {
   # build script, not crate code
   build.rs | */build.rs) return 0 ;;
   # FFI shim over vendored C (`languages:V121`); covered by the crate's tests/
-  languages/pkl/src/grammar.rs) return 0 ;;
+  languages/ci/pkl/src/grammar.rs) return 0 ;;
   # verbatim upstream
   vendor/* | */vendor/*) return 0 ;;
   esac
