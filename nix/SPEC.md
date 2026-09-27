@@ -70,3 +70,4 @@ T345|x|`cargoBuildFlags = -p xenolith`, `dev/` in the source fileset, `passthru.
 id|date|cause|fix
 B1|2026-09-26|`checks.test` sandbox had no `git`: discovery (`src/discover:V57`) & its tests run git; T26 was verified on a tree before discovery landed ∴ `nix flake check` failed 25 lib tests after both merged|`pkgs.git` in `nativeCheckInputs` of `checks.test`; runtime closure unchanged (V29)
 B2|2026-09-26|`checks.clippy` `buildPhase` = 3-line `''…''` script (`runHook` × 2 + cargo): own `xnl check` flags it `sequence` — repo held the embed it exists to forbid (`.:V19`)|each phase = one command string; package sets ⊥ pre/postBuild hooks ∴ nothing dropped; `nix flake check` green
+B3|2026-09-27|V109 names cargo-release the only release path & `release.toml` configures it (T108), but `tools.dev` ⊥ carried it ∴ dev shell could not run the runbook; 0.1.0 merged untagged & unpublished|`pkgs.cargo-release` in `tools.dev`; closure check keeps it out of `xnl` (V29)
