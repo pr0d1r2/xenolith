@@ -291,7 +291,8 @@ fn unescape_is_verbatim_for_argv_strings_only() {
 }
 
 #[test]
-fn no_host_check_is_chosen_before_it_is_measured() {
-    assert!(TclHost.checks().is_empty());
+fn the_host_check_is_the_syntax_check_and_nothing_fixes() {
+    // `languages/shells/tcl:V198`: the crate's own Rust checker, no fixer.
+    assert_eq!(TclHost.checks(), vec![crate::syntax::lint_cmd()]);
     assert!(TclHost.fixers().is_empty());
 }

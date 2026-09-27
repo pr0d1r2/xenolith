@@ -88,7 +88,10 @@ fn a_body_the_grammar_rejects_is_a_parse_error() {
 }
 
 #[test]
-fn no_guest_check_is_chosen_before_it_is_measured() {
-    assert!(TclGuest.checks(&GuestEnv::default()).is_empty());
+fn the_guest_check_is_the_syntax_check_in_either_dialect() {
+    // `languages/shells/tcl:V198`: an extract is tcl text like a host file.
+    let check = vec![crate::syntax::lint_cmd()];
+    assert_eq!(TclGuest.checks(&GuestEnv::default()), check);
+    assert_eq!(TclGuest.checks(&expect()), check);
     assert!(TclGuest.fixers(&expect()).is_empty());
 }
