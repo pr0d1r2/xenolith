@@ -158,6 +158,69 @@ fn a_just_load_reads_back_to_its_recipe() {
     assert_eq!(read.inlined, "build:\n    make && make test\n");
 }
 
+/// `src/extract:B2`: a body read back is trivial exactly when `xnl
+/// check` would leave it inline where it goes back -- `[threshold]`
+/// relaxing it (`src/config:V55`) and a just recipe judged line by line
+/// under `[threshold.just] max_lines` (`src/config:V240`) included.
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+#[test]
+fn a_body_read_back_is_trivial_exactly_when_check_leaves_it_inline() {
+    use crate::check::{Options, check};
+
+    let lines = "[threshold.just]\nmax_lines = 2\n";
+    let cases = [
+        ("make\n", String::new(), true),
+        ("make\nmake test\n", String::new(), false),
+        ("make\nmake test\n", lines.to_owned(), true),
+        ("make\nmake test\nmake doc\n", lines.to_owned(), false),
+        ("make\nls | wc -l\n", lines.to_owned(), false),
+        (
+            "make\nls | wc -l\n",
+            format!("{lines}[threshold.shell]\nallow = [\"pipeline\"]\n"),
+            true,
+        ),
+        ("make && make test\n", String::new(), false),
+        (
+            "make && make test\n",
+            "[threshold.shell]\nallow = [\"and-or\"]\n".to_owned(),
+            true,
+        ),
+    ];
+    for (body, table, inline) in cases {
+        let sandbox = Sandbox::new();
+        let root = sandbox.plain("r");
+        let src = "build:\n    bash scripts/build.sh\n";
+        put(&root, "justfile", src);
+        put(&root, "scripts/build.sh", body);
+        let config = config(&format!("version = 1\n{table}"));
+        let tree = Tree::new(config.clone());
+        let loads = just().loads(src).unwrap_or_else(|e| panic!("{e}"));
+        let [load] = loads.as_slice() else {
+            panic!("{loads:?}")
+        };
+        let read = back(
+            &root,
+            &tree,
+            &registry_langs(),
+            "justfile",
+            just(),
+            src,
+            load,
+            "scripts/build.sh",
+        )
+        .unwrap_or_else(|e| panic!("{body:?}: {e}"));
+        put(&root, "justfile", &read.inlined);
+        let options = Options {
+            paths: vec!["justfile".into()],
+            ..Options::default()
+        };
+        let report = check(&root, &config, &options).unwrap_or_else(|e| panic!("{e}"));
+        let left = report.violations().is_empty();
+        assert_eq!(left, inline, "{body:?} under {table:?}: {report:?}");
+        assert_eq!(read.trivial(&config), left, "{body:?} under {table:?}");
+    }
+}
+
 #[test]
 fn again_proves_the_bytes_and_refuses_a_file_it_would_rewrite() {
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/usr/bin/env sh\nmake && make test\n");
