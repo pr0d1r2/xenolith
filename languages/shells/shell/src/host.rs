@@ -20,7 +20,7 @@ use std::path::Path;
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site,
-    Span, shebang,
+    Span, shebang, shebang::Shebang,
 };
 
 use crate::sinks::{self, Interpreter, Kind};
@@ -46,6 +46,10 @@ const FILENAMES: &[&str] = &[".envrc"];
 /// never claim (`languages:V130`).
 const BATS: &str = "bats";
 
+/// The one shell dialect whose files this host refuses
+/// (`languages/shells/shell:V310`).
+const ZSH: &str = "zsh";
+
 impl Host for ShellHost {
     fn id(&self) -> LangId {
         LangId::Shell
@@ -53,15 +57,27 @@ impl Host for ShellHost {
 
     /// `*.sh`, `*.bash`, `.envrc`, or a shebang resolving to a shell
     /// dialect (`languages/shells/shell` §I) -- and never `*.bats`, which is
-    /// checked FIRST so no shebang can talk the host into it.
+    /// checked FIRST so no shebang can talk the host into it, nor a file
+    /// whose shebang runs zsh, whatever its extension.
     ///
     /// The bash grammar reads a `@test` block as a command and a brace
     /// group, so a claimed bats file would be offered for extraction as a
     /// script: confident and wrong (`languages/shells/shell:V137`). Refusing by
     /// extension is the only place that mistake can be stopped, because
     /// nothing downstream would ever see an error.
+    ///
+    /// zsh is refused for the opposite reason: everything downstream
+    /// errors (`languages/shells/shell:V310`). The grammar rejects
+    /// zsh-only syntax, and [`ShellHost::checks`] is not told which file
+    /// it is checking, so shellcheck -- which refuses zsh outright -- would
+    /// fail every one. Unclaimed, the file is still linted as an extract,
+    /// in its zsh dialect (`src/lint` §I).
     fn claims(&self, path: &Path, head: &str) -> bool {
         if path.extension().is_some_and(|ext| ext == BATS) {
+            return false;
+        }
+        let bang = shebang::parse(head);
+        if bang.as_ref().is_some_and(is_zsh) {
             return false;
         }
         let by_extension = path
@@ -74,7 +90,7 @@ impl Host for ShellHost {
             .is_some_and(|name| FILENAMES.contains(&name));
         by_extension
             || by_name
-            || shebang::parse(head).is_some_and(|line| shebang::resolves_to(&line, LangId::Shell))
+            || bang.is_some_and(|line| shebang::resolves_to(&line, LangId::Shell))
     }
 
     /// Every heredoc fed to an interpreter as its program, and every
@@ -147,7 +163,9 @@ impl Host for ShellHost {
     /// Neither is told a dialect. A host file names its own -- a
     /// shebang, a `# shellcheck shell=` directive, an extension -- and
     /// both tools read it; forcing `bash` would check every `#!/bin/sh`
-    /// script against the wrong shell.
+    /// script against the wrong shell. Both read the sh family only,
+    /// which is why [`ShellHost::claims`] never hands them a zsh file
+    /// (`languages/shells/shell:V310`).
     fn checks(&self) -> Vec<LintCmd> {
         vec![
             LintCmd {
@@ -163,6 +181,14 @@ impl Host for ShellHost {
     fn fixers(&self) -> Vec<LintCmd> {
         vec![raw(&["shfmt", "--write"])]
     }
+}
+
+/// Whether a shebang runs zsh: its resolved interpreter's basename, the
+/// dialect `src/lint` §I gives the file as an extract, so what this host
+/// refuses is exactly what the zsh guest checks.
+fn is_zsh(line: &Shebang) -> bool {
+    let interpreter = line.resolved_interpreter();
+    interpreter.rsplit('/').next().unwrap_or(interpreter) == ZSH
 }
 
 /// A command whose output has no machine-readable form.

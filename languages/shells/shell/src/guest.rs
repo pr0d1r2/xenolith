@@ -185,7 +185,8 @@ impl Guest for ShellGuest {
             ],
             // shellcheck does not read zsh at all, so offering it would
             // report syntax errors about a language it is not parsing.
-            // `zsh -n` is a syntax check and the only one available.
+            // `zsh -n` is a syntax check and the only one that reads zsh
+            // whole (`languages/shells/shell:V310`).
             Family::Zsh => vec![raw(&["zsh", "-n"])],
         }
     }
@@ -193,9 +194,12 @@ impl Guest for ShellGuest {
     fn fixers(&self, env: &GuestEnv) -> Vec<LintCmd> {
         match family(env) {
             Family::Posix | Family::Bash => vec![raw(SHFMT_WRITE)],
-            // No formatter reads zsh. An empty list here is a statement,
-            // not a gap: `xnl lint --fix` has nothing to run, and says so
-            // rather than pretending it fixed something.
+            // No formatter reads zsh safely: shfmt's zsh dialect rejects
+            // valid zsh and rewrites some of what it accepts into files
+            // `zsh -n` refuses (`languages/shells/shell:V310`). An empty
+            // list here is a statement, not a gap: `xnl lint --fix` has
+            // nothing to run, and says so rather than pretending it fixed
+            // something.
             Family::Zsh => Vec::new(),
         }
     }

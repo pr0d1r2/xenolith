@@ -4,12 +4,12 @@
 use std::path::Path;
 
 use xenolith_lang_api::{
-    Delim, DelimKind, Error, Format, GuestEnv, Host, Invoke, LangId, LoadRef, Site, Span,
+    Delim, DelimKind, Error, Format, GuestEnv, Host, Invoke, LangId, LoadRef, Site, Span, shebang,
 };
 
 use super::{
-    BATS, EXTENSIONS, FILENAMES, ShellHost, hole, line_start, parse, raw, strip_tabs, unbackslash,
-    walk,
+    BATS, EXTENSIONS, FILENAMES, ShellHost, ZSH, hole, is_zsh, line_start, parse, raw, strip_tabs,
+    unbackslash, walk,
 };
 
 fn found(src: &str) -> Vec<Site> {
@@ -130,14 +130,35 @@ fn bats_is_refused_before_any_shebang_is_read() {
 }
 
 #[test]
-fn every_shell_dialect_shebang_is_claimed() {
-    for dialect in ["sh", "bash", "zsh", "dash", "ksh", "ash"] {
+fn every_shell_dialect_shebang_but_zsh_is_claimed() {
+    for dialect in ["sh", "bash", "dash", "ksh", "ash"] {
         assert!(
             claims("tool", &format!("#!/usr/bin/env {dialect}")),
             "{dialect}"
         );
         assert!(claims("tool", &format!("#!/bin/{dialect}")), "{dialect}");
     }
+    // `languages/shells/shell:V310`, before the extension is looked at.
+    assert!(!claims("tool", "#!/usr/bin/env zsh"));
+    assert!(!claims("tool.sh", "#!/bin/zsh"));
+    assert!(!claims("tool.bash", "#!/usr/local/bin/zsh -e"));
+}
+
+#[test]
+fn is_zsh_reads_the_resolved_interpreter_basename() {
+    let zsh = |head: &str| {
+        let line = shebang::parse(head).unwrap_or_else(|| panic!("{head:?}"));
+        is_zsh(&line)
+    };
+    assert!(zsh(&format!("#!/usr/bin/env {ZSH}")));
+    assert!(zsh("#!/bin/zsh -f"));
+    assert!(zsh("#!/usr/bin/env -S zsh -eu"));
+    // The basename, whole: a path segment or a longer name is not zsh.
+    assert!(!zsh("#!/opt/zsh/bin/bash"));
+    assert!(!zsh("#!/usr/bin/env zshx"));
+    assert!(!zsh("#!/usr/bin/env bash"));
+    // An argument naming zsh does not make the interpreter zsh.
+    assert!(!zsh("#!/usr/bin/env bash zsh"));
 }
 
 #[test]

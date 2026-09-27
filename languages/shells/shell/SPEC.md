@@ -46,7 +46,7 @@ T83|x|dialect & options per host context; fixtures `sh -c`, `bash -c` + `set -e`
 T135|x|`claims` ∀ shell excl. `*.bats` + fixtures|V137,`languages:V130`
 T136|x|`Judgment` in `Classification` ∀ unsupported zsh construct (B1)|V138,V82,`languages/shells:V132`
 T149|x|`src:C139` backfill: `classify/tests.rs`, `guest/tests.rs`|`src:C139`,`scripts/guard:V140`
-T310|.|`claims` ⊥ zsh shebang, `x.sh` too; sh-family still claimed|V310
+T310|x|`claims` ⊥ zsh shebang, `x.sh` too; sh-family still claimed|V310
 
 ## §B BUGS
 
@@ -56,3 +56,4 @@ B2|2026-09-26|`classify("cat <<< hi")` → simple ∵ `construct_of` ⊥ row for
 B3|2026-09-26|sh site w/ only `pipefail` → prelude `set -` (bash: turns `-v`/`-x` off) ∵ `set_line` drops `pipefail` for sh yet `strict_line` → `Some`; fix: ⊥ strict line|V51,V82,T149
 B4|2026-09-26|zsh site w/ valid `${(f)x}` → `unparseable shell` ∵ classifier ⊥ saw `env.dialect`; fix: `classify_in`, zsh & grammar rejects → `unsupported`|V138,T136
 B5|2026-09-26|dogfood `xnl lint`: 10 `.sh` fail shfmt (tabs) ∵ ANY parser/printer flag → shfmt 3.13.1 ignores `.editorconfig`; fix: bare `shfmt --diff`/`--write`|V51,`.:V19`
+B6|2026-09-27|`xnl lint` fails ∀ zsh-shebang file (SC1071) & `check` → `host-parse-error` ∵ `claims` took zsh; fix: ⊥ claim|V310,T310
