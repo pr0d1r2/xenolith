@@ -5,11 +5,13 @@
 //! count, checked by the api's [`lens::escape_law`] over every site of
 //! every fixture -- LF and CRLF alike (`languages/pkl:B1`) -- and over
 //! hand vectors. `inline` writes the host's own line break
-//! (`languages/pkl:B2`), and `rewrite` refuses a site with holes.
+//! (`languages/pkl:B2`), `rewrite` refuses a site with holes and
+//! `rewrite_bound` its params, and a load says whichever interpreter the
+//! engine's invoke names (`languages/pkl:V52`).
 
 use std::path::{Path, PathBuf};
 
-use xenolith_lang_api::{Delim, DelimKind, Error, Host, Invoke, LangId, Site, Span, lens};
+use xenolith_lang_api::{Delim, DelimKind, Error, Host, Invoke, LangId, Site, Span, holes, lens};
 use xenolith_lang_pkl::PklHost;
 
 const PKL: PklHost = PklHost;
@@ -241,6 +243,66 @@ fn rewrite_refuses_a_site_with_holes() {
             );
         }
     }
+}
+
+#[test]
+fn rewrite_bound_refuses_a_site_whose_holes_became_params() {
+    // `languages/pkl:V171`: no pkl load passes a param yet, so the api's
+    // default refuses, and the engine keeps the site a judgement.
+    let param = holes::Param {
+        name: "TOOL".to_owned(),
+        hole: "\\#(tool)".to_owned(),
+        marker: holes::marker(0),
+    };
+    let mut checked = 0;
+    for (name, src) in sources() {
+        for site in sites(&src).iter().filter(|site| !site.holes.is_empty()) {
+            checked += 1;
+            let path = Path::new("./scripts/hk/x.sh");
+            let invoke = Invoke {
+                argv: vec!["sh".to_owned(), "./scripts/hk/x.sh".to_owned()],
+            };
+            let params = std::slice::from_ref(&param);
+            assert_eq!(
+                PKL.rewrite_bound(&src, site, &invoke, path, "b", params),
+                Err(Error::unsupported(LangId::Pkl, "rewrite_bound")),
+                "{name} {}",
+                site.sink
+            );
+        }
+    }
+    assert!(checked > 0, "no fixture site has holes");
+}
+
+// --- a load under the prelude's interpreter (`languages/pkl:V52`) -------
+
+#[test]
+fn a_load_run_by_sh_reads_back_as_the_load_of_its_script() {
+    // hk's default step shell is `sh` (`languages/pkl:V172`), so the
+    // engine's invoke says `sh`, and `xnl graph` must still follow it.
+    let (name, src) = sources()
+        .into_iter()
+        .find(|(name, _)| name.ends_with("hk-step-script"))
+        .unwrap_or_else(|| panic!("no hk-step-script fixture"));
+    let site = sites(&src)
+        .into_iter()
+        .find(|site| site.holes.is_empty())
+        .unwrap_or_else(|| panic!("{name}: no site without holes"));
+    let path = Path::new("./scripts/hk/x.sh");
+    let invoke = Invoke {
+        argv: vec!["sh".to_owned(), "./scripts/hk/x.sh".to_owned()],
+    };
+    let rewritten = PKL
+        .rewrite(&src, &site, &invoke, path)
+        .unwrap_or_else(|e| panic!("{name}: {e}"));
+    assert!(
+        rewritten.contains("\"sh ./scripts/hk/x.sh {{files}}\""),
+        "{rewritten}"
+    );
+    let loads = PKL
+        .loads(&rewritten)
+        .unwrap_or_else(|e| panic!("{name}: {e}"));
+    assert!(loads.iter().any(|load| load.path == path), "{loads:?}");
 }
 
 // --- the lens laws, LF and CRLF (`languages/api/src/lens:V34`) ----------

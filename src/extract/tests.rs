@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use xenolith_lang_api::holes::{Bound, Param};
+use xenolith_lang_api::lens::Rewrite;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, Guest, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef, Placement,
     Prelude, Result, Shebang, Site, Span,
@@ -36,6 +38,9 @@ enum Flavour {
     Lossy,
     /// `rewrite` keeps the site and appends the load.
     Sticky,
+    /// Every law holds, and `rewrite_bound` passes each param as
+    /// `env NAME=<hole>` ahead of the argv, which `inline` reads back.
+    Params,
 }
 
 const SOUND: Toy = Toy {
@@ -57,6 +62,10 @@ const LOSSY: Toy = Toy {
 const STICKY: Toy = Toy {
     ext: "sticky",
     flavour: Flavour::Sticky,
+};
+const PARAMS: Toy = Toy {
+    ext: "params",
+    flavour: Flavour::Params,
 };
 
 /// Each line of `src` with its byte offset, newline dropped.
@@ -167,6 +176,30 @@ impl Host for Toy {
         )
     }
 
+    fn rewrite_bound(
+        &self,
+        src: &str,
+        site: &Site,
+        invoke: &Invoke,
+        path: &Path,
+        body: &str,
+        params: &[Param],
+    ) -> Result<Rewrite> {
+        if !params.is_empty() && self.flavour != Flavour::Params {
+            return Err(Error::unsupported(LangId::Just, "rewrite_bound"));
+        }
+        let mut argv = Vec::new();
+        if !params.is_empty() {
+            argv.push("env".to_owned());
+            argv.extend(params.iter().map(|p| format!("{}={}", p.name, p.hole)));
+        }
+        argv.extend(invoke.argv.iter().cloned());
+        Ok(Rewrite {
+            src: self.rewrite(src, site, &Invoke { argv }, path)?,
+            body: body.to_owned(),
+        })
+    }
+
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
         if !self.loads(src)?.contains(load) {
             return Err(Error::parse(LangId::Just, "no such load"));
@@ -180,11 +213,17 @@ impl Host for Toy {
                     .unwrap_or(0);
                 splice(src, Span::new(line_start, load.span.end), "")
             }
-            _ => splice(
-                src,
-                load.span,
-                &format!("={}: {}", load.guest, body.trim_end_matches('\n')),
-            ),
+            _ => {
+                // `NAME=<hole>` words of the load put each hole back where
+                // the body refers to its param (`languages/api/src/lens:V34` (e)).
+                let mut body = body.trim_end_matches('\n').to_owned();
+                for word in load.span.of(src).unwrap_or_default().split_whitespace() {
+                    if let Some((name, hole)) = word.split_once('=') {
+                        body = body.replace(&format!("\"${name}\""), hole);
+                    }
+                }
+                splice(src, load.span, &format!("={}: {body}", load.guest))
+            }
         }
     }
 
@@ -250,6 +289,34 @@ impl Guest for Sh {
         }
     }
 
+    /// `NAME=` assignments: the names a param must not take.
+    fn vars(&self, body: &str) -> Result<Vec<String>> {
+        let mut names: Vec<String> = body
+            .split_whitespace()
+            .filter_map(|word| word.split_once('=').map(|(name, _)| name.to_owned()))
+            .collect();
+        names.sort();
+        names.dedup();
+        Ok(names)
+    }
+
+    /// `"$NAME"` at each marker, unless the marker sits inside `'…'`.
+    fn params(&self, body: &str, params: &[Param]) -> Result<Bound> {
+        let mut out = body.to_owned();
+        for param in params {
+            let quoted = out
+                .split('\'')
+                .skip(1)
+                .step_by(2)
+                .any(|inside| inside.contains(&param.marker));
+            if quoted {
+                return Ok(Bound::Unexpanded(param.name.clone()));
+            }
+            out = out.replace(&param.marker, &format!("\"${}\"", param.name));
+        }
+        Ok(Bound::Body(out))
+    }
+
     fn executable(&self) -> bool {
         true
     }
@@ -263,7 +330,7 @@ impl Guest for Sh {
     }
 }
 
-const HOSTS: &[&dyn Host] = &[&SOUND, &NO_LOADS, &NO_REWRITE, &LOSSY, &STICKY];
+const HOSTS: &[&dyn Host] = &[&SOUND, &NO_LOADS, &NO_REWRITE, &LOSSY, &STICKY, &PARAMS];
 const GUESTS: &[&dyn Guest] = &[&Sh];
 
 // ---------------------------------------------------------------------
@@ -446,12 +513,230 @@ fn an_extract_path_holding_other_bytes_is_refused() {
 }
 
 #[test]
-fn a_site_with_holes_is_refused_until_params_exist() {
+fn a_site_with_holes_is_refused_by_a_host_whose_load_cannot_pass_them() {
+    // bind names the param, but a host without `rewrite_bound` has no
+    // load that carries it (`languages/api:V37`).
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");
     put(&root, "a.toy", "build=shell: {{cc}} && make\n");
     let why = only_refusal(&plan(&sandbox, &root, &["a.toy"]));
-    assert!(why.contains("languages/api/src/holes:T76"), "{why}");
+    assert!(why.contains("does not support `rewrite_bound`"), "{why}");
+}
+
+// ---------------------------------------------------------------------
+// holes as params (T175, `languages/api/src/holes:V40`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_site_with_holes_moves_with_each_hole_passed_as_a_param() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(
+        &root,
+        "a.params",
+        "build=shell: {{cc}} -o x && {{cc}} -c y\n",
+    );
+    let edit = plan(&sandbox, &root, &["a.params"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let [host] = edit.hosts.as_slice() else {
+        panic!("{:?}", edit.hosts)
+    };
+    assert_eq!(host.after, "build< env CC={{cc}} sh ./a/build.sh\n");
+    let texts: Vec<&str> = host.extracts.iter().map(|e| e.text.as_str()).collect();
+    assert_eq!(texts, ["#!/usr/bin/env sh\n\"$CC\" -o x && \"$CC\" -c y\n"]);
+    let written = write::apply(&root, &edit).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(written, ["a/build.sh", "a.params"]);
+    assert_eq!(plan(&sandbox, &root, &["a.params"]), Edit::default());
+}
+
+#[test]
+fn a_hole_the_guest_would_not_expand_stays_a_judgement_naming_the_param() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.params", "build=shell: echo '{{cc}}' && make\n");
+    let why = only_refusal(&plan(&sandbox, &root, &["a.params"]));
+    assert!(why.contains("would not expand `CC`"), "{why}");
+    assert!(why.contains("languages/api/src/holes:V40"), "{why}");
+}
+
+#[test]
+fn more_holes_than_threshold_load_max_params_is_refused() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[threshold.load]\nmax_params = 1\n";
+    put(&root, "a.params", "build=shell: {{cc}} {{ld}} && make\n");
+    let why = only_refusal(&plan_with(&sandbox, &root, toml, &["a.params"]));
+    assert!(
+        why.contains("2 holes, more than [threshold.load] max_params = 1"),
+        "{why}"
+    );
+}
+
+#[test]
+fn threshold_load_param_prefix_leads_every_param_name() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[threshold.load]\nparam_prefix = \"XNL_\"\n";
+    put(&root, "a.params", "build=shell: {{cc}} && make\n");
+    let edit = plan_with(&sandbox, &root, toml, &["a.params"]);
+    let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
+    assert_eq!(after, ["build< env XNL_CC={{cc}} sh ./a/build.sh\n"]);
+}
+
+// ---------------------------------------------------------------------
+// the load runs what the prelude names (T175, `languages/pkl:V52`)
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_rule_prelude_shebang_decides_the_interpreter_the_load_runs() {
+    // The extract says `#!/bin/bash`; a load running it with the guest's
+    // default `sh` would run it under a shell it does not name.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[[extract.rule]]\nhost = \"just\"\n\
+                prelude = { shebang = \"#!/bin/bash\" }\n";
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    let edit = plan_with(&sandbox, &root, toml, &["a.toy"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
+    assert_eq!(after, ["build< bash ./a/build.sh\n"]);
+    let texts: Vec<&str> = edit
+        .hosts
+        .iter()
+        .flat_map(|h| &h.extracts)
+        .map(|e| e.text.as_str())
+        .collect();
+    assert_eq!(texts, ["#!/bin/bash\nmake && make test\n"]);
+}
+
+#[test]
+fn a_prelude_naming_another_language_leaves_the_guest_s_invoke() {
+    // Swapping in `python3` would run shell as python: only an
+    // interpreter of the guest's own language replaces the guest's.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let toml = "version = 1\n[[extract.rule]]\nhost = \"just\"\n\
+                prelude = { shebang = \"#!/usr/bin/env python3\" }\n";
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    let edit = plan_with(&sandbox, &root, toml, &["a.toy"]);
+    let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
+    assert_eq!(after, ["build< sh ./a/build.sh\n"]);
+}
+
+// ---------------------------------------------------------------------
+// the real languages (T175)
+// ---------------------------------------------------------------------
+
+/// The registry's languages, as `xnl extract` runs with them.
+#[cfg(all(
+    feature = "lang-shell",
+    any(feature = "lang-nix", feature = "lang-pkl")
+))]
+fn real(sandbox: &Sandbox, root: &Path, targets: &[&str]) -> Edit {
+    let langs = Langs {
+        hosts: crate::registry::hosts(),
+        guests: crate::registry::guests(),
+    };
+    let options = Options {
+        targets: targets.iter().map(|t| target(t)).collect(),
+        strict_hosts: false,
+    };
+    extract_with(root, &Config::default(), &options, &langs, &|| {
+        sandbox.git()
+    })
+    .unwrap_or_else(|e| panic!("{e}"))
+}
+
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+#[test]
+fn a_nix_script_calling_a_package_moves_with_its_hole_through_replace_strings() {
+    // `languages/nix:V174`: no import from derivation, the hole's text
+    // back in the host, the rest in the extract.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let module = "{ pkgs, ... }:\n{\n  systemd.services.x.script = ''\n    \
+                  ${pkgs.hello}/bin/hello\n    echo done > /tmp/x\n  '';\n}\n";
+    put(&root, "x.nix", module);
+    let edit = real(&sandbox, &root, &["x.nix"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let [host] = edit.hosts.as_slice() else {
+        panic!("{:?}", edit.hosts)
+    };
+    assert_eq!(
+        host.after,
+        "{ pkgs, ... }:\n{\n  systemd.services.x.script = builtins.replaceStrings \
+         [ \"__HELLO_BIN__\" ] [ \"${pkgs.hello}/bin/hello\" ] \
+         (builtins.readFile ./x/x-script.sh);\n}\n"
+    );
+    let [file] = host.extracts.as_slice() else {
+        panic!("{:?}", host.extracts)
+    };
+    assert_eq!(file.path, "x/x-script.sh");
+    assert!(
+        file.text.ends_with("\n__HELLO_BIN__\necho done > /tmp/x\n"),
+        "{}",
+        file.text
+    );
+    write::apply(&root, &edit).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(real(&sandbox, &root, &["x.nix"]), Edit::default());
+}
+
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+#[test]
+fn a_nix_hole_in_single_quotes_stays_a_judgement() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let module = "{ pkgs, ... }:\n{\n  systemd.services.x.script = ''\n    \
+                  echo '${pkgs.hello}'\n    echo done > /tmp/x\n  '';\n}\n";
+    put(&root, "x.nix", module);
+    let why = only_refusal(&real(&sandbox, &root, &["x.nix"]));
+    assert!(why.contains("would not expand `HELLO`"), "{why}");
+    assert!(why.contains("replaceVars"), "the host's advice: {why}");
+}
+
+#[cfg(all(feature = "lang-pkl", feature = "lang-shell"))]
+#[test]
+fn a_hk_step_loads_its_extract_with_the_shell_hk_ran_it_under() {
+    // `languages/pkl:V52`, `languages/pkl:V172`: hk's default step shell
+    // is `sh -o errexit -c`, so the prelude says `sh` and so must the
+    // load -- `bash` would run the script under a shell it never saw.
+    let hk = [
+        "amends \"package://github.com/jdx/hk/releases/download/\
+         v1.2.0/hk@1.2.0#/Config.pkl\"",
+        "",
+        "hooks {",
+        "  [\"pre-commit\"] {",
+        "    steps {",
+        "      [\"lint\"] {",
+        "        check = \"\"\"",
+        "          cargo fmt --check && cargo clippy",
+        "          \"\"\"",
+        "      }",
+        "    }",
+        "  }",
+        "}",
+        "",
+    ]
+    .join("\n");
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "hk.pkl", &hk);
+    let edit = real(&sandbox, &root, &["hk.pkl"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let [host] = edit.hosts.as_slice() else {
+        panic!("{:?}", edit.hosts)
+    };
+    assert!(
+        host.after
+            .contains("check = \"sh ./scripts/hk/lint.sh {{files}}\""),
+        "{}",
+        host.after
+    );
+    let texts: Vec<&str> = host.extracts.iter().map(|e| e.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        ["#!/usr/bin/env sh\nset -e\ncargo fmt --check && cargo clippy\n"]
+    );
 }
 
 #[test]
