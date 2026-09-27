@@ -1,0 +1,4 @@
+# Words whose bytes are not the argument (a backslash escape, a
+# backslash-newline even in braces, `{*}` expansion) and feeds that are
+# not the program: a flag before `<<`, a second stdin, awk and jq whose
+# stdin is data, and `spawn`, which has no `<<` (`languages/shells/tcl:V196`).

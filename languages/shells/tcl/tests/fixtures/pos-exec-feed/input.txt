@@ -1,0 +1,5 @@
+exec python3 << $src
+exec tclsh << {puts hi}
+exec expect << {spawn ssh host}
+exec psql << {select 1;} 2>@1
+set out [exec sh << {a | b} | wc -l]

@@ -1,0 +1,7 @@
+set timeout 30
+spawn ssh -o BatchMode=yes host
+expect "# "
+send "uptime | tail -n 1\r"
+expect "# "
+send "exit\r"
+interact

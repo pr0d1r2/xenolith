@@ -1,0 +1,9 @@
+exec sh -c "echo \$HOME | cat"
+exec sh -c {a \
+  | b}
+exec sh -c {*}$cmd
+exec python3 -u << $src
+exec python3 << $src < input.txt
+exec awk << {{ print $1 }}
+exec jq << {.a | .b}
+spawn python3 << $src

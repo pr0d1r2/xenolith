@@ -1,0 +1,13 @@
+namespace eval tools {
+  proc count {dir} {
+    if {[file isdirectory $dir]} {
+      return [exec sh -c {ls | wc -l}]
+    }
+    foreach f [glob -nocomplain *] {
+      catch {exec bash -c {echo one; echo two}}
+    }
+    while {0} {
+      puts "[exec sh -c {a && b}]"
+    }
+  }
+}

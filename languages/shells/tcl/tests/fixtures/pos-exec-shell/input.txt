@@ -1,0 +1,6 @@
+exec sh -c {a | b}
+exec bash -c {ls}
+set n [exec bash -euc {ls | wc -l}]
+exec sh -c "echo $HOME [pwd]"
+exec zsh -o ERR_EXIT -c {print hi}
+exec /bin/dash -c ls 2>@1

@@ -1,0 +1,3 @@
+# `spawn ssh` + `send` is a conversation, not a program: what `send`
+# types reaches a remote shell one line at a time, and no argv here hands
+# an interpreter a `-c` word (`languages/shells/tcl` §I).
