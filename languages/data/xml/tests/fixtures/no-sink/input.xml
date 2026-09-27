@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- An XML file with no sink: shell-looking text in ordinary elements
+    is inert data (languages:V2, languages/data/xml:V189). -->
+<project name="example">
+  <description>Run with: sh -c 'make &amp;&amp; make install'</description>
+  <dict>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/sh</string>
+      <string>-c</string>
+      <string>echo one; echo two</string>
+    </array>
+  </dict>
+  <script><![CDATA[for f in *; do echo "$f"; done]]></script>
+</project>
