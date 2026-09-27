@@ -7,7 +7,7 @@
 # current turns each legitimate row into a raise. RETIRED by `languages:T137`
 # (category hubs cut each language §N from 19 sibs to ~4).
 # BRIDGE 2026-09-26: `src/config` & `src/extract` chains cross 5000 when the
-# check engine lands in `src` (`src:V152`, `src:T153`) -- `src/extract` sat
+# check engine lands in `src` (`src/check:V152`, `src/check:T153`) -- `src/extract` sat
 # at 4982 before it. Same ~12% headroom rule. RETIRED when `src/extract`
 # splits into sub-nodes (`.:C22`) & `src` sheds rows to its children.
 # BRIDGE 2026-09-26: `languages/api` crosses 5000 (5016) when `Guest::constructs`
@@ -57,3 +57,6 @@ languages/ci             5000
 languages/data           5000
 languages/web            5000
 languages/shells/bats    5000
+src/check                5000
+src/discover             5000
+src/registry             5000

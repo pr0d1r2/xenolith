@@ -291,7 +291,7 @@ fn listed_files_that_are_gone_or_outside_the_root_are_warned_about() {
 #[cfg(unix)]
 #[test]
 fn a_listed_file_under_a_symlinked_directory_is_warned_about_not_fatal() {
-    // `src:V128`: xnl never scans through a symlink, so the entry cannot
+    // `src/discover:V128`: xnl never scans through a symlink, so the entry cannot
     // be migrated -- one warning, and the rest of the lists still are.
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");
@@ -317,7 +317,7 @@ fn a_listed_file_under_a_symlinked_directory_is_warned_about_not_fatal() {
 
 #[test]
 fn a_listed_file_no_host_claims_holds_no_site() {
-    // An unclaimed file is not scanned (`src:V13`), so it holds no site
+    // An unclaimed file is not scanned (`src/check:V13`), so it holds no site
     // xenolith flags and gets no entry.
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");

@@ -530,7 +530,7 @@ fn a_host_that_does_not_parse_stops_the_orphan_scan() {
 }
 
 // ---------------------------------------------------------------------
-// refusals and the unclaimed (`src:V13`, `src:V57`)
+// refusals and the unclaimed (`src/check:V13`, `src/discover:V57`)
 // ---------------------------------------------------------------------
 
 #[test]

@@ -77,7 +77,7 @@ fn a_path_that_is_not_utf8_is_read_not_a_panic() {
     // `std::env::args` panics on such an argument; the binary must read
     // its arguments as `OsString`s, because hk hands over whatever names
     // the tree holds. The file does not exist, so `check` refuses -- as
-    // discovery's refusal naming the path (`src:V57`), not as a panic.
+    // discovery's refusal naming the path (`src/discover:V57`), not as a panic.
     use std::ffi::OsString;
     use std::os::unix::ffi::OsStringExt;
 

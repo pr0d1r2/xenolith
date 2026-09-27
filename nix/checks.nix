@@ -14,7 +14,7 @@
   build = package;
 
   # The workspace suite, as the gate runs it (`hk.pkl` step `test`). git is a
-  # CHECK input: discovery (`src:V57`) runs `git ls-files`, and its tests
+  # CHECK input: discovery (`src/discover:V57`) runs `git ls-files`, and its tests
   # build scratch repos, so a sandbox without git fails them (`nix:B1`).
   test = package.overrideAttrs (old: {
     pname = "xenolith-test";
@@ -43,7 +43,7 @@
   # command here, so this file passes the check it runs. The hk `dogfood`
   # step proves the tree's own build; this proves the binary cachix ships.
   # git is an input because discovery asks git first even for an explicit
-  # directory, then walks it when the tree is no repository (`src:V57`).
+  # directory, then walks it when the tree is no repository (`src/discover:V57`).
   # `graph` and `lint` join when their engines land (`src/graph:T21`,
   # `src/lint:T24`).
   dogfood = pkgs.runCommand "xenolith-dogfood" {

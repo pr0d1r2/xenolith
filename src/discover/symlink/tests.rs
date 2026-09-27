@@ -1,5 +1,5 @@
 //! Symlinks in discovery: the mirror of `src/discover/symlink.rs`
-//! (`src:C139`), and the three fixtures `src:T127` names -- a symlinked
+//! (`src:C139`), and the three fixtures `src/discover:T127` names -- a symlinked
 //! file, a symlinked directory, an explicitly named symlink.
 //!
 //! Every tree is built in the discovery tests' [`Sandbox`], and every git
@@ -33,7 +33,7 @@ fn pair(code: &str, file: &str) -> (String, String) {
 }
 
 // ---------------------------------------------------------------------
-// tracked symlinks (`src:V128`)
+// tracked symlinks (`src/discover:V128`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -55,7 +55,7 @@ fn a_tracked_symlinked_file_is_skipped_with_a_warning() {
     let message = got.warnings.first().map(|w| w.message.clone());
     let message = message.unwrap_or_default();
     assert!(message.contains("symlink"), "{message}");
-    assert!(message.contains("src:V128"), "{message}");
+    assert!(message.contains("src/discover:V128"), "{message}");
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn a_tracked_symlinked_directory_is_skipped_and_not_followed() {
 
 #[test]
 fn a_tracked_symlink_pointing_outside_the_repository_is_skipped() {
-    // The case `src:V128` exists for: bytes the repository does not own.
+    // The case `src/discover:V128` exists for: bytes the repository does not own.
     let sandbox = Sandbox::new();
     let outside = sandbox.plain("elsewhere");
     write(&outside, "secret.sh", "echo outside\n");
@@ -167,7 +167,7 @@ fn an_explicit_directory_in_a_repository_skips_its_tracked_symlinks() {
 }
 
 // ---------------------------------------------------------------------
-// named explicitly: exit 2 (`src:V128`)
+// named explicitly: exit 2 (`src/discover:V128`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -190,7 +190,7 @@ fn an_explicitly_named_symlink_is_refused_with_exit_2() {
     let text = e.to_string();
     assert!(text.contains("alias.sh"), "{text}");
     assert!(text.contains("symlink"), "{text}");
-    assert!(text.contains("src:V128"), "{text}");
+    assert!(text.contains("src/discover:V128"), "{text}");
 }
 
 #[test]

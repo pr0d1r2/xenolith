@@ -12,7 +12,7 @@
 //!   and the orphan judgement at the end.
 //!
 //! Here: the types a caller sees, and the stages joined. Candidates come
-//! from [`crate::discover`] (`src:V57`, `src:V128`), minus what
+//! from [`crate::discover`] (`src/discover:V57`, `src/discover:V128`), minus what
 //! `[[exclude]]` and `[graph] exclude` skip (`src/config:V79`); every
 //! stage reads the config effective for the file at hand, as `check`
 //! does. `src/cli` renders the [`Graph`] and maps its exit code.
@@ -48,10 +48,10 @@ pub const LOADS_UNSUPPORTED: &str = "loads-unsupported";
 /// What a run is asked to look at.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
-    /// The paths named; empty means every tracked file (`src:V57`), and
+    /// The paths named; empty means every tracked file (`src/discover:V57`), and
     /// only then are orphans judged.
     pub paths: Vec<PathBuf>,
-    /// `--strict-hosts` (`src:V13`).
+    /// `--strict-hosts` (`src/check:V13`).
     pub strict_hosts: bool,
 }
 
@@ -125,12 +125,12 @@ impl Graph {
 /// Why a run was refused rather than carried out; every variant exit 2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GraphError {
-    /// Discovery refused (`src:V57`, `src:V128`).
+    /// Discovery refused (`src/discover:V57`, `src/discover:V128`).
     Discover(DiscoverError),
     /// A nested `xenolith.toml` refused (`src/config` §I discovery).
     Config(TreeError),
     /// A file no host claims and no guest reads, under `--strict-hosts`
-    /// or `[langs] unclaimed = "error"` (`src:V13`).
+    /// or `[langs] unclaimed = "error"` (`src/check:V13`).
     Unclaimed {
         /// The file, as reports name it.
         file: PathBuf,
@@ -158,7 +158,7 @@ impl fmt::Display for GraphError {
             GraphError::Unclaimed { file } => write!(
                 f,
                 "{}: host unsupported: no host in this build claims it and no guest reads \
-                 it, so it cannot be graphed (src:V13)",
+                 it, so it cannot be graphed (src/check:V13)",
                 file.display()
             ),
             GraphError::Outside { path } => write!(

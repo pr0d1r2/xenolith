@@ -73,7 +73,7 @@ pub struct Scan {
     /// How to render the result.
     pub format: OutputFormat,
     /// The paths as given, in the order given. Empty means "the tracked
-    /// files" (`src:V57`) -- the engine's call, not the parser's.
+    /// files" (`src/discover:V57`) -- the engine's call, not the parser's.
     pub paths: Vec<PathBuf>,
 }
 
@@ -92,7 +92,7 @@ pub struct Target {
 pub enum Verb {
     /// `--version` / `-V`.
     Version,
-    /// `xnl check`: detect embeds (`src:V152`).
+    /// `xnl check`: detect embeds (`src/check:V152`).
     Check(Scan),
     /// `xnl extract`: move embeds into files of their own.
     Extract {
@@ -154,7 +154,7 @@ pub struct Invocation {
     pub verb: Verb,
     /// `--verbose`: say what was done even on success.
     pub verbose: bool,
-    /// `--strict-hosts`: an unclaimed file is an error (`src:V13`).
+    /// `--strict-hosts`: an unclaimed file is an error (`src/check:V13`).
     pub strict_hosts: bool,
 }
 

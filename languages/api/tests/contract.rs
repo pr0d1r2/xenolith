@@ -47,7 +47,7 @@ fn lang_id_names_every_language_in_the_federation() {
 
 #[test]
 fn lang_id_all_is_complete_and_sorted() {
-    // The registry iterates in `LangId` order (`src:V41`), so the order
+    // The registry iterates in `LangId` order (`src/registry:V41`), so the order
     // has to be a property of this type rather than of each caller.
     let all = LangId::ALL;
     assert_eq!(all.len(), 16, "a language was added without a variant");
@@ -86,7 +86,7 @@ fn a_span_knows_the_text_it_covers() {
 
 #[test]
 fn traits_are_object_safe_so_the_registry_can_hold_them() {
-    // `src:V41` stores `&'static [&'static dyn Host]`. A trait that stops
+    // `src/registry:V41` stores `&'static [&'static dyn Host]`. A trait that stops
     // being object-safe breaks that registry and nothing else, which is
     // exactly the kind of break that is found late.
     let host: &dyn Host = &FakeHost;
@@ -103,7 +103,7 @@ fn traits_are_object_safe_so_the_registry_can_hold_them() {
 #[test]
 fn a_host_that_never_reads_a_shebang_says_so_by_default() {
     // `languages/api` §I: the one default method, answered through the
-    // object like the rest (`src:V42` asks it of every host).
+    // object like the rest (`src/check:V42` asks it of every host).
     let host: &dyn Host = &FakeHost;
     let site = fake_site();
     assert!(!host.guest_by_shebang("{ script = ''#!/bin/sh\n''; }", &site));

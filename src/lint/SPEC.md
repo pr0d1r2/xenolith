@@ -14,6 +14,9 @@ sib|src/config|`xenolith.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff \| `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
+sib|src/check|check engine: candidates → claims → sites → guests → violations; unclaimed & missing-guest policy, parallel scan
+sib|src/discover|candidate discovery: `git ls-files` \| named paths, normalisation, symlink screen
+sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, feature names
 
 ## §I INTERFACES
 
@@ -22,7 +25,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - `[lint.<guest>]`: `checks = ["<cmd> {file}", …]`, `fixers = [...]`, `extend` (default `true`: append to guest defaults; `false`: replace).
 - `[lint] hosts` (default `true`): run `Host::checks` on host files; `[lint] all = ["<cmd> {file}", …]`: checks ∀ extract regardless of guest (e.g. `typos`, `editorconfig-checker`).
 - `[lint] timeout` (default 60s): per check \| fixer wall clock; 0 = no limit.
-- targets (until `src/graph` names extracts): extract = candidate whose shebang names a compiled-in guest (dialect = interpreter basename) \| ⊥ shebang & ext ≡ `Guest::extension` (dialect ⊥); host file = host-claimed; neither → `src:V13`; excluded ⊥ result. cwd = root, file repo-relative.
+- targets (until `src/graph` names extracts): extract = candidate whose shebang names a compiled-in guest (dialect = interpreter basename) \| ⊥ shebang & ext ≡ `Guest::extension` (dialect ⊥); host file = host-claimed; neither → `src/check:V13`; excluded ⊥ result. cwd = root, file repo-relative.
 - config cmd: whitespace-split words, ⊥ shell, ⊥ quoting; word `{file}` → path, else appended.
 - status: exit 0 `pass`, ≠0 `fail`; ⊥ spawned \| signal \| timeout → `error`, why in `raw_tail`; `raw_tail` only when ⊥ `pass`; fixer listed only when ⊥ `pass`. human: `file: <check>: <why>` + tail, `N checks, N failed` last.
 - `∀ extract → typos` ⊥ engine-run: `src/config:V73` bars engine defaults & `[lint] all` default = `[]`.

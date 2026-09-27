@@ -189,7 +189,7 @@ fn with_no_sites_seen_every_allow_is_stale_in_file_order() {
 
 #[test]
 fn the_order_of_seen_sites_does_not_change_the_answer() {
-    // The scan is parallel (`src:V95`): sites arrive in any order, and
+    // The scan is parallel (`src/check:V95`): sites arrive in any order, and
     // the stale list must not show it (`src:V11`).
     let config = config(TWO);
     let unrelated = SiteKey {

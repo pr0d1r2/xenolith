@@ -1,5 +1,5 @@
 //! `xnl check`: read `xenolith.toml`, run the engine, render the report
-//! (`src:V152`, `src/cli` §I).
+//! (`src/check:V152`, `src/cli` §I).
 //!
 //! Everything here is input and output. The engine
 //! ([`crate::check`]) decides what is a violation; this module decides
@@ -22,7 +22,7 @@ use crate::model::Report;
 mod tests;
 
 /// Run `xnl check` from `root` over `scan`, writing to `out` and `err`;
-/// `strict_hosts` is `--strict-hosts` (`src:V13`).
+/// `strict_hosts` is `--strict-hosts` (`src/check:V13`).
 pub fn run(
     root: &Path,
     scan: &Scan,

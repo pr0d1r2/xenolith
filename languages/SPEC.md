@@ -38,7 +38,7 @@ sib|docs|public project docs & notices
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
-V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → per `src:V13` (default ignored). engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
+V56: ∀ candidate file offered to ∀ compiled-in & enabled host's `claims`; ≥1 claim → scanned by each claiming host (sites merged, sorted); 0 claims → per `src/check:V13` (default ignored). engine ⊥ restricts hosts by dir — only `claims` does (GH Actions dialect = `.github/workflows/*.y*ml`).
 V74: default runtime base: GH Actions dialect → `RepoRoot` (`run:` cwd = workspace); Dockerfile → `HostDir` (build context = Dockerfile dir, override via rule `base`); others → `HostDir`.
 V77: guest body failing guest parse ⊥ trivial → flagged `xenolith` (why `unparseable <guest>`) & extractable; parse errors then surface as lint findings on extract (`src/lint:V8`), fixers may auto-correct.
 V78: site inside host parse-error region (tree-sitter `ERROR`/`MISSING`, `rnix` error node) ⊥ reported & ⊥ extracted (spans unreliable); file w/ parse error → per `[parse] host_errors` (`warn` → warning `host-parse-error`, `error` → violation `host-parse-error`).

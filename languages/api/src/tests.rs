@@ -53,7 +53,7 @@ fn display_is_the_name() {
 
 #[test]
 fn the_declaration_order_is_the_name_order() {
-    // The registry and every report iterate in `Ord` (`src:V41`), and a
+    // The registry and every report iterate in `Ord` (`src/registry:V41`), and a
     // reader scanning a list expects alphabetical.
     let ids: Vec<LangId> = LangId::ALL.to_vec();
     let mut by_ord = ids.clone();

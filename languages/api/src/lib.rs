@@ -45,11 +45,11 @@ pub use crate::site::{Delim, DelimKind, GuestEnv, Placement, Site};
 /// CLOSED and UNGATED (`languages/api:V33`). A host that finds shell in a
 /// nix string must be able to SAY "shell" even in a build without
 /// `lang-shell`, so the engine can report a compiled-out guest by name
-/// (`src:V42`) instead of shrugging. Adding a language starts with a
+/// (`src/check:V42`) instead of shrugging. Adding a language starts with a
 /// variant here.
 ///
 /// The declaration order is the sort order, and the registry iterates in
-/// it (`src:V41`), so output ordering is a property of this type rather
+/// it (`src/registry:V41`), so output ordering is a property of this type rather
 /// than of each caller.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LangId {
@@ -350,7 +350,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 /// Implementations are pure (`languages/api:V36`) and return `Vec`s sorted
 /// by span, so the engines can merge results from a parallel scan and
-/// still produce byte-identical output (`src:V95`, `src:V11`).
+/// still produce byte-identical output (`src/check:V95`, `src:V11`).
 pub trait Host {
     /// Which language this is.
     fn id(&self) -> LangId;
@@ -359,7 +359,7 @@ pub trait Host {
     /// shape or the shebang in `head` (the first line).
     ///
     /// Every file is offered to every host; a file no host claims is not
-    /// scanned (`src:V13`).
+    /// scanned (`src/check:V13`).
     fn claims(&self, path: &Path, head: &str) -> bool;
 
     /// The sinks in `src` that hold guest code, sorted by span.
@@ -469,7 +469,7 @@ pub trait Host {
     /// (`languages/api` §I) -- nix's shebang-led attribute value
     /// (`languages/ci/nix:T157`). The engine needs to know: a guest the
     /// build lacks is a warning when a shebang named it, and follows
-    /// `[langs] missing_guest` when the sink did (`src:V42`).
+    /// `[langs] missing_guest` when the sink did (`src/check:V42`).
     ///
     /// `false` unless a host overrides it, which is the answer for every
     /// host that never picks a guest by shebang.

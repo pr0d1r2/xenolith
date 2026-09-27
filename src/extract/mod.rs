@@ -2,14 +2,14 @@
 //! §G, `src/extract:T22`).
 //!
 //! What gets extracted is decided ONCE, by the check engine
-//! (`src:V152`): a site is extracted exactly when `xenolith::check`
+//! (`src/check:V152`): a site is extracted exactly when `xenolith::check`
 //! flags it `xenolith`, so the two verbs cannot disagree about what a
 //! xenolith is -- an allowed site, a trivial one, one `[threshold]`
 //! relaxes, all stay where they are. What this engine adds is the
 //! move itself:
 //!
 //! 1. targets -- the paths named, through [`crate::discover`]
-//!    (`src:V57`, `src:V128`), each with the lines it asks for;
+//!    (`src/discover:V57`, `src/discover:V128`), each with the lines it asks for;
 //! 2. sites -- the claiming host's [`Host::sites`], kept when check
 //!    flagged them;
 //! 3. placement -- [`place`], per field (`src/extract:V45`), and the
@@ -75,7 +75,7 @@ pub struct Target {
 pub struct Options {
     /// At least one target; the CLI refuses none.
     pub targets: Vec<Target>,
-    /// `--strict-hosts` (`src:V13`).
+    /// `--strict-hosts` (`src/check:V13`).
     pub strict_hosts: bool,
 }
 
@@ -187,11 +187,11 @@ impl Edit {
 /// Why a whole run was refused. Exit 2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExtractError {
-    /// A named path was refused by discovery (`src:V57`, `src:V128`).
+    /// A named path was refused by discovery (`src/discover:V57`, `src/discover:V128`).
     Discover(DiscoverError),
     /// A nested `xenolith.toml` was refused (`src/config` §I).
     Config(TreeError),
-    /// The check engine refused (`src:V152`).
+    /// The check engine refused (`src/check:V152`).
     Check(CheckError),
     /// A named path lies outside the root.
     Outside(PathBuf),
@@ -381,7 +381,10 @@ fn left_alone(tree: &Tree, langs: &Langs<'_>, name: &str, text: &str, site: &Sit
         return format!("allowed by [[allow]] ({}) (src/extract:V80)", allow.reason);
     }
     if !langs.guests.iter().any(|g| g.id() == site.guest) {
-        return format!("its guest, {}, is not in this build (src:V42)", site.guest);
+        return format!(
+            "its guest, {}, is not in this build (src/check:V42)",
+            site.guest
+        );
     }
     "xnl check does not flag it, so it may stay inline".to_owned()
 }
@@ -420,7 +423,7 @@ fn targets(
 }
 
 /// The sites `xenolith::check` flags in `names`, as (file, sink, line,
-/// col) -- the one decision of what is a xenolith (`src:V152`).
+/// col) -- the one decision of what is a xenolith (`src/check:V152`).
 fn flagged(
     root: &Path,
     config: &Config,
@@ -612,7 +615,7 @@ struct Move {
 
 /// Whether `xnl extract <name>:<line>` would move `site`, one of the
 /// sites of `text`, the host file `name` that `host` reads: `Ok` when
-/// this engine would, else the refusal it would give (`src:B12`).
+/// this engine would, else the refusal it would give (`src/check:B12`).
 ///
 /// It runs the same steps as a real run on that one site -- placement,
 /// holes, rewrite, the asserts -- so `xnl check` can offer the
@@ -638,7 +641,7 @@ pub(crate) fn viable(
     let (line, col) = position(text, site.delim.open.start);
     let Some(p) = plan(tree, langs, name, host, site.clone(), line, col) else {
         return Err(format!(
-            "its guest, {}, is not in this build (src:V42)",
+            "its guest, {}, is not in this build (src/check:V42)",
             site.guest
         ));
     };

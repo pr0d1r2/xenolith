@@ -62,5 +62,5 @@ T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
 ## §B BUGS
 
 id|date|cause|fix
-B1|2026-09-26|`checks.test` sandbox had no `git`: discovery (`src:V57`) & its tests run git; T26 was verified on a tree before discovery landed ∴ `nix flake check` failed 25 lib tests after both merged|`pkgs.git` in `nativeCheckInputs` of `checks.test`; runtime closure unchanged (V29)
+B1|2026-09-26|`checks.test` sandbox had no `git`: discovery (`src/discover:V57`) & its tests run git; T26 was verified on a tree before discovery landed ∴ `nix flake check` failed 25 lib tests after both merged|`pkgs.git` in `nativeCheckInputs` of `checks.test`; runtime closure unchanged (V29)
 B2|2026-09-26|`checks.clippy` `buildPhase` = 3-line `''…''` script (`runHook` × 2 + cargo): own `xnl check` flags it `sequence` — repo held the embed it exists to forbid (`.:V19`)|each phase = one command string; package sets ⊥ pre/postBuild hooks ∴ nothing dropped; `nix flake check` green

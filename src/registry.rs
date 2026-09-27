@@ -1,4 +1,4 @@
-//! The registry: which languages this build carries (`src:V41`).
+//! The registry: which languages this build carries (`src/registry:V41`).
 //!
 //! ONE file, and the only one in the root crate that names a language
 //! crate or a `lang-*` feature. Every engine iterates [`hosts`] and
@@ -12,7 +12,7 @@
 //! hosts in is the same in every subset build (`src:V11`).
 //!
 //! A guest a host names but this build lacks is never guessed about
-//! (`src:V42`): [`require_guest`] says which feature would bring it, and
+//! (`src/check:V42`): [`require_guest`] says which feature would bring it, and
 //! [`on_missing_guest`] applies `[langs] missing_guest` to that answer.
 
 use std::fmt;
@@ -28,7 +28,7 @@ use crate::model::Warning;
 mod tests;
 
 /// The warning code for a site whose guest is compiled out, under
-/// `[langs] missing_guest = "warn"` (`src:V42`). Stable, matched like a
+/// `[langs] missing_guest = "warn"` (`src/check:V42`). Stable, matched like a
 /// rule id.
 pub const MISSING_GUEST: &str = "missing-guest";
 
@@ -48,13 +48,13 @@ const GUESTS: &[&dyn Guest] = &[
     &xenolith_lang_shell::ShellGuest,
 ];
 
-/// The hosts this build carries, sorted by [`LangId`] (`src:V41`).
+/// The hosts this build carries, sorted by [`LangId`] (`src/registry:V41`).
 #[must_use]
 pub fn hosts() -> &'static [&'static dyn Host] {
     HOSTS
 }
 
-/// The guests this build carries, sorted by [`LangId`] (`src:V41`).
+/// The guests this build carries, sorted by [`LangId`] (`src/registry:V41`).
 #[must_use]
 pub fn guests() -> &'static [&'static dyn Guest] {
     GUESTS
@@ -91,7 +91,7 @@ pub fn feature(id: LangId) -> String {
 /// or not this build turned it on. Names, not `cfg`s: the one list of
 /// which features EXIST, kept equal to `Cargo.toml`'s `[features]` by a
 /// test, so a message never sends anyone after a feature no crate
-/// provides (`src:V42`, `src:B8`).
+/// provides (`src/check:V42`, `src/check:B8`).
 const FEATURED: &[LangId] = &[LangId::Nix, LangId::Pkl, LangId::Shell];
 
 /// [`feature`] for `id` when that feature exists, else `None`: no crate
@@ -110,7 +110,7 @@ fn lacking(id: LangId) -> String {
     }
 }
 
-/// A site's guest this build does not carry (`src:V42`). Exit 2 under
+/// A site's guest this build does not carry (`src/check:V42`). Exit 2 under
 /// the default `[langs] missing_guest = "error"`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MissingGuest {
@@ -136,7 +136,7 @@ impl fmt::Display for MissingGuest {
         write!(
             f,
             "a site holds {} code, but {}; or set `[langs] missing_guest` to `warn` or \
-             `ignore` (src:V42)",
+             `ignore` (src/check:V42)",
             self.guest,
             lacking(self.guest),
         )
@@ -147,7 +147,7 @@ impl std::error::Error for MissingGuest {}
 
 /// The guest for `id`, or a [`MissingGuest`] naming the feature that
 /// would bring it -- never a guess at whether the body is trivial
-/// (`src:V42`).
+/// (`src/check:V42`).
 ///
 /// # Errors
 ///
@@ -161,7 +161,7 @@ pub fn require_guest(id: LangId) -> Result<&'static dyn Guest, MissingGuest> {
 
 /// The warning for a site whose guest a SHEBANG named -- `interpreter`,
 /// when the body's `#!` line gave one -- and this build lacks: always a
-/// warning, whatever `[langs] missing_guest` says (`src:V42`). The line
+/// warning, whatever `[langs] missing_guest` says (`src/check:V42`). The line
 /// is the file saying what it is, and a language xenolith cannot check
 /// yet must not stop the run or hide the rest of the report.
 #[must_use]
@@ -171,14 +171,14 @@ pub fn missing_shebang_guest(id: LangId, file: &Path, interpreter: Option<&str>)
         code: MISSING_GUEST.to_owned(),
         file: Some(file.to_path_buf()),
         message: format!(
-            "a shebang{named} names {id}, but {}; the site was not checked (src:V42)",
+            "a shebang{named} names {id}, but {}; the site was not checked (src/check:V42)",
             lacking(id)
         ),
     }
 }
 
 /// `[langs] missing_guest` applied to a site in `file` whose guest `id`
-/// is compiled out (`src:V42`, `src:T88`): `error` refuses, `warn`
+/// is compiled out (`src/check:V42`, `src/check:T88`): `error` refuses, `warn`
 /// returns the warning to report, `ignore` returns nothing. Either way
 /// the site is not judged -- the body is neither flagged nor passed.
 ///
@@ -200,7 +200,7 @@ pub fn on_missing_guest(
             code: MISSING_GUEST.to_owned(),
             file: Some(file.to_path_buf()),
             message: format!(
-                "a site holds {id} code, but {}; the site was not checked (src:V42)",
+                "a site holds {id} code, but {}; the site was not checked (src/check:V42)",
                 lacking(id)
             ),
         })),

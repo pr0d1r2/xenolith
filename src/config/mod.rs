@@ -289,9 +289,9 @@ pub struct Lint {
 /// `[langs]`: the runtime policies over the compiled-in set (`src:C1`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Langs {
-    /// A file no host claims (`src:V13`).
+    /// A file no host claims (`src/check:V13`).
     pub unclaimed: Policy,
-    /// A site whose guest is compiled out (`src:V42`).
+    /// A site whose guest is compiled out (`src/check:V42`).
     pub missing_guest: Policy,
 }
 

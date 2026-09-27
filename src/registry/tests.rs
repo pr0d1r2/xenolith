@@ -1,8 +1,8 @@
 //! The registry: the mirror of `src/registry.rs` (`src:C139`).
 //!
 //! What is pinned: the lists hold exactly the languages this test binary
-//! was built with, sorted by `LangId` (`src:V41`); a compiled-out guest
-//! is named by its feature, never guessed about (`src:V42`); and no file
+//! was built with, sorted by `LangId` (`src/registry:V41`); a compiled-out guest
+//! is named by its feature, never guessed about (`src/check:V42`); and no file
 //! in `src/` but the registry reads a `lang-*` feature (`src:V30`).
 //! `cargo hack --each-feature` runs these under every subset, so the
 //! lang-nix-only cases below run in exactly the build they describe.
@@ -36,7 +36,7 @@ fn guest_ids() -> Vec<LangId> {
 }
 
 // ---------------------------------------------------------------------
-// the lists (`src:V41`)
+// the lists (`src/registry:V41`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -130,7 +130,7 @@ fn the_feature_is_lang_dash_the_id() {
 }
 
 // ---------------------------------------------------------------------
-// a compiled-out guest (`src:V42`)
+// a compiled-out guest (`src/check:V42`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -143,7 +143,7 @@ fn a_compiled_in_guest_is_handed_back() {
 #[test]
 fn a_guest_no_crate_provides_is_refused_with_exit_two_naming_no_feature() {
     // Sql has no crate in any build, so this runs everywhere -- and
-    // there is no `lang-sql` to rebuild with (`src:B8`).
+    // there is no `lang-sql` to rebuild with (`src/check:B8`).
     let Err(missing) = require_guest(LangId::Sql) else {
         panic!("sql is never compiled in");
     };
@@ -152,7 +152,7 @@ fn a_guest_no_crate_provides_is_refused_with_exit_two_naming_no_feature() {
     let text = missing.to_string();
     assert!(!text.contains("lang-sql"), "{text}");
     assert!(text.contains("no support for sql"), "{text}");
-    assert!(text.contains("src:V42"), "{text}");
+    assert!(text.contains("src/check:V42"), "{text}");
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn a_shebang_named_guest_is_a_warning_naming_the_interpreter() {
     assert!(shell.message.contains("`lang-shell`"), "{}", shell.message);
 }
 
-/// The nix-only build `src:T46` names: a nix host finding shell, with no
+/// The nix-only build `src/registry:T46` names: a nix host finding shell, with no
 /// shell guest to judge it.
 #[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
 #[test]
@@ -218,7 +218,7 @@ fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
 }
 
 // ---------------------------------------------------------------------
-// no `cfg` leak (`src:V30`, `src:V41`)
+// no `cfg` leak (`src:V30`, `src/registry:V41`)
 // ---------------------------------------------------------------------
 
 /// Every `.rs` under `dir`, sorted.
@@ -258,7 +258,7 @@ fn no_file_in_src_but_the_registry_reads_a_language_feature() {
 }
 
 // ---------------------------------------------------------------------
-// `[langs] missing_guest` (`src:V42`, `src:T88`)
+// `[langs] missing_guest` (`src/check:V42`, `src/check:T88`)
 // ---------------------------------------------------------------------
 
 mod missing_guest {
@@ -303,7 +303,7 @@ mod missing_guest {
         assert_eq!(warning.code, "missing-guest");
         assert_eq!(warning.file.as_deref(), Some(Path::new("db/q.nix")));
         // Sql has no crate: the warning says so rather than name a
-        // feature nobody can turn on (`src:B8`).
+        // feature nobody can turn on (`src/check:B8`).
         assert!(
             warning.message.contains("no support for sql"),
             "{}",
@@ -318,7 +318,7 @@ mod missing_guest {
         assert_eq!(found, Ok(None));
     }
 
-    /// The `src:T88` fixture: a nix host finding shell in a nix-only
+    /// The `src/check:T88` fixture: a nix host finding shell in a nix-only
     /// build, under each policy as a `xenolith.toml` states it.
     #[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
     #[test]

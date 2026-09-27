@@ -316,7 +316,7 @@ fn same_position_pairs() -> Vec<(&'static str, Violation, Violation)> {
 
 #[test]
 fn push_orders_equal_positions_independent_of_arrival() {
-    // `src:V95`: the scan is parallel, so which of two findings at one
+    // `src/check:V95`: the scan is parallel, so which of two findings at one
     // position arrives first is a race. `src:V11`: the bytes must not
     // depend on it. Both arrival orders must render the same report.
     for (field, a, b) in same_position_pairs() {
@@ -378,7 +378,7 @@ fn warn_sorts_by_code_then_file_with_no_file_first() {
 
 #[test]
 fn warn_orders_equal_code_and_file_independent_of_arrival() {
-    // Same race as for violations (`src:V95`, `src:V11`): two warnings
+    // Same race as for violations (`src/check:V95`, `src:V11`): two warnings
     // with one code and one file differ in their message, which is
     // rendered, so arrival order must not decide the bytes.
     for file in [None, Some("a.nix")] {

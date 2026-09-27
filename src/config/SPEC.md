@@ -14,6 +14,9 @@ sib|src/extract|embed → own file, host rewrite, diff \| `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
 sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
+sib|src/check|check engine: candidates → claims → sites → guests → violations; unclaimed & missing-guest policy, parallel scan
+sib|src/discover|candidate discovery: `git ls-files` \| named paths, normalisation, symlink screen
+sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, feature names
 
 ## §C CONSTRAINTS
 

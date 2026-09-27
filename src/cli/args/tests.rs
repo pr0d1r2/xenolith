@@ -87,7 +87,7 @@ fn a_flag_before_the_verb_is_refused() {
 
 #[test]
 fn check_with_nothing_is_human_over_no_paths() {
-    // No paths is not "nothing to do": it is `git ls-files` (`src:V57`),
+    // No paths is not "nothing to do": it is `git ls-files` (`src/discover:V57`),
     // which the engine decides, so the parser keeps the list empty.
     let got = ok(&["check"]);
     assert_eq!(got.verb, Verb::Check(scan(OutputFormat::Human, &[])));

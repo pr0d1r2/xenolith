@@ -190,8 +190,8 @@ fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
 
 #[test]
 fn check_is_routed_to_its_engine_not_refused() {
-    // `src:T153`: the arm runs the engine. A named path that does not
-    // exist is the engine's refusal (`src:V57`), not the not-yet one.
+    // `src/check:T153`: the arm runs the engine. A named path that does not
+    // exist is the engine's refusal (`src/discover:V57`), not the not-yet one.
     let sandbox = crate::discover::Sandbox::new();
     let root = sandbox.plain("r");
     let mut out = Vec::new();
@@ -206,7 +206,7 @@ fn check_is_routed_to_its_engine_not_refused() {
 #[test]
 fn extract_is_routed_to_its_engine_not_refused() {
     // `src/extract:T22`: the arm runs the extract engine. A named path
-    // that does not exist is discovery's refusal (`src:V57`), not the
+    // that does not exist is discovery's refusal (`src/discover:V57`), not the
     // not-yet one.
     let sandbox = crate::discover::Sandbox::new();
     let root = sandbox.plain("r");
@@ -222,7 +222,7 @@ fn extract_is_routed_to_its_engine_not_refused() {
 #[test]
 fn graph_is_routed_to_its_engine_not_refused() {
     // `src/graph:T21`: the arm runs the graph engine. A named path that
-    // does not exist is discovery's refusal (`src:V57`), not the not-yet
+    // does not exist is discovery's refusal (`src/discover:V57`), not the not-yet
     // one.
     let sandbox = crate::discover::Sandbox::new();
     let root = sandbox.plain("r");
@@ -238,7 +238,7 @@ fn graph_is_routed_to_its_engine_not_refused() {
 #[test]
 fn lint_is_routed_to_its_engine_not_refused() {
     // `src/lint:T24`: the arm runs the lint engine. A named path that
-    // does not exist is discovery's refusal (`src:V57`), not the not-yet
+    // does not exist is discovery's refusal (`src/discover:V57`), not the not-yet
     // one.
     let sandbox = crate::discover::Sandbox::new();
     let root = sandbox.plain("r");

@@ -189,7 +189,7 @@ fn the_sandbox_strips_every_inherited_git_variable() {
 }
 
 // ---------------------------------------------------------------------
-// no paths: `git ls-files` (`src:V57`)
+// no paths: `git ls-files` (`src/discover:V57`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -210,7 +210,7 @@ fn without_paths_the_candidates_are_the_tracked_files_sorted() {
 
 #[test]
 fn untracked_and_ignored_files_are_not_candidates() {
-    // The fixture `src:T58` names: tracked only, so `.gitignore` is
+    // The fixture `src/discover:T58` names: tracked only, so `.gitignore` is
     // honoured for free and a stray build output is never scanned.
     let sandbox = Sandbox::new();
     let root = sandbox.repo("r");
@@ -284,7 +284,7 @@ fn an_empty_repository_has_no_candidates_and_is_not_an_error() {
 
 #[test]
 fn outside_git_without_paths_is_refused_with_exit_2() {
-    // `src:V57`: with neither a repository nor paths there is no honest
+    // `src/discover:V57`: with neither a repository nor paths there is no honest
     // answer to "which files", and scanning nothing then exiting 0 is
     // indistinguishable, in a gate, from a clean tree.
     let sandbox = Sandbox::new();
@@ -296,7 +296,7 @@ fn outside_git_without_paths_is_refused_with_exit_2() {
     let text = e.to_string();
     assert!(text.contains("not a git repository"), "{text}");
     assert!(text.contains(&root.display().to_string()), "{text}");
-    assert!(text.contains("src:V57"), "{text}");
+    assert!(text.contains("src/discover:V57"), "{text}");
 }
 
 #[test]
@@ -331,7 +331,7 @@ fn a_git_that_fails_for_another_reason_is_a_git_error_not_not_a_repo() {
 }
 
 // ---------------------------------------------------------------------
-// explicit paths (`src:V57`: the hk file list)
+// explicit paths (`src/discover:V57`: the hk file list)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -461,7 +461,7 @@ fn an_explicit_directory_with_no_tracked_file_is_refused_with_exit_2() {
     assert_eq!(e.exit_code(), 2);
     let text = e.to_string();
     assert!(text.starts_with("d: "), "{text}");
-    assert!(text.contains("src:V57"), "{text}");
+    assert!(text.contains("src/discover:V57"), "{text}");
 }
 
 #[test]
@@ -539,7 +539,7 @@ fn within<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> T {
 }
 
 /// Discover as `found` does, then read every candidate as the engine
-/// does (`src:V152`), all under [`within`].
+/// does (`src/check:V152`), all under [`within`].
 #[cfg(unix)]
 fn found_and_read(sandbox: Sandbox, root: PathBuf, rels: &'static [&'static str]) -> Vec<String> {
     within(move || {
@@ -578,7 +578,7 @@ fn a_tracked_file_replaced_by_a_fifo_is_not_a_candidate() {
 #[test]
 fn an_explicit_fifo_is_refused_with_exit_2() {
     // Named, it is refused rather than skipped, as a named symlink is
-    // (`src:V128`): skipping the one path asked about reads as clean.
+    // (`src/discover:V128`): skipping the one path asked about reads as clean.
     let sandbox = Sandbox::new();
     let root = sandbox.plain("p");
     fifo(&root, "pipe");
@@ -632,6 +632,6 @@ fn every_refusal_names_its_spec_rule() {
     ];
     for e in cases {
         assert_eq!(e.exit_code(), 2, "{e:?}");
-        assert!(e.to_string().contains("src:V57"), "{e}");
+        assert!(e.to_string().contains("src/discover:V57"), "{e}");
     }
 }

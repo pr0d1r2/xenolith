@@ -14,6 +14,9 @@ sib|src/config|`xenolith.toml` parse & validation
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
 sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
+sib|src/check|check engine: candidates → claims → sites → guests → violations; unclaimed & missing-guest policy, parallel scan
+sib|src/discover|candidate discovery: `git ls-files` \| named paths, normalisation, symlink screen
+sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, feature names
 
 ## §C CONSTRAINTS
 
@@ -24,7 +27,7 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - `[extract]`: `layout` ∈ `host` (default: host placement only) \| `mirror` (`<root>/<host path sans ext>/<name>.<ext>`) \| `sibling` (`<host_dir>/<host_stem>.<name>.<ext>`) \| `central` (`<root>/<guest>/<name>.<ext>`); `root` (default `scripts`). layer C.
 - `[[extract.rule]]`: match `host`, `sink` (glob, `*` = one dotted segment), `guest` — each optional, ≥1 required; set any of `path` (template), `base` (`host` \| `root` \| `"<dir>"`, overrides `Host::runtime_base`), `invoke` (argv template, overrides `Guest::invoke`), `prelude` (`{ shebang, strict }`), `executable`, `companion` (template). layer B, highest precedence.
 - `[extract] depth` (default 5, ≥1): max nesting levels extracted in one run.
-- lib: `xenolith::extract(root, &Config, &Options) -> Result<Edit, ExtractError>` extracts exactly the `xenolith` sites `xenolith::check` flags (`src:V152`) in files ⊥ `[[exclude]]` \| `[extract] exclude`; `:line` w/ ⊥ such site → refused. `Edit` = per host: before, after, extracts, refusals, explain; `apply(root, &Edit)` = `--write`.
+- lib: `xenolith::extract(root, &Config, &Options) -> Result<Edit, ExtractError>` extracts exactly the `xenolith` sites `xenolith::check` flags (`src/check:V152`) in files ⊥ `[[exclude]]` \| `[extract] exclude`; `:line` w/ ⊥ such site → refused. `Edit` = per host: before, after, extracts, refusals, explain; `apply(root, &Edit)` = `--write`.
 - template vars: `{host_dir}` @ root = `""`; `{path}`/`{path_stem}` = extract path w/ \| sans ext as loaded (`invoke` only; in `path` → exit 2). load text = extract path relative to base (default host dir; `Host::runtime_base` ⊥ yet), `./`-led unless `../`.
 - holes: `holes::bind` (file's `[threshold.load]`) → `Host::rewrite_bound`, else refused w/ why & `hole_advice`. `invoke` argv[0] = prelude's interpreter iff same guest. `viable` = per-site run `xnl check` shares.
 - refused until V4 provable: host `loads` \| `inline` ⊥, rule `companion` (T51: stub content unspecified), `strict = "enforce"`. extract ends `\n`.
@@ -77,7 +80,7 @@ T85|x|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
 T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
-T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src:B12`
+T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src/check:B12`
 
 ## §B BUGS
 

@@ -1,16 +1,16 @@
-//! The check engine: `xnl check` as a library call (`src:V152`).
+//! The check engine: `xnl check` as a library call (`src/check:V152`).
 //!
 //! ONE pipeline, stage by stage, each stage owned elsewhere and only
 //! JOINED here:
 //!
-//! 1. candidates -- [`crate::discover`] (`src:V57`, `src:V128`), minus
+//! 1. candidates -- [`crate::discover`] (`src/discover:V57`, `src/discover:V128`), minus
 //!    what `[[exclude]]` and `[check] exclude` skip (`src/config:V79`);
 //!    an excluded file is never opened.
 //! 2. claims -- every registry host is offered every candidate
-//!    (`languages:V56`); a file nobody claims is unclaimed (`src:V13`).
+//!    (`languages:V56`); a file nobody claims is unclaimed (`src/check:V13`).
 //! 3. sites -- `Host::sites`, from the grammar (`languages:V2`).
 //! 4. guest -- the site's guest from the registry; compiled out, it goes
-//!    to `[langs] missing_guest` and is never guessed about (`src:V42`).
+//!    to `[langs] missing_guest` and is never guessed about (`src/check:V42`).
 //! 5. verdict -- `Guest::trivial` over the body `Host::unescape` gives
 //!    (`languages/api/src/lens:V39`), then `[threshold]`, which only
 //!    RELAXES (`src/config:V55`): a trivial body is never flagged.
@@ -56,7 +56,7 @@ pub const CONFIG_FILE: &str = config::FILE;
 pub const HOST_PARSE_ERROR: &str = "host-parse-error";
 
 /// The warning code for a file no host claims, under `[langs] unclaimed
-/// = "warn"` (`src:V13`).
+/// = "warn"` (`src/check:V13`).
 pub const UNCLAIMED: &str = "host-unsupported";
 
 /// What stands in for a host interpolation (a hole) when a body is
@@ -72,10 +72,10 @@ const HOLE: &str = "XNL_HOLE";
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
     /// The paths named, repo-root relative; empty means every tracked
-    /// file (`src:V57`).
+    /// file (`src/discover:V57`).
     pub paths: Vec<PathBuf>,
     /// `--strict-hosts`: an unclaimed file refuses the run, whatever
-    /// `[langs] unclaimed` says (`src:V13`).
+    /// `[langs] unclaimed` says (`src/check:V13`).
     pub strict_hosts: bool,
 }
 
@@ -83,17 +83,17 @@ pub struct Options {
 /// 2 (`src/cli:V24`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckError {
-    /// Discovery refused (`src:V57`, `src:V128`).
+    /// Discovery refused (`src/discover:V57`, `src/discover:V128`).
     Discover(DiscoverError),
     /// A `xenolith.toml` below the root cannot be read, does not parse,
     /// or declares another version than the chain above it
     /// (`src/config` §I discovery, `src/config:V70`).
     Config(TreeError),
     /// A site's guest is compiled out and `[langs] missing_guest` is
-    /// `error` (`src:V42`).
+    /// `error` (`src/check:V42`).
     MissingGuest(MissingGuest),
     /// No compiled-in host claims a candidate, under `--strict-hosts` or
-    /// `[langs] unclaimed = "error"` (`src:V13`).
+    /// `[langs] unclaimed = "error"` (`src/check:V13`).
     Unclaimed {
         /// The file, as reports name it.
         file: PathBuf,
@@ -138,7 +138,7 @@ impl fmt::Display for CheckError {
                     "{}: host unsupported: no host in this build claims it",
                     file.display()
                 )?;
-                // Only a feature that exists is named (`src:V30`, `src:B10`).
+                // Only a feature that exists is named (`src:V30`, `src/check:B10`).
                 match missing.map(|id| (id, registry::existing_feature(id))) {
                     Some((id, Some(feature))) => {
                         write!(
@@ -152,7 +152,7 @@ impl fmt::Display for CheckError {
                     )?,
                     None => {}
                 }
-                f.write_str(" (src:V13)")
+                f.write_str(" (src/check:V13)")
             }
         }
     }
@@ -178,7 +178,7 @@ impl From<MissingGuest> for CheckError {
     }
 }
 
-/// Check the tree at `root` under `config` (`src:V152`).
+/// Check the tree at `root` under `config` (`src/check:V152`).
 ///
 /// # Errors
 ///
@@ -310,7 +310,7 @@ pub(crate) fn check_with(
     Ok(report)
 }
 
-/// Stage 2 for a file no host claims (`src:V13`): never scanned, and by
+/// Stage 2 for a file no host claims (`src/check:V13`): never scanned, and by
 /// default never mentioned -- most of a tree (docs, images, lockfiles)
 /// is in no language xenolith hosts. `warn` says so per file;
 /// `--strict-hosts` or `error` refuses the run, naming the feature that
@@ -340,7 +340,7 @@ fn unclaimed(
                 file: Some(PathBuf::from(name)),
                 message: format!(
                     "{name}: host unsupported: no host in this build claims it, so it was \
-                     not scanned (src:V13)"
+                     not scanned (src/check:V13)"
                 ),
             });
             Ok(())
@@ -388,8 +388,8 @@ fn judge_site(
     let Some(guest) = langs.guests.iter().find(|g| g.id() == site.guest) else {
         if host.guest_by_shebang(src, site) {
             // The file's own `#!` line named a language this build
-            // cannot check: said once, never a refusal (`src:V42`,
-            // `src:B8`), and the rest of the report stands.
+            // cannot check: said once, never a refusal (`src/check:V42`,
+            // `src/check:B8`), and the rest of the report stands.
             let interpreter = host
                 .unescape(&site.delim, &guest_text(src, site))
                 .ok()
@@ -461,7 +461,7 @@ fn judge_site(
     Ok(())
 }
 
-/// The first direction of a xenolith (`src:B12`): `Mechanical` -- run
+/// The first direction of a xenolith (`src/check:B12`): `Mechanical` -- run
 /// `xnl extract <file>:<line>` -- exactly when that command would move the
 /// site, by the extract engine's own verdict ([`crate::extract::viable`]),
 /// since a mechanical direction is a fix SARIF offers to apply
@@ -492,7 +492,7 @@ fn extract_direction(
 }
 
 /// `word` as ONE shell word, for a command a direction prints to be
-/// pasted (`src:B7`): bare when every byte is one no POSIX shell treats
+/// pasted (`src/check:B7`): bare when every byte is one no POSIX shell treats
 /// specially, else single-quoted, a `'` inside written `'\''`.
 fn shell_word(word: &str) -> String {
     let plain = |c: char| c.is_ascii_alphanumeric() || "_-./:@%+,".contains(c);
@@ -632,7 +632,7 @@ fn unsited(file: PathBuf, line: usize, host: LangId, sink: String) -> Located {
 /// naming no candidate at all (the file is gone or untracked). Never an
 /// entry naming a candidate that was not scanned: excluded, claimed by
 /// no host in this build (`src:V30`), or not parsed by its host
-/// (`src:B2`) -- that file's sites were not looked at, so nothing about
+/// (`src/check:B2`) -- that file's sites were not looked at, so nothing about
 /// them can be judged unmatched.
 ///
 /// Reported AT the site when one with the entry's path and sink still
@@ -701,7 +701,7 @@ fn stale_allows(
 }
 
 /// Every exclude entry, in every config read, whose glob matches none of
-/// `tracked` is `stale-exclude` (`src/config:V79`, `src:B5`). Asked only
+/// `tracked` is `stale-exclude` (`src/config:V79`, `src/check:B5`). Asked only
 /// on a whole-tree run: named paths are a partial view of the tree.
 ///
 /// A WARNING, though V79 calls it a violation: `src:V1` gives every
@@ -832,7 +832,7 @@ fn position(src: &str, offset: usize) -> (usize, usize) {
 
 /// The first line of the file, for `Host::claims` (a shebang), read
 /// without reading the rest: an unclaimed file is not scanned
-/// (`src:V13`), and a large binary should not be loaded to learn that.
+/// (`src/check:V13`), and a large binary should not be loaded to learn that.
 fn head(path: &Path) -> String {
     let mut buf = Vec::new();
     if let Ok(file) = fs::File::open(path) {
@@ -842,7 +842,7 @@ fn head(path: &Path) -> String {
     String::from_utf8_lossy(first).into_owned()
 }
 
-/// A named `path` as the root spells it (`src:B4`): relative to `root`,
+/// A named `path` as the root spells it (`src/check:B4`): relative to `root`,
 /// `.` and `..` resolved lexically, `.` for the root itself. An absolute
 /// path is matched against the root as given (made absolute from the
 /// working directory) and as the filesystem resolves it, so `/tmp/r/a`

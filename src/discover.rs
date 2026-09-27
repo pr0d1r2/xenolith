@@ -1,6 +1,6 @@
-//! Candidate discovery: which files a verb looks at (`src:V57`).
+//! Candidate discovery: which files a verb looks at (`src/discover:V57`).
 //!
-//! The first stage of the check engine (`src:V152`): everything after it
+//! The first stage of the check engine (`src/check:V152`): everything after it
 //! -- hosts claiming files, sites, guests -- sees only what this module
 //! returns, so a file dropped here is a file never judged, and a file
 //! added here is a file judged that nobody asked about.
@@ -18,7 +18,7 @@
 //!   yields no file at all is refused, since scanning nothing and exiting
 //!   0 would read, in a gate, as that directory clean.
 //!
-//! Whichever source, a symlink is never scanned (`src:V128`): found, it
+//! Whichever source, a symlink is never scanned (`src/discover:V128`): found, it
 //! is skipped with a warning; named, it is refused. That rule and its
 //! reasons are `symlink`'s.
 //!
@@ -48,7 +48,7 @@ mod tests;
 pub(crate) use self::tests::{Sandbox, write};
 
 /// The warning code for a candidate skipped because it is, or lies under,
-/// a symlink (`src:V128`). Stable, matched like a rule id.
+/// a symlink (`src/discover:V128`). Stable, matched like a rule id.
 pub const SYMLINK_SKIPPED: &str = "symlink-skipped";
 
 /// What discovery hands the engine: the files to scan, repo-root
@@ -106,7 +106,7 @@ pub enum DiscoverError {
         detail: String,
     },
     /// A path named explicitly is, or runs through, a symlink
-    /// (`src:V128`).
+    /// (`src/discover:V128`).
     Symlink {
         /// The path as it was named.
         path: PathBuf,
@@ -130,41 +130,45 @@ impl fmt::Display for DiscoverError {
             DiscoverError::NotARepo { root } => write!(
                 f,
                 "{} is not a git repository and no paths were given: name the files \
-                 to check, or run inside a repository (src:V57)",
+                 to check, or run inside a repository (src/discover:V57)",
                 root.display()
             ),
             DiscoverError::Git { detail } => {
-                write!(f, "git ls-files failed: {detail} (src:V57)")
+                write!(f, "git ls-files failed: {detail} (src/discover:V57)")
             }
             DiscoverError::Missing { path } => {
-                write!(f, "{}: no such file or directory (src:V57)", path.display())
+                write!(
+                    f,
+                    "{}: no such file or directory (src/discover:V57)",
+                    path.display()
+                )
             }
             DiscoverError::EmptyDir { path } => write!(
                 f,
                 "{}: named directory holds no file to scan; inside a repository only \
                  its tracked files are candidates, untracked & ignored ones are not \
-                 (src:V57)",
+                 (src/discover:V57)",
                 path.display()
             ),
             DiscoverError::NotAFile { path } => write!(
                 f,
                 "{}: named explicitly but is not a regular file (a FIFO, socket or \
-                 device); it has no source to scan (src:V57)",
+                 device); it has no source to scan (src/discover:V57)",
                 path.display()
             ),
             DiscoverError::Io { path, detail } => {
-                write!(f, "{}: {detail} (src:V57)", path.display())
+                write!(f, "{}: {detail} (src/discover:V57)", path.display())
             }
             DiscoverError::Symlink { path, link } if path == link => write!(
                 f,
                 "{}: named explicitly but is a symlink; xenolith does not read \
-                 through symlinks, name its target instead (src:V128)",
+                 through symlinks, name its target instead (src/discover:V128)",
                 path.display()
             ),
             DiscoverError::Symlink { path, link } => write!(
                 f,
                 "{}: named explicitly but runs through the symlink `{}`; xenolith \
-                 does not read through symlinks, name the real path instead (src:V128)",
+                 does not read through symlinks, name the real path instead (src/discover:V128)",
                 path.display(),
                 link.display()
             ),
@@ -174,7 +178,7 @@ impl fmt::Display for DiscoverError {
 
 impl std::error::Error for DiscoverError {}
 
-/// The candidates for a verb run from `root` over `paths` (`src:V57`).
+/// The candidates for a verb run from `root` over `paths` (`src/discover:V57`).
 ///
 /// `paths` empty means "the repository": its tracked files. Otherwise
 /// each path is taken relative to `root`, as named. The engine calls
@@ -184,7 +188,7 @@ impl std::error::Error for DiscoverError {}
 ///
 /// [`DiscoverError`], every variant exit 2: outside git with no paths,
 /// git failing, or a named path that does not exist, cannot be read, or
-/// is a symlink (`src:V128`) or not a regular file, or a named directory
+/// is a symlink (`src/discover:V128`) or not a regular file, or a named directory
 /// with no file to scan.
 /// A symlink FOUND rather than named is
 /// skipped with a [`SYMLINK_SKIPPED`] warning instead.
@@ -194,7 +198,7 @@ pub fn discover(root: &Path, paths: &[PathBuf]) -> Result<Candidates, DiscoverEr
 
 /// [`discover`], with the `git` command supplied by the caller -- the
 /// seam the tests use to run git sandboxed (`tests:V150`), here and
-/// through the check engine (`src:V152`).
+/// through the check engine (`src/check:V152`).
 pub(crate) fn discover_with(
     root: &Path,
     paths: &[PathBuf],
@@ -212,7 +216,7 @@ pub(crate) fn discover_with(
 ///
 /// `..` is folded only past a directory, never past a symlink: through
 /// a link, `link/..` is the link target's parent, and the unfolded path
-/// is what `symlink::screen` refuses (`src:V128`). A path outside `root`
+/// is what `symlink::screen` refuses (`src/discover:V128`). A path outside `root`
 /// keeps its absolute form.
 fn normalise(root: &Path, path: &Path) -> PathBuf {
     let below = match path.strip_prefix(root) {
@@ -356,7 +360,7 @@ fn path_from_bytes(bytes: &[u8]) -> Result<PathBuf, DiscoverError> {
 }
 
 /// Whether an entry of this kind can be a candidate: a regular file, or
-/// a symlink for `symlink::screen` to judge (`src:V128`). A FIFO, socket
+/// a symlink for `symlink::screen` to judge (`src/discover:V128`). A FIFO, socket
 /// or device has no source to scan, and the engine opening a FIFO would
 /// block until something wrote to it -- a gate that hangs.
 fn scannable(kind: fs::FileType) -> bool {

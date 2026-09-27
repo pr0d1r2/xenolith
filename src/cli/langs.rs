@@ -7,7 +7,7 @@
 //! cannot say.
 //!
 //! What each entry carries today is id, feature and compiled-in, the
-//! last two answered by the registry (`src:V41`), which is the one place
+//! last two answered by the registry (`src/registry:V41`), which is the one place
 //! a `lang-*` feature is read (`src:V30`). The rest of the §I entry --
 //! role, sinks, delimiter kinds, checks, fixers -- widens the JSON shape
 //! (`src/cli:V24`) and is a change of its own.

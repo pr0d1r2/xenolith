@@ -28,10 +28,10 @@ pub const EXTRACT_INACTIVE_RULES: &str = "warn";
 /// `[extract.shell] strict` (`languages/shells/shell` §I): reproduce the
 /// options the site ran under, add none.
 pub const EXTRACT_SHELL_STRICT: &str = "preserve";
-/// `[langs] missing_guest` (`src:V42`): a site whose guest is compiled
+/// `[langs] missing_guest` (`src/check:V42`): a site whose guest is compiled
 /// out is an error, never a guess.
 pub const LANGS_MISSING_GUEST: &str = "error";
-/// `[langs] unclaimed` (`src:V13`): a file no host claims is not
+/// `[langs] unclaimed` (`src/check:V13`): a file no host claims is not
 /// scanned and not reported.
 pub const LANGS_UNCLAIMED: &str = "ignore";
 /// `[lint.<guest>] extend` (`src/lint` §I): configured checks append to

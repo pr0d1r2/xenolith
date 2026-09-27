@@ -13,7 +13,7 @@
 //! * this module -- what to DO about it: one match arm per verb.
 //! * [`langs`] -- the one verb with nothing to scan, answered here.
 //! * [`check`] -- `xnl check`: config in, the engine's report out
-//!   (`src:V152`: the engine decides, `src/cli` renders and maps exit
+//!   (`src/check:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
 //! * [`extract`] -- `xnl extract`: config in, the extract engine's edit
 //!   out as a diff, or written under `--write` (`src/extract:T22`).

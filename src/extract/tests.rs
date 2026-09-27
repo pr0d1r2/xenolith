@@ -624,7 +624,7 @@ fn a_prelude_naming_another_language_leaves_the_guest_s_invoke() {
 }
 
 // ---------------------------------------------------------------------
-// one verdict for check and extract (T175, `src:B12`)
+// one verdict for check and extract (T175, `src/check:B12`)
 // ---------------------------------------------------------------------
 
 /// `viable` for the one site of `name` under the root config.

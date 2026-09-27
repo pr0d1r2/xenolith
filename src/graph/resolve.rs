@@ -7,7 +7,7 @@
 //! walked from the root one component at a time with `symlink_metadata`,
 //! so a symlink anywhere on the way is seen rather than followed: it may
 //! point outside the repository, and the same bytes would then be judged
-//! under two names (`src:V128`).
+//! under two names (`src/discover:V128`).
 
 use std::fmt;
 use std::fs;

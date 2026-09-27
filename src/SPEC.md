@@ -12,6 +12,9 @@ extract|embed → own file, host rewrite, diff \| `--write`|detection (`language
 graph|host → extract load edges, dangling & orphan|writing files (`extract`)|-
 lint|per-language linter map & invocation|deciding what is an extract (`graph`, `config`)|-
 cli|verbs, flags, exit codes, rule ids, output formats, hk wiring|scanning & engines (`src/*`), config schema (`src/config`)|-
+check|check engine: candidates → claims → sites → guests → violations; unclaimed & missing-guest policy, parallel scan|discovery (`src/discover`), rendering & exit codes (`src/cli`), config schema (`src/config`)|-
+discover|candidate discovery: `git ls-files` \| named paths, normalisation, symlink screen|what is done w/ a candidate (`src/check`)|-
+registry|language registry: `hosts()`, `guests()`, feature gates, feature names|language specifics (`languages`)|-
 
 ## §N NAV
 
@@ -40,50 +43,21 @@ sib|docs|public project docs & notices
 V1: ∀ violation carries `rule`, `file:line:col`, host lang, guest lang, sink, site delimiter kind, `why`, ≥1 direction. ⊥ bare "bad".
 V11: deterministic: output order sorted (file, line, col); json byte-stable across runs & platforms.
 V12: CPU only, offline: test runs w/ network disabled; ⊥ `reqwest`/`ureq`/`hyper` in dep tree (cargo-deny ban).
-V13: unclaimed file (0 hosts claim, named or not) ⊥ scanned & ⊥ reported by default; `--strict-hosts` \| `[langs] unclaimed = "error"` → exit 2 "host unsupported"; `warn` → warning.
 V18: `rust-version` ≡ pinned rustc minor; CI asserts.
-V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files unclaimed per `src:V13`; strict → exit 2 message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
-V41: registry = ONE file in root crate: `hosts() -> &'static [&'static dyn Host]`, `guests() -> &'static [&'static dyn Guest]`, each entry behind `#[cfg(feature = "lang-<lang>")]`, sorted by `LangId`. engines iterate registry; ⊥ `cfg(feature = "lang-*")` elsewhere (V30 no-leak made checkable).
-V42: guest compiled out: site whose `guest` ∉ `guests()` → per `[langs] missing_guest` (default `error`: exit 2 naming guest & its feature `lang-<guest>` if ∃; `warn` → warning; `ignore`); guest named by shebang (`Host::guest_by_shebang`) → warning `missing-guest` always; ⊥ guessing trivial/non-trivial.
-V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage. named dir w/ 0 candidates → exit 2; candidate = regular file \| symlink (FIFO, socket, device ⊥ listed; named → exit 2); named paths normalised (root-relative, ⊥ `.`, `x/..` folded only past a real dir) before dedup.
-V95: scan parallel per file, results merged then sorted (V11) ∴ output byte-identical to serial run; `--jobs N` (default cores).
-V120: scan throughput recorded (files/s over the M2 corpus & a synthetic large tree); regression beyond recorded budget = warning `slow-scan`, ⊥ gate failure (timing noise); budget raise only w/ Why.
-V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & discovery ⊥ follows symlinked dirs — a tracked symlink may point outside the repo, & the same bytes would be reported twice under 2 paths. named explicitly → exit 2 saying so (`src/extract:V71`, `src/graph:V72` are the write & graph halves).
-V152: `xenolith::check` = ONE engine: candidates (V57, V128, `src/config:V79`) → registry hosts claim (V41, V13) → `Host::sites` → guest ∈ `guests()` (V42) → `Guest::trivial` relaxed by `[threshold]` (`src/config:V55`) → non-trivial ∧ ⊥ `[[allow]]` → `Violation` (V1); unmatched allow → `stale-allow` (`src/config:V9`). `src/cli` renders & maps exit codes only.
+V30: ∀ `lang-*` feature toggleable: build + test green w/ each feature alone & w/ none (`cargo hack --each-feature`). language compiled out → its files unclaimed per `src/check:V13`; strict → exit 2 message names missing feature `lang-<lang>`. ⊥ `cfg` leak: engine code ⊥ names a language outside its feature gate.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T46, T58, T75, T88, T127, T142, T153 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | T3, T8, T40, T142 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
 T3|x|`Cargo.toml` (edition 2024, rust-version 1.95, MIT, lints), `clippy.toml`, `rustfmt.toml`, `deny.toml` w/ network crate bans|C2,C5,V12,V18
 T8|x|core model: `Violation`, `Direction` over api `Site`/`LangId`; json schema v1; sorted output|V1,V11,`src/cli:V24`,`languages/api:T42`
 T40|x|feature matrix: `lang-*` features in root `Cargo.toml`, `cargo-hack` in devShell, hk pre-push + CI `cargo hack --each-feature test`|V30,C1
-T46|x|registry file + compiled-out guest exit 2; test builds w/ `lang-nix` only & asserts nix→shell site exits 2 naming `lang-shell`|V41,V42,V30
-T58|x|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
-T75|x|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
-T88|x|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
-T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,V11
-T119|.|benchmark harness + recorded budget file|V120,V95
-T127|x|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
 T142|x|C139 backfill: `src/model/tests.rs`|C139,`scripts/guard:V140`
-T153|x|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,T46,T58
 
 ## §B BUGS
 
 id|date|cause|fix
-B1|2026-09-26|`Report::push` keyed (file,line,col,rule), `warn` (code,file): ties w/ differing rendered fields kept arrival order ∴ parallel scan (V95) → bytes vary run to run|key extended to ∀ rendered field (`report_order`, + message); V11 ⊇ ties
-B2|2026-09-26|file marked scanned before its host parsed it ∴ parse error (syntax, ⊥ UTF-8) → its `[[allow]]` all `stale-allow`|staleness ⊥ judged ∀ file ⊥ parsed
-B3|2026-09-26|whole-tree run judged ∀ `[[allow]]` ∴ allow for file ⊥ scanned (host compiled out, excluded) → `stale-allow`|judge allow only ∀ scanned file \| ⊥ candidate
-B4|2026-09-26|`repo_name` kept absolute path absolute ∴ ⊥ met allow, exclude, nested config; path outside root scanned|named path → root-relative (lexical \| canonical root); outside → exit 2
-B5|2026-09-26|engine ⊥ called `stale_excludes` ∴ stale exclude ⊥ reported (`src/config:V79`)|whole-tree run: warning `stale-exclude` ∀ layer; violation shape open (V1)
-B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:T22` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until T22
-B7|2026-09-26|direction command printed path unquoted ∴ space \| quote → pastes as ≠ words|path quoted as 1 POSIX shell word
-B8|2026-09-26|`languages/ci/nix:T157` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
-B9|2026-09-26|named dir w/ 0 tracked files → empty scan, exit 0; walk kept FIFO ∴ engine `open` hung; `./a` & `a` deduped raw ∴ reported twice|V57: `EmptyDir` / `NotAFile` exit 2, regular files \| symlinks only, `normalise` before dedup
-B10|2026-09-26|`--strict-hosts` refusal built `lang-<id>` from the extension's language ∴ `.py` → "rebuild with feature `lang-python`", ⊥ ∃ (B8 fixed guests only)|name the feature only if it exists (`registry::existing_feature`), else "no support … yet"
-B11|2026-09-26|`ShellHost` shipped (`languages/shells/shell:T15`) ⊥ in `HOSTS` ∴ ∀ `.sh` unclaimed (V13) ∴ ⊥ scanned, dogfood blind to scripts|register behind `lang-shell` (V41); `scripts/guard/tdd-order.sh` `test\(*` → `'test('*` (tree-sitter-bash ERROR)
-B12|2026-09-27|extract direction `Judgment` ∀ site after `src/extract:T22` landed (B6: until T22)|`Mechanical` `xnl extract <file>:<line>` iff `src/extract` `viable`, else `Judgment` w/ its why

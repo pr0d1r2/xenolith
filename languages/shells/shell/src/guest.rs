@@ -26,7 +26,7 @@ mod tests;
 /// A unit struct: everything it answers comes from the [`GuestEnv`] the
 /// host established, so there is no per-instance state to get out of step
 /// with the site. That is also what lets the registry hold one
-/// `&'static dyn Guest` for shell (`src:V41`).
+/// `&'static dyn Guest` for shell (`src/registry:V41`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShellGuest;
 

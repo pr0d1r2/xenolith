@@ -2,7 +2,7 @@
 //! and which entries cover none (`src/config:V9`, `src/config:T25`).
 //!
 //! Parsing an allow is `super::parse`'s job; this module only MATCHES.
-//! The engine (`src:V152`) calls [`Config::allowed`] for each site it
+//! The engine (`src/check:V152`) calls [`Config::allowed`] for each site it
 //! would flag, and [`Config::stale_allows`] once with every site it saw,
 //! turning each returned entry into a `stale-allow` violation.
 //!
@@ -59,7 +59,7 @@ impl Config {
     /// `[[allow]]`, in file order (`src/config:V9`).
     ///
     /// `seen` may repeat sites and arrive in any order (the scan is
-    /// parallel, `src:V95`); the answer depends on the set only, so it is
+    /// parallel, `src/check:V95`); the answer depends on the set only, so it is
     /// the same on every run (`src:V11`).
     pub fn stale_allows<'s, I>(&self, seen: I) -> Vec<(usize, &Allow)>
     where

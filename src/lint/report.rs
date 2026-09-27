@@ -162,7 +162,7 @@ impl LintReport {
         self.outcomes.push(outcome);
     }
 
-    /// Add a warning, sorted as `Report::warn` sorts (`src:B1`); an
+    /// Add a warning, sorted as `Report::warn` sorts (`src/check:B1`); an
     /// identical warning is kept once.
     pub fn warn(&mut self, warning: Warning) {
         let key = |w: &Warning| (w.code.clone(), w.file.clone(), w.message.clone());

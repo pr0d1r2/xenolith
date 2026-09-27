@@ -32,7 +32,7 @@ mod tests;
 ///
 /// A unit struct, as [`crate::ShellGuest`] is: everything it answers
 /// comes from the text it is handed (`languages/api:V36`), so the
-/// registry can hold one `&'static dyn Host` for it (`src:V41`).
+/// registry can hold one `&'static dyn Host` for it (`src/registry:V41`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShellHost;
 

@@ -5,7 +5,7 @@
 //! (`src/cli:V24`). Two properties are load-bearing and both are tested
 //! rather than asserted in a comment:
 //!
-//! * ORDER. The scan runs in parallel (`src:V95`), so the model sorts
+//! * ORDER. The scan runs in parallel (`src/check:V95`), so the model sorts
 //!   rather than the caller; otherwise the same tree renders different
 //!   bytes depending on which thread finished first (`src:V11`).
 //! * COMPLETENESS. A violation names both languages, the sink, the
@@ -167,12 +167,12 @@ impl Violation {
     }
 
     /// The report order: [`Violation::sort_key`], then every other field
-    /// the output renders (`src:B1`).
+    /// the output renders (`src/check:B1`).
     ///
     /// The key alone is not a TOTAL order. Two findings can share a
     /// position and a rule and still differ in `why`, `sink` or a
     /// direction, and a tie left to arrival order is a race under the
-    /// parallel scan (`src:V95`) -- different bytes for the same tree
+    /// parallel scan (`src/check:V95`) -- different bytes for the same tree
     /// (`src:V11`). Findings that tie here render identically, so their
     /// relative order cannot show.
     fn report_order(&self, other: &Violation) -> Ordering {
@@ -312,7 +312,7 @@ impl Report {
 
     /// Add a warning, keeping the list sorted by code, then file, then
     /// message -- the message too, so two warnings about one file never
-    /// fall back on arrival order (`src:B1`).
+    /// fall back on arrival order (`src/check:B1`).
     pub fn warn(&mut self, warning: Warning) {
         let key = |w: &Warning| (w.code.clone(), w.file.clone(), w.message.clone());
         let at = self

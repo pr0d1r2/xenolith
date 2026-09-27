@@ -4,7 +4,7 @@
 //! a FAKE host and fake guests, so they hold in every feature subset
 //! `cargo hack --each-feature` builds (`src:V30`) and pin the engine's
 //! own rules -- stage order, threshold, allow, staleness, policies --
-//! rather than any one grammar's. The `src:T153` fixtures that need real
+//! rather than any one grammar's. The `src/check:T153` fixtures that need real
 //! languages (nix and pkl finding shell) are gated on the features they
 //! need and go through [`check`] and the registry, as `xnl` does.
 //!
@@ -269,7 +269,7 @@ fn only(report: &Report) -> &Violation {
 }
 
 // ---------------------------------------------------------------------
-// the verdict (`src:V152` stages 4-5, `src/config:V55`)
+// the verdict (`src/check:V152` stages 4-5, `src/config:V55`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -306,7 +306,7 @@ fn a_script_is_a_violation_carrying_every_field() {
 
 #[test]
 fn the_extract_direction_is_a_judgement_saying_why_extract_would_refuse() {
-    // `src:B12`: `Mechanical` is a fix SARIF offers to apply
+    // `src/check:B12`: `Mechanical` is a fix SARIF offers to apply
     // (`src/cli:V102`), so it is offered only where `xnl extract` would
     // do it -- the engine's own verdict, `src/extract` `viable`. A rule
     // places the fake host's extracts; it still rewrites nothing, and a
@@ -624,7 +624,7 @@ fn an_allow_for_a_file_no_host_in_this_build_claims_is_not_stale() {
 }
 
 // ---------------------------------------------------------------------
-// candidates and claims (`src:V57`, `src/config:V79`, `src:V13`)
+// candidates and claims (`src/discover:V57`, `src/config:V79`, `src/check:V13`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -760,7 +760,7 @@ fn violations_come_out_sorted_whatever_the_order_named() {
 }
 
 // ---------------------------------------------------------------------
-// policies: `[langs] missing_guest` (`src:V42`), `[parse] host_errors`
+// policies: `[langs] missing_guest` (`src/check:V42`), `[parse] host_errors`
 // ---------------------------------------------------------------------
 
 fn shell_only_host() -> Langs<'static> {
@@ -859,7 +859,7 @@ fn a_host_parse_error_follows_parse_host_errors() {
 }
 
 // ---------------------------------------------------------------------
-// unclaimed files (`src:V13`, `src:T75`)
+// unclaimed files (`src/check:V13`, `src/check:T75`)
 // ---------------------------------------------------------------------
 
 /// The shape hk hands over: `{{files}}` is every staged file, and most of
@@ -1353,7 +1353,7 @@ fn under_root_resolves_dots_and_refuses_a_climb_out() {
 }
 
 // ---------------------------------------------------------------------
-// the `src:T153` fixtures, with the real languages
+// the `src/check:T153` fixtures, with the real languages
 // ---------------------------------------------------------------------
 
 #[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
@@ -1453,7 +1453,7 @@ mod nix_shell {
 
     #[test]
     fn a_script_extract_would_move_is_a_mechanical_direction() {
-        // `src:B12`: `xnl extract` moves it, so the direction is the
+        // `src/check:B12`: `xnl extract` moves it, so the direction is the
         // command that does -- a fix SARIF may offer (`src/cli:V102`).
         let first = extract_direction(SCRIPT);
         assert_eq!(first.kind, crate::model::Fix::Mechanical, "{first:?}");
@@ -1534,7 +1534,7 @@ mod nix_shell {
 
     #[test]
     fn a_shebang_named_guest_this_build_lacks_is_a_warning_whatever_the_policy() {
-        // `src:V42`: the interpreter line picked the guest, not the
+        // `src/check:V42`: the interpreter line picked the guest, not the
         // sink; the run goes on and still reports the shell script.
         for policy in ["error", "warn", "ignore"] {
             let config = config::parse(&format!(
@@ -1688,13 +1688,13 @@ fn a_pkl_hk_step_holding_a_script_is_flagged() {
     assert_eq!((v.host, v.guest), (LangId::Pkl, LangId::Shell));
     assert_eq!(v.sink, "lint.check");
     assert!(v.why.contains("and-or"), "{}", v.why);
-    // `src:B12`: extract moves it, so the direction is the command.
+    // `src/check:B12`: extract moves it, so the direction is the command.
     let first = v.directions.first().map(|d| (d.kind, d.action.as_str()));
     assert_eq!(first, Some((Fix::Mechanical, "run `xnl extract hk.pkl:7`")));
 }
 
-/// `src:T46`'s nix-only build, end to end: a nix site holding shell,
-/// with no shell guest, is exit 2 naming `lang-shell` (`src:V42`).
+/// `src/registry:T46`'s nix-only build, end to end: a nix site holding shell,
+/// with no shell guest, is exit 2 naming `lang-shell` (`src/check:V42`).
 #[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]
 #[test]
 fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
@@ -1718,7 +1718,7 @@ fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
 }
 
 /// `--strict-hosts` names only features that exist (`src:V30`, as
-/// `src:B8` did for guests): a `.py` file has no host crate, so the
+/// `src/check:B8` did for guests): a `.py` file has no host crate, so the
 /// refusal must not send anyone after `lang-python`.
 #[test]
 fn an_unclaimed_file_names_only_a_feature_that_exists() {

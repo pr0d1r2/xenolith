@@ -5,12 +5,12 @@
 //! and none stopping the rest. The stages are joined here and owned
 //! elsewhere:
 //!
-//! 1. candidates -- [`crate::discover`] (`src:V57`), minus what
+//! 1. candidates -- [`crate::discover`] (`src/discover:V57`), minus what
 //!    `[[exclude]]` and `[lint] exclude` skip (`src/config:V79`).
 //! 2. targets -- until `src/graph` names extracts, a file is an extract
 //!    when its shebang names a compiled-in guest, or it has none and its
 //!    extension is the guest's; a host file is one a host claims; a file
-//!    that is neither follows `src:V13` (`src/lint` §I, targets).
+//!    that is neither follows `src/check:V13` (`src/lint` §I, targets).
 //! 3. commands -- [`plan`]: the language crate's defaults and the
 //!    config's own, which run only when trusted (`src/lint:V91`).
 //! 4. runs -- [`run`]: a tool not on PATH is an `error`, exit 2
@@ -54,9 +54,9 @@ pub const UNTRUSTED_COMMAND: &str = "untrusted-command";
 /// What a run is asked to do.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
-    /// The paths named; empty means every tracked file (`src:V57`).
+    /// The paths named; empty means every tracked file (`src/discover:V57`).
     pub paths: Vec<PathBuf>,
-    /// `--strict-hosts` (`src:V13`).
+    /// `--strict-hosts` (`src/check:V13`).
     pub strict_hosts: bool,
     /// `--fix`: each extract's fixers first, then its checks; host
     /// files are never rewritten (`src/lint:V8`).
@@ -69,12 +69,12 @@ pub struct Options {
 /// Why a run was refused rather than carried out; every variant exit 2.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LintError {
-    /// Discovery refused (`src:V57`, `src:V128`).
+    /// Discovery refused (`src/discover:V57`, `src/discover:V128`).
     Discover(DiscoverError),
     /// A nested `xenolith.toml` refused (`src/config` §I discovery).
     Config(TreeError),
     /// A file nothing lints, under `--strict-hosts` or `[langs]
-    /// unclaimed = "error"` (`src:V13`).
+    /// unclaimed = "error"` (`src/check:V13`).
     Unclaimed {
         /// The file, as reports name it.
         file: PathBuf,
@@ -102,7 +102,7 @@ impl fmt::Display for LintError {
             LintError::Unclaimed { file } => write!(
                 f,
                 "{}: host unsupported: no host in this build claims it and no guest reads \
-                 it, so it cannot be linted (src:V13)",
+                 it, so it cannot be linted (src/check:V13)",
                 file.display()
             ),
             LintError::Outside { path } => write!(
@@ -219,7 +219,7 @@ pub(crate) fn lint_with(
 enum Found<'a> {
     /// An extract of this guest, in this env.
     Guest(&'a dyn Guest, GuestEnv),
-    /// Its shebang names a guest this build lacks (`src:V42`).
+    /// Its shebang names a guest this build lacks (`src/check:V42`).
     Missing(LangId, String),
     /// No guest reads it.
     Nothing,
@@ -258,7 +258,7 @@ fn extract_of<'a>(guests: &[&'a dyn Guest], file: &Path, head: &str) -> Found<'a
         .map_or(Found::Nothing, |guest| Found::Guest(guest, env))
 }
 
-/// A file nothing lints (`src:V13`): ignored by default, a warning under
+/// A file nothing lints (`src/check:V13`): ignored by default, a warning under
 /// `warn`, a refusal under `error` or `--strict-hosts`.
 fn unclaimed(
     report: &mut LintReport,
@@ -279,7 +279,7 @@ fn unclaimed(
                 file: Some(PathBuf::from(name)),
                 message: format!(
                     "{name}: host unsupported: no host claims it and no guest reads it, so \
-                     it was not linted (src:V13)"
+                     it was not linted (src/check:V13)"
                 ),
             });
             Ok(())

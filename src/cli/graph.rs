@@ -17,7 +17,7 @@ use crate::graph::{Graph, Options};
 mod tests;
 
 /// Run `xnl graph` from `root` over `scan`, writing to `out` and `err`;
-/// `strict_hosts` is `--strict-hosts` (`src:V13`).
+/// `strict_hosts` is `--strict-hosts` (`src/check:V13`).
 pub fn run(
     root: &Path,
     scan: &Scan,

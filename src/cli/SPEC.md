@@ -14,6 +14,9 @@ sib|src/config|`xenolith.toml` parse & validation
 sib|src/extract|embed → own file, host rewrite, diff \| `--write`
 sib|src/graph|host → extract load edges, dangling & orphan
 sib|src/lint|per-language linter map & invocation
+sib|src/check|check engine: candidates → claims → sites → guests → violations; unclaimed & missing-guest policy, parallel scan
+sib|src/discover|candidate discovery: `git ls-files` \| named paths, normalisation, symlink screen
+sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, feature names
 
 ## §I INTERFACES
 
@@ -52,7 +55,7 @@ V102: `--format sarif` = SARIF 2.1.0: rule id → `ruleId`, `file:line:col` → 
 | M3 | publication | T96, T97, T103 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T9|x|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,`src:V13`
+T9|x|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,`src/check:V13`
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
 T97|x|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 T103|.|SARIF writer ∀ verb + schema validation test|V102

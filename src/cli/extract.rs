@@ -29,7 +29,7 @@ pub struct Flags {
     pub write: bool,
     /// `--verbose`: explain every placement and skip.
     pub verbose: bool,
-    /// `--strict-hosts` (`src:V13`).
+    /// `--strict-hosts` (`src/check:V13`).
     pub strict_hosts: bool,
 }
 

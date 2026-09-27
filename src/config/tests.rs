@@ -355,7 +355,7 @@ fn a_lint_table_for_an_unknown_guest_is_refused() {
 }
 
 // ---------------------------------------------------------------------
-// [langs] (`src:C1`, `src:V13`, `src:V42`)
+// [langs] (`src:C1`, `src/check:V13`, `src/check:V42`)
 // ---------------------------------------------------------------------
 
 #[test]
@@ -540,7 +540,7 @@ fn guest_thresholds_parse_per_guest() {
 
 #[test]
 fn the_engine_reads_thresholds_resolved_per_guest() {
-    // `src:V152` stage 5 asks these two, never raw keys (`src/config:V73`).
+    // `src/check:V152` stage 5 asks these two, never raw keys (`src/config:V73`).
     let config = ok("version = 1\n[threshold.shell]\nallow = [\"pipeline\"]\n\
                      [threshold.python]\nmax_bytes = 200\n");
     assert_eq!(config.construct_allow(LangId::Shell), ["pipeline"]);

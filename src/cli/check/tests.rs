@@ -145,7 +145,7 @@ fn a_named_path_that_does_not_exist_is_exit_two() {
 
 #[test]
 fn strict_hosts_makes_an_unclaimed_file_exit_two() {
-    // `src:V13`, `src:T75`: hk hands over every staged file; a README is
+    // `src/check:V13`, `src/check:T75`: hk hands over every staged file; a README is
     // ignored by default and refused under `--strict-hosts`.
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");

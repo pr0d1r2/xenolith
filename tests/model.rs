@@ -81,7 +81,7 @@ fn the_rule_set_is_the_one_the_cli_documents() {
 
 #[test]
 fn violations_sort_by_file_then_line_then_col() {
-    // `src:V11`. The engines scan in parallel (`src:V95`), so merged
+    // `src:V11`. The engines scan in parallel (`src/check:V95`), so merged
     // output has to be put in order by the model rather than by the
     // order results happened to arrive.
     let mut report = Report::new();

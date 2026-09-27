@@ -186,7 +186,7 @@ impl<'a> Scan<'a> {
         }
     }
 
-    /// A file nothing graphs (`src:V13`).
+    /// A file nothing graphs (`src/check:V13`).
     fn unclaimed(
         &mut self,
         config: &Config,
@@ -206,7 +206,7 @@ impl<'a> Scan<'a> {
                     file: Some(PathBuf::from(name)),
                     message: format!(
                         "{name}: host unsupported: no host claims it and no guest reads it, \
-                         so it was not graphed (src:V13)"
+                         so it was not graphed (src/check:V13)"
                     ),
                 });
                 Ok(())

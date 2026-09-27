@@ -1,4 +1,4 @@
-//! Symlinks in discovery (`src:V128`): a candidate that is a link, or
+//! Symlinks in discovery (`src/discover:V128`): a candidate that is a link, or
 //! that is reached through one, is never scanned.
 //!
 //! Two reasons, both about what a report means. A tracked link may point
@@ -49,12 +49,12 @@ pub(super) fn screen(
         let message = if link == path {
             format!(
                 "{} is a symlink; not scanned, its target is scanned under its own path \
-                 (src:V128)",
+                 (src/discover:V128)",
                 path.display()
             )
         } else {
             format!(
-                "{} lies under the symlink `{}`; not scanned (src:V128)",
+                "{} lies under the symlink `{}`; not scanned (src/discover:V128)",
                 path.display(),
                 link.display()
             )

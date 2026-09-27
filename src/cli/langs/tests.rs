@@ -106,7 +106,7 @@ fn json_lists_every_language_in_langid_order() {
 #[test]
 fn json_entries_carry_exactly_id_feature_and_compiled_in() {
     // Exactly: the rest of the `src/cli` §I entry (role, sinks, delims,
-    // checks, fixers) comes from the registry (`src:T46`), and its
+    // checks, fixers) comes from the registry (`src/registry:T46`), and its
     // arrival should be a deliberate change to this test, not a silent
     // widening of the shape (`src/cli:V24`).
     let value = parsed();

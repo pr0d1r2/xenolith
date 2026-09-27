@@ -8,7 +8,7 @@
 # steps inline would be a shell sequence embedded in nix, which is exactly
 # what `xnl check` flags. The flake's source is not a git repository, so
 # `xnl check .` names the tree explicitly and discovery walks it
-# (`src:V57`); running from inside it makes it the root of the nested
+# (`src/discover:V57`); running from inside it makes it the root of the nested
 # `xenolith.toml` chain (`src/config:V88`).
 #
 #   scripts/nix/dogfood.sh SOURCE_DIR OUT

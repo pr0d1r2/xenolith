@@ -12,7 +12,7 @@
 //! (`src/config:V9`, `src/config:V10`). So a migration cannot be a
 //! rewrite of the list; it has to know which sites each listed file
 //! holds and which of them would be flagged. That is exactly what the
-//! check engine answers (`src:V152`), so migrate RUNS it -- over the
+//! check engine answers (`src/check:V152`), so migrate RUNS it -- over the
 //! listed files, under the defaults -- and writes one entry per site it
 //! flags. The lists' promise ("leave this file alone") becomes the
 //! narrower one xenolith can keep ("leave THESE bodies alone"), and an
@@ -48,7 +48,7 @@ mod tests;
 pub const LEGACY_SUFFIX: &str = "-embedded-shell-allowlist";
 
 /// Warning code: a listed path that is not a file in the tree -- gone,
-/// outside the root, a directory or a symlink (`src:V128`).
+/// outside the root, a directory or a symlink (`src/discover:V128`).
 pub const LEGACY_MISSING: &str = "legacy-missing";
 
 /// Warning code: a listed file holding no site xenolith flags, so there
@@ -239,7 +239,7 @@ pub fn plan(root: &Path, lists: &[String], strict_hosts: bool) -> Result<Migrati
         }
     }
     if listed.is_empty() {
-        // An empty `paths` would mean every tracked file (`src:V57`).
+        // An empty `paths` would mean every tracked file (`src/discover:V57`).
         return Ok(migration);
     }
     let options = Options {
@@ -321,13 +321,15 @@ fn unusable(root: &Path, path: &str) -> Option<&'static str> {
     for part in parents {
         dir.push(part);
         if fs::symlink_metadata(&dir).is_ok_and(|meta| meta.file_type().is_symlink()) {
-            return Some("runs through a symlinked directory, which xnl never follows (src:V128)");
+            return Some(
+                "runs through a symlinked directory, which xnl never follows (src/discover:V128)",
+            );
         }
     }
     match fs::symlink_metadata(root.join(as_path)) {
         Err(_) => Some("does not exist"),
         Ok(meta) if meta.file_type().is_symlink() => {
-            Some("is a symlink, which xnl never scans (src:V128)")
+            Some("is a symlink, which xnl never scans (src/discover:V128)")
         }
         Ok(meta) if !meta.is_file() => Some("is not a file"),
         Ok(_) => None,

@@ -66,4 +66,4 @@ T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml
 ## §B BUGS
 
 id|date|cause|fix
-B1|2026-09-26|`.envrc` ⊥ shebang ∴ shellcheck w/o `--shell` (xnl lint via shell host, `src:B11`) → SC2148; only hk passed `--shell=bash`|`# shellcheck shell=bash` directive in `.envrc`
+B1|2026-09-26|`.envrc` ⊥ shebang ∴ shellcheck w/o `--shell` (xnl lint via shell host, `src/registry:B11`) → SC2148; only hk passed `--shell=bash`|`# shellcheck shell=bash` directive in `.envrc`
