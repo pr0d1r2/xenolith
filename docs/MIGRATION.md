@@ -81,7 +81,7 @@ run the migration, then carry your other keys across by hand.
 - Delete the old `.<lang>-embedded-shell-allowlist` files. `xnl migrate`
   leaves them in place.
 - Replace the old hook in your `hk.pkl` with `xnl check {{files}}` (see
-  the README).
+  [the README](../README.md#running-it-from-hk)).
 
 ## The justfile hook
 
