@@ -194,6 +194,9 @@ warning: loads-unsupported: shell cannot report its loads in this build (1 file(
 1 edges, 0 violations
 ```
 
+To run it on every commit — from hk, lefthook, or a flake check — see
+[docs/INTEGRATION.md](docs/INTEGRATION.md#using-xnl-in-your-own-gate).
+
 ## Commands
 
 | command | what it does |
@@ -437,6 +440,8 @@ is planned is in Status above rather than implied by the version number.
 
 - [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — setup, the gate, test
   first, and the one hard rule
+- [docs/INTEGRATION.md](docs/INTEGRATION.md) — how the gate fits together,
+  and how to wire `xnl` into yours
 - [docs/MIGRATION.md](docs/MIGRATION.md) — moving from embedded-shell
   allowlists and fleet hooks to `xnl`
 - [docs/CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)
