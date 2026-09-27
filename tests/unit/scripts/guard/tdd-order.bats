@@ -93,6 +93,57 @@ run_guard() {
   [[ "$output" == *"test"* ]]
 }
 
+# A MOVE is not new code (`scripts/guard:B2`): a crate directory moved
+# under a hub keeps the lines it had, so it owes no fresh RED commit.
+seed_rust() {
+  local path="$1"
+  mkdir -p "${REPO}/$(dirname "$path")"
+  printf 'fn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\n' >"${REPO}/${path}"
+  git -C "$REPO" add "$path"
+  git -C "$REPO" commit --quiet --no-verify -m "chore: seed ${path}
+
+Why: fixture."
+  BASE="$(git -C "$REPO" rev-parse HEAD)"
+}
+
+move_commit() {
+  git -C "$REPO" commit --quiet --no-verify -m "refactor: $1
+
+Why: fixture."
+}
+
+@test "moving a .rs file is not adding one" {
+  seed_rust src/parser/mod.rs
+  mkdir -p "${REPO}/hub/parser"
+  git -C "$REPO" mv src/parser/mod.rs hub/parser/mod.rs
+  move_commit "move the parser under a hub"
+  run_guard
+  [ "$status" -eq 0 ]
+}
+
+@test "a move with a small edit is still a move" {
+  seed_rust src/parser/mod.rs
+  mkdir -p "${REPO}/hub/parser"
+  git -C "$REPO" mv src/parser/mod.rs hub/parser/mod.rs
+  printf 'fn e() {}\n' >>"${REPO}/hub/parser/mod.rs"
+  git -C "$REPO" add hub/parser/mod.rs
+  move_commit "move the parser and touch it"
+  run_guard
+  [ "$status" -eq 0 ]
+}
+
+@test "a file rewritten beyond recognition under a new name is new code" {
+  seed_rust src/parser/mod.rs
+  git -C "$REPO" rm --quiet src/parser/mod.rs
+  mkdir -p "${REPO}/hub/lexer"
+  printf 'struct Token;\nenum Kind { A, B, C }\nimpl Token {\n    fn new() -> Self { Token }\n}\n' >"${REPO}/hub/lexer/mod.rs"
+  git -C "$REPO" add hub/lexer/mod.rs
+  move_commit "a lexer where the parser was"
+  run_guard
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"hub/lexer/mod.rs"* ]]
+}
+
 @test "a SCOPED test commit, test(scope):, is a RED commit too" {
   commit "test(parser)" "cover the parser" src/parser/tests.rs
   commit "feat(parser)" "add the parser" src/parser/mod.rs
