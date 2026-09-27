@@ -694,3 +694,44 @@ fn a_pkl_hk_step_loading_a_script_is_an_edge_or_dangling() {
         vec![("sub/hk.pkl".to_owned(), 7, Rule::DanglingLoad)]
     );
 }
+
+/// `src/graph:B2`: a nix load is a `readFile` call, no site of the host
+/// as it stands; the edge names the sink its body goes back into.
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+#[test]
+fn a_nix_load_is_an_edge_carrying_its_sink() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            (
+                "nixos/foo.nix",
+                "{\n  systemd.services.foo.script = builtins.readFile ./foo/foo-script.sh;\n}\n",
+            ),
+            ("nixos/foo/foo-script.sh", "make && make install\n"),
+        ],
+    );
+    let options = Options {
+        paths: vec!["nixos/foo.nix".into()],
+        ..Options::default()
+    };
+    let graph = super::graph(&root, &Config::default(), &options).unwrap_or_else(|e| panic!("{e}"));
+    let edges: Vec<(String, String)> = graph
+        .edges
+        .iter()
+        .map(|e| (e.extract.display().to_string(), e.sink.clone()))
+        .collect();
+    assert_eq!(
+        edges,
+        [(
+            "nixos/foo/foo-script.sh".to_owned(),
+            "systemd.services.foo.script".to_owned()
+        )]
+    );
+    let value: serde_json::Value =
+        serde_json::from_str(&graph.to_json()).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        value.pointer("/edges/0/sink"),
+        Some(&serde_json::json!("systemd.services.foo.script"))
+    );
+}

@@ -158,3 +158,71 @@ fn a_load_that_cannot_be_read_back_is_not_judged() {
     let found = judged(&sandbox, &root, &Config::default(), &[]);
     assert!(found.is_empty(), "{found:?}");
 }
+
+// ---------------------------------------------------------------------
+// the edge's sink (`src/graph` §I json, `src/graph:B2`)
+// ---------------------------------------------------------------------
+
+/// `(host, sink)` of each edge of a whole-tree run.
+fn sinks(sandbox: &Sandbox, root: &Path) -> Vec<(String, String)> {
+    let graph = graph_with(
+        root,
+        &Config::default(),
+        &Options::default(),
+        &toys(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    graph
+        .edges
+        .iter()
+        .map(|e| (e.host.display().to_string(), e.sink.clone()))
+        .collect()
+}
+
+#[test]
+fn an_edge_carries_the_sink_its_load_reads_back_to() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\ntest< sh ./a/build.sh\n"),
+            ("a/build.sh", SCRIPT),
+        ],
+    );
+    assert_eq!(
+        sinks(&sandbox, &root),
+        [("a.toy", "build"), ("a.toy", "test")].map(|(h, s)| (h.to_owned(), s.to_owned()))
+    );
+}
+
+#[test]
+fn an_extract_that_does_not_read_back_still_names_its_sink() {
+    // Not UTF-8: the read-back refuses it, yet the load still sits in a
+    // site once any body is put back, and that site names the sink.
+    let sandbox = Sandbox::new();
+    let root = repo(&sandbox, &[("a.toy", "build< sh ./a/build.sh\n")]);
+    std::fs::create_dir_all(root.join("a")).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::write(root.join("a/build.sh"), b"make \xff\n").unwrap_or_else(|e| panic!("{e}"));
+    sandbox.run_git(&root, &["add", "."]);
+    assert_eq!(
+        sinks(&sandbox, &root),
+        [("a.toy".to_owned(), "build".to_owned())]
+    );
+}
+
+#[test]
+fn a_load_no_site_reads_back_to_has_an_empty_sink() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.sticky", "x\nbuild< sh ./elsewhere.sh\n"),
+            ("elsewhere.sh", "#!/usr/bin/env sh\nmake\n"),
+        ],
+    );
+    assert_eq!(
+        sinks(&sandbox, &root),
+        [("a.sticky".to_owned(), String::new())]
+    );
+}
