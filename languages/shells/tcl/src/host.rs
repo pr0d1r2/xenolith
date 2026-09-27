@@ -26,6 +26,7 @@ use xenolith_lang_api::{
 
 use crate::grammar;
 use crate::sinks::{self, Runner};
+use crate::syntax;
 
 #[cfg(test)]
 mod tests;
@@ -139,13 +140,15 @@ impl Host for TclHost {
         }
     }
 
-    /// None yet: the candidates are unmeasured (`languages/shells/tcl:V198`),
-    /// and a check chosen by guessing would report findings nobody chose.
+    /// This crate's own syntax check, `xenolith-tcl-syntax`: what Tcl's
+    /// parser rejects, found in Rust with no `tclsh` on PATH
+    /// (`languages/shells/tcl:V198`).
     fn checks(&self) -> Vec<LintCmd> {
-        Vec::new()
+        vec![syntax::lint_cmd()]
     }
 
-    /// None yet, for the same reason as [`TclHost::checks`].
+    /// None: a syntax error has no mechanical fix
+    /// (`languages/shells/tcl:V198`).
     fn fixers(&self) -> Vec<LintCmd> {
         Vec::new()
     }

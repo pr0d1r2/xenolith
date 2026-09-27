@@ -20,6 +20,7 @@ use xenolith_lang_api::{
 
 use crate::grammar;
 use crate::host::EXPECT;
+use crate::syntax;
 
 #[cfg(test)]
 mod tests;
@@ -84,12 +85,14 @@ impl Guest for TclGuest {
         true
     }
 
-    /// None yet: the candidates are unmeasured (`languages/shells/tcl:V198`).
+    /// The same syntax check as a tcl host file's, in either dialect: an
+    /// extract is tcl text like any other (`languages/shells/tcl:V198`).
     fn checks(&self, _env: &GuestEnv) -> Vec<LintCmd> {
-        Vec::new()
+        vec![syntax::lint_cmd()]
     }
 
-    /// None yet, for the same reason as [`TclGuest::checks`].
+    /// None: a syntax error has no mechanical fix
+    /// (`languages/shells/tcl:V198`).
     fn fixers(&self, _env: &GuestEnv) -> Vec<LintCmd> {
         Vec::new()
     }

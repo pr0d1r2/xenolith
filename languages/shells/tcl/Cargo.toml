@@ -26,6 +26,14 @@ xenolith-lang-api = { path = "../../api", version = "0.1.0" }
 # and pkl crates', so the workspace carries one copy of it.
 tree-sitter = "0.27"
 
+# The tcl check (`languages/shells/tcl:V198`): Tcl's `info complete` in
+# Rust, so a host file is checked with no `tclsh` on PATH. A bin because
+# the lint engine runs checks as commands (`src/lint:V8`); `main.rs` is a
+# shim over `syntax::run`.
+[[bin]]
+name = "xenolith-tcl-syntax"
+path = "src/main.rs"
+
 [build-dependencies]
 # Compiles the vendored `parser.c` and `scanner.c`. Already in the lock
 # through tree-sitter's own build, so this adds a use, not a crate.

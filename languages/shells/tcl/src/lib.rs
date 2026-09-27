@@ -14,7 +14,12 @@
 //! The grammar is `tree-sitter-grammars/tree-sitter-tcl`, VENDORED as
 //! generated C under `vendor/tree-sitter-tcl` because it is not published
 //! on crates.io (`languages:V121`, `languages/shells/tcl:R194`), so
-//! [`grammar`] is the one module allowed to reach FFI.
+//! [`grammar`] is the one module allowed to reach FFI. It carries a local
+//! patch for valid Tcl upstream rejects (`languages/shells/tcl:B1`).
+//!
+//! The check of a tcl file is [`syntax`], shipped as the
+//! `xenolith-tcl-syntax` binary: what Tcl's own parser rejects, in Rust,
+//! with no `tclsh` needed (`languages/shells/tcl:V198`).
 
 #![deny(unsafe_code)]
 
@@ -22,6 +27,7 @@ pub mod grammar;
 pub mod guest;
 pub mod host;
 mod sinks;
+pub mod syntax;
 
 pub use crate::guest::TclGuest;
 pub use crate::host::{TclHost, dialect};
