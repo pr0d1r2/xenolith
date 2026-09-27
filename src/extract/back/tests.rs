@@ -224,6 +224,37 @@ fn a_body_read_back_is_trivial_exactly_when_check_leaves_it_inline() {
     }
 }
 
+/// `src/extract:B3`: a nix load passed as an argument is parenthesised,
+/// and the host's inline replaces the parentheses with the string --
+/// bytes before the load's own span. The site is where the text changed.
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+#[test]
+fn a_parenthesised_nix_load_reads_back_to_its_builder() {
+    let nix = crate::registry::hosts()
+        .iter()
+        .copied()
+        .find(|h| h.id() == xenolith_lang_api::LangId::Nix)
+        .unwrap_or_else(|| panic!("no nix host"));
+    let langs = crate::check::Langs {
+        hosts: crate::registry::hosts(),
+        guests: crate::registry::guests(),
+    };
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let src = "{ pkgs }:\n{\n  shellHook = \"${pkgs.writeShellScript \"hook\" (\n    \
+               builtins.readFile ./hook.sh\n  )}\";\n}\n";
+    put(&root, "shell.nix", src);
+    put(&root, "hook.sh", "make\nmake test\n");
+    let tree = Tree::new(Config::default());
+    let loads = nix.loads(src).unwrap_or_else(|e| panic!("{e}"));
+    let [load] = loads.as_slice() else {
+        panic!("{loads:?}")
+    };
+    let read = back(&root, &tree, &langs, "shell.nix", nix, src, load, "hook.sh")
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(read.body, "make\nmake test\n");
+}
+
 #[test]
 fn again_proves_the_bytes_and_refuses_a_file_it_would_rewrite() {
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/usr/bin/env sh\nmake && make test\n");
