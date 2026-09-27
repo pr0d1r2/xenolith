@@ -64,8 +64,43 @@ fn envrc_is_claimed_by_name() {
 fn a_file_is_claimed_by_a_shell_shebang_alone() {
     assert!(claims("bin/tool", "#!/usr/bin/env bash"));
     assert!(claims("bin/tool", "#!/bin/sh"));
-    assert!(claims("bin/tool", "#!/usr/bin/env zsh"));
     assert!(claims("bin/tool", "#!/bin/dash -e"));
+    assert!(claims("bin/tool", "#!/bin/ksh"));
+}
+
+#[test]
+fn a_zsh_file_is_never_claimed() {
+    // `languages/shells/shell:V310`: the host's checks cannot see which
+    // file they are given, and shellcheck refuses zsh outright (SC1071),
+    // so a claimed zsh file failed `xnl lint` whatever it said; the bash
+    // grammar rejects zsh-only syntax, so `xnl check` failed it too. The
+    // file stays an extract, whose zsh dialect gets `zsh -n`.
+    for head in [
+        "#!/usr/bin/env zsh",
+        "#!/bin/zsh -f",
+        "#!/usr/bin/env -S zsh -eu",
+        "#!/opt/homebrew/bin/zsh\nsetopt err_exit",
+    ] {
+        assert!(!claims("bin/tool", head), "{head:?}");
+        assert!(!claims("bin/tool.zsh", head), "{head:?}");
+        // The shebang outranks the extension, as it does for the tools.
+        assert!(!claims("scripts/x.sh", head), "{head:?}");
+    }
+    // A shell merely named after zsh is not zsh, and with no shebang the
+    // extension still decides.
+    assert!(!claims("x.zsh", ""));
+    assert!(claims("x.sh", "# zsh-compatible\nset -eu"));
+    assert!(claims("x.bash", "#!/usr/bin/env bash\nzsh -c 'print hi'"));
+}
+
+#[test]
+fn every_shell_dialect_but_zsh_is_claimed_by_its_shebang() {
+    // The same table `shebang::guest_of` reads: whatever new sh-family
+    // name it learns is claimed, and zsh is the one exception (V310).
+    for name in ["sh", "bash", "dash", "ksh", "ash", "zsh"] {
+        let head = format!("#!/usr/bin/env {name}");
+        assert_eq!(claims("bin/tool", &head), name != "zsh", "{name}");
+    }
 }
 
 #[test]
