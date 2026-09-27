@@ -14,7 +14,9 @@
 //!    flagged them;
 //! 3. placement -- [`place`], per field (`src/extract:V45`), and the
 //!    collision suffix across the whole run (`src/extract:V47`);
-//! 4. rewrite -- the host's own [`Host::rewrite`], one site at a time;
+//! 4. rewrite -- the site's holes bound as params (`holes::bind`, under
+//!    `[threshold.load]`), then the host's own [`Host::rewrite_bound`],
+//!    one site at a time, which also says what body the extract holds;
 //! 5. asserts -- the result proven before anything is written: every
 //!    load reads back, inlining every extract gives the host back
 //!    (`src/extract:V4`), no extracted site is still there
@@ -38,6 +40,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use xenolith_lang_api::holes::{self, Limits, Outcome, Param};
 use xenolith_lang_api::{Guest, Host, Invoke, LangId, Prelude, Site, shebang};
 
 use crate::check::{self, CheckError, Langs, repo_name};
@@ -261,6 +264,10 @@ struct Planned<'a> {
     col: usize,
     placed: Placed,
     refused: Option<String>,
+    /// `[threshold.load] max_params` for the file (`languages/api/src/holes:V40`).
+    max_params: u64,
+    /// `[threshold.load] param_prefix` for the file.
+    param_prefix: String,
 }
 
 /// One host file the run read, and the sites it plans for it.
@@ -317,7 +324,7 @@ pub(crate) fn extract_with(
                 continue;
             }
             found.insert(line);
-            if let Some(p) = plan(&tree, langs, config, name, file.host, site, line, col) {
+            if let Some(p) = plan(&tree, langs, name, file.host, site, line, col) {
                 planned.push(p);
             }
         }
@@ -481,11 +488,9 @@ fn scan<'a>(root: &Path, langs: &Langs<'a>, name: &str, edit: &mut Edit) -> Opti
 }
 
 /// Place one flagged site, or refuse it with the reason.
-#[allow(clippy::too_many_arguments)] // one call site, every argument a stage input
 fn plan<'a>(
     tree: &Tree,
     langs: &Langs<'a>,
-    config: &Config,
     name: &str,
     host: &'a dyn Host,
     site: Site,
@@ -511,7 +516,7 @@ fn plan<'a>(
     let rules = place::rules_for(tree, name);
     let (placed, refused) = match place::resolve(&ask, &rules) {
         Ok(placed) => {
-            let refused = unsupported(&site, &placed, config, guest);
+            let refused = unsupported(&placed, effective, guest);
             (placed, refused)
         }
         Err(e) => (empty_placement(), Some(e)),
@@ -525,20 +530,15 @@ fn plan<'a>(
         col,
         placed,
         refused,
+        max_params: effective.threshold.load_max_params,
+        param_prefix: effective.threshold.load_param_prefix.clone(),
     })
 }
 
 /// What the engine cannot yet extract without breaking
-/// `src/extract:V4`, as the refusal (`src/extract` §I).
-fn unsupported(site: &Site, placed: &Placed, config: &Config, guest: &dyn Guest) -> Option<String> {
-    if !site.holes.is_empty() {
-        return Some(format!(
-            "{} host interpolation(s) in the body: each must become a named param \
-             (languages/api/src/holes:V40), and no guest offers one yet \
-             (languages/api/src/holes:T76); extract it by hand",
-            site.holes.len()
-        ));
-    }
+/// `src/extract:V4`, as the refusal (`src/extract` §I). Holes are not
+/// here: they become params, or the site's judgement, in [`movement`].
+fn unsupported(placed: &Placed, config: &Config, guest: &dyn Guest) -> Option<String> {
     if placed.companion.is_some() {
         return Some(
             "a rule sets `companion`, and companion creation arrives with src/extract:T51"
@@ -600,110 +600,167 @@ fn collisions(planned: &mut [Planned<'_>]) {
     }
 }
 
-/// One site's move, computed.
+/// One site's move, computed. `body` is bind's until the host's
+/// `rewrite_bound` answers, and the extract's after.
 struct Move {
     load: String,
     invoke: Invoke,
+    prelude: Prelude,
     body: String,
-    file: NewFile,
+    params: Vec<Param>,
 }
 
 /// Rewrite one host for its planned sites and prove the result, or
 /// refuse.
 fn rewrite_file(root: &Path, name: &str, file: &Read<'_>, sites: &[&Planned<'_>], edit: &mut Edit) {
-    let mut refuse = |line: usize, message: String| {
-        edit.refusals.push(Refusal {
-            file: name.to_owned(),
-            line,
-            message,
-        });
-    };
-    let mut ready: Vec<(&Planned<'_>, Move)> = Vec::new();
-    let mut refused = 0;
-    for p in sites {
-        let moved = match &p.refused {
-            Some(why) => Err(why.clone()),
-            None => movement(root, name, file, p),
-        };
-        match moved {
-            Ok(m) => ready.push((p, m)),
-            Err(why) => {
-                refuse(p.line, why);
-                refused += 1;
+    match edit_file(root, name, file, sites) {
+        Ok(host) => {
+            for p in sites {
+                explain(edit, p);
             }
+            edit.hosts.push(host);
         }
+        Err(refusals) => edit.refusals.extend(refusals),
     }
+}
+
+/// The edit of one host for its planned sites, proven, or every refusal
+/// that stopped it.
+fn edit_file(
+    root: &Path,
+    name: &str,
+    file: &Read<'_>,
+    sites: &[&Planned<'_>],
+) -> Result<HostEdit, Vec<Refusal>> {
+    let refusal = |line: usize, message: String| Refusal {
+        file: name.to_owned(),
+        line,
+        message,
+    };
     // All or nothing per file (`src/extract:V64`): a host half
     // extracted is a state nobody asked for, and a rerun would have to
     // guess which half it is looking at.
-    if refused > 0 {
-        if !ready.is_empty() {
-            refuse(
+    let whole = |mut refused: Vec<Refusal>, others: usize| {
+        if others > 0 {
+            refused.push(refusal(
                 0,
                 format!(
-                    "left untouched with its {} other site(s): a file is extracted whole or \
-                     not at all (src/extract:V64)",
-                    ready.len()
+                    "left untouched with its {others} other site(s): a file is extracted whole \
+                     or not at all (src/extract:V64)"
                 ),
-            );
+            ));
         }
-        return;
+        refused
+    };
+    let mut ready: Vec<(&Planned<'_>, Move)> = Vec::new();
+    let mut refused = Vec::new();
+    for p in sites {
+        let moved = match &p.refused {
+            Some(why) => Err(why.clone()),
+            None => movement(name, file, p),
+        };
+        match moved {
+            Ok(m) => ready.push((p, m)),
+            Err(why) => refused.push(refusal(p.line, why)),
+        }
+    }
+    if !refused.is_empty() {
+        return Err(whole(refused, ready.len()));
     }
     // Back to front: a rewrite only moves bytes after its own site
     // (`src/extract:V64`).
     ready.sort_by_key(|(p, _)| std::cmp::Reverse(p.site.delim.open.start));
     let mut after = file.text.clone();
-    for (p, m) in &ready {
+    let mut extracts = Vec::new();
+    let mut unwritable = Vec::new();
+    for (p, m) in &mut ready {
+        let load = Path::new(&m.load);
         match p
             .host
-            .rewrite(&after, &p.site, &m.invoke, Path::new(&m.load))
+            .rewrite_bound(&after, &p.site, &m.invoke, load, &m.body, &m.params)
         {
-            Ok(text) => after = text,
+            Ok(rewritten) => {
+                after = rewritten.src;
+                m.body = rewritten.body;
+            }
             Err(e) => {
-                refuse(
-                    p.line,
-                    format!("the {} host cannot rewrite it: {e}", p.host.id()),
-                );
-                return;
+                let why = format!("the {} host cannot rewrite it: {e}", p.host.id());
+                return Err(whole(vec![refusal(p.line, why)], sites.len() - 1));
             }
         }
+        match extract_file(root, p, m) {
+            Ok(new) => extracts.push(new),
+            Err(why) => unwritable.push(refusal(p.line, why)),
+        }
     }
-    let moves: Vec<&Move> = ready.iter().map(|(_, m)| m).collect();
-    if let Err(why) = prove(file, &after, &ready) {
-        refuse(0, why);
-        return;
+    if !unwritable.is_empty() {
+        let others = sites.len() - unwritable.len();
+        return Err(whole(unwritable, others));
     }
-    let mut extracts: Vec<NewFile> = moves.into_iter().map(|m| m.file.clone()).collect();
+    prove(file, &after, &ready).map_err(|why| vec![refusal(0, why)])?;
     extracts.sort_by(|a, b| a.path.cmp(&b.path));
-    for (p, _) in &ready {
-        explain(edit, p);
-    }
-    edit.hosts.push(HostEdit {
+    Ok(HostEdit {
         path: name.to_owned(),
         before: file.text.clone(),
         after,
         extracts,
-    });
+    })
 }
 
-/// The load, invoke and extract file of one placed site.
-fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result<Move, String> {
-    let raw = p.site.delim.body.of(&file.text).unwrap_or_default();
-    let body = p
-        .host
-        .unescape(&p.site.delim, raw)
-        .map_err(|e| format!("the body cannot be read as its guest reads it: {e}"))?;
+/// The load, invoke, prelude and bound body of one placed site: its
+/// holes named as params under the file's `[threshold.load]`
+/// (`languages/api/src/holes:V40`), or the judgement they stay.
+fn movement(name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result<Move, String> {
+    let limits = Limits {
+        max_params: p.max_params,
+        prefix: &p.param_prefix,
+    };
+    let (body, params) = match holes::bind(p.host, p.guest, &file.text, &p.site, &limits) {
+        Ok(Outcome::Mechanical { body, params }) => (body, params),
+        Ok(Outcome::Judgment(why)) => return Err(judgement(p, &why)),
+        Err(e) => {
+            return Err(format!(
+                "the body cannot be read as its guest reads it: {e}"
+            ));
+        }
+    };
     place::charset(&p.placed.path)?;
     let load = place::load_path(name, &p.placed.path, &p.placed.base);
     place::charset(&load)?;
-    let invoke = invoke(p, &load)?;
     let prelude = prelude(p)?;
-    let mut body_nl = body.clone();
-    if !body_nl.is_empty() && !body_nl.ends_with('\n') {
-        body_nl.push('\n');
+    let invoke = invoke(p, &load, &prelude)?;
+    Ok(Move {
+        load,
+        invoke,
+        prelude,
+        body,
+        params,
+    })
+}
+
+/// Why a site's holes stay a judgement, with the host's ways out when
+/// it has any (`languages/api/src/holes:V40`).
+fn judgement(p: &Planned<'_>, why: &holes::Refusal) -> String {
+    match p.host.hole_advice(&p.site) {
+        Ok(advice) if !advice.is_empty() => {
+            format!(
+                "its holes stay a judgement: {why}; ways out: {}",
+                advice.join("; ")
+            )
+        }
+        _ => format!("its holes stay a judgement: {why}"),
     }
-    let text = shebang::wrap(&body_nl, &prelude);
-    if shebang::strip_strict(&text, &prelude) != body_nl {
+}
+
+/// The extract file of one site once its host rewrote it: the prelude,
+/// then the body the host answered with (`languages/api/src/lens:V63`).
+fn extract_file(root: &Path, p: &Planned<'_>, m: &Move) -> Result<NewFile, String> {
+    let mut body = m.body.clone();
+    if !body.is_empty() && !body.ends_with('\n') {
+        body.push('\n');
+    }
+    let text = shebang::wrap(&body, &m.prelude);
+    if shebang::strip_strict(&text, &m.prelude) != body {
         return Err(
             "the extract would not read back as its body (languages/api/src/lens:V63)".to_owned(),
         );
@@ -720,24 +777,32 @@ fn movement(root: &Path, name: &str, file: &Read<'_>, p: &Planned<'_>) -> Result
         }
         Err(_) => false,
     };
-    Ok(Move {
-        load,
-        invoke,
-        body,
-        file: NewFile {
-            path,
-            text,
-            executable: p.placed.executable.unwrap_or_else(|| p.guest.executable()),
-            present,
-        },
+    Ok(NewFile {
+        path,
+        text,
+        executable: p.placed.executable.unwrap_or_else(|| p.guest.executable()),
+        present,
     })
 }
 
 /// The argv the load runs: a rule's template rendered with the path as
-/// loaded, else the guest's own `invoke` (`languages/api:V35`).
-fn invoke(p: &Planned<'_>, load: &str) -> Result<Invoke, String> {
+/// loaded, else the guest's own `invoke` (`languages/api:V35`) -- run by
+/// the interpreter the extract's prelude names when that interpreter is
+/// one of the guest's own (`languages/pkl:V52`): an extract saying
+/// `#!/usr/bin/env sh` loaded as `bash x.sh` would run under a shell it
+/// never named.
+fn invoke(p: &Planned<'_>, load: &str, prelude: &Prelude) -> Result<Invoke, String> {
     let Some(template) = &p.placed.invoke else {
-        return Ok(p.guest.invoke(Path::new(load)));
+        let mut invoke = p.guest.invoke(Path::new(load));
+        if let Some(line) = &prelude.shebang
+            && shebang::guest_of(line) == Some(p.guest.id())
+            && let Some(first) = invoke.argv.first_mut()
+        {
+            let interpreter = line.resolved_interpreter();
+            let program = interpreter.rsplit('/').next().unwrap_or(interpreter);
+            program.clone_into(first);
+        }
+        return Ok(invoke);
     };
     let (host_dir, host_file) = p.file.rsplit_once('/').unwrap_or(("", &p.file));
     let vars = Vars {

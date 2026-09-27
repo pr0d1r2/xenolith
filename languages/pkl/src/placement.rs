@@ -2,7 +2,7 @@
 //!
 //! Always `scripts/hk`, under the step's key (`languages/pkl:V52`): hk
 //! steps are named once, in the config, and a script dir beside the
-//! config is where the load `bash scripts/hk/<name>.sh {{files}}` looks.
+//! config is where the load `sh ./scripts/hk/<name>.sh {{files}}` looks.
 
 use xenolith_lang_api::{Placement, Site};
 

@@ -19,7 +19,9 @@
 //! The delimiter is the pkl multi-line string, `"""…"""` or `#"""…"""#`
 //! (`languages/api/src/site` §I). A single-line `"…"` has no delimiter
 //! kind in the api, so it is never a site here; it is where a LOAD lives,
-//! `bash scripts/hk/<name>.sh {{files}}` (`languages/pkl:V52`).
+//! `sh ./scripts/hk/<name>.sh {{files}}` -- run by the interpreter the
+//! extract's prelude names, `sh` under hk's default step shell
+//! (`languages/pkl:V52`, `languages/pkl:V172`).
 
 use std::path::{Path, PathBuf};
 
@@ -300,8 +302,9 @@ impl Host for PklHost {
                 format!("no site `{}` at bytes {:?}", site.sink, site.delim.open),
             ));
         }
-        // A `\(…)` is pkl: in the script it would be text, and no hole
-        // param exists yet to carry it (`languages/pkl:V171`,
+        // A `\(…)` is pkl: in the script it would be text. Holes go through
+        // `rewrite_bound`, and this host has no load that passes a param
+        // yet, so the api's default refuses them (`languages/pkl:V171`,
         // `languages/api/src/holes:V40`).
         if !site.holes.is_empty() {
             return Err(Error::unsupported(
