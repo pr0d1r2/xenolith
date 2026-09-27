@@ -19,7 +19,7 @@ fleet. The parity describes the *release*, not the work that went into it.
 
 | version | parity | what you can rely on | status |
 |---|---|---|---|
-| `0.1` | odd | **first public artifact.** Every verb over six languages — nix, pkl and shell end to end, just, tcl and xml as the fleet hooks they replace — each a crate behind its own `lang-*` feature; extraction for nix, pkl and just hosts; the nix package with its linters; the public doc set and the release machinery | next |
+| `0.1` | odd | **first public artifact.** Every verb over six languages — nix, pkl and shell end to end, just, tcl and xml as the fleet hooks they replace — each a crate behind its own `lang-*` feature; extraction for nix, pkl and just hosts; the nix package with its linters; the public doc set and the release machinery | reached |
 | `0.2` | even | that surface settled: what the first users find, fixed before anything new lands | planned |
 | later | — | one language family per milestone, in the order the language survey sets (`.:C25`): CI, data, web and application languages, then test hosts | planned |
 | `1.0` | — | the contract frozen: the CLI surface, the JSON output, the `xenolith.toml` schema and the library API | planned |
@@ -32,8 +32,10 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
-Everything below is what `0.1.0` will contain: the tree as it stands, not a
-plan. Nothing has been published yet.
+## [0.1.0] - 2026-09-27
+
+The first public release: one language per file, checked, extracted and
+linted, over the six languages the fleet's embedded-shell hooks covered.
 
 ### Added
 
@@ -59,8 +61,12 @@ plan. Nothing has been published yet.
   ([docs/MIGRATION.md](docs/MIGRATION.md)).
 - **`xenolith.toml`** — nested per directory; `[[allow]]` keeps one embed
   inline by the hash of its body; `[[exclude]]`, per-verb excludes, inline
-  thresholds, extract layouts and per-language lint commands. A stale allow
-  or exclude is itself a violation.
+  thresholds, extract layouts and per-language lint commands. A stale
+  `[[allow]]` is a violation; a stale exclude is a warning. `[threshold.just]
+  max_lines` (default 1) sets how many lines a just recipe may keep inline.
+- **A host file that does not parse fails the run** (`[parse] host_errors =
+  "error"` by default): a syntax error, a BOM or bytes that are not UTF-8 is
+  never a silent pass.
 - **Six language crates** behind `lang-just`, `lang-nix`, `lang-pkl`,
   `lang-shell`, `lang-tcl` and `lang-xml`, all on by default, over the
   `xenolith-lang-api` contract; three grammars vendored as C with their
@@ -78,3 +84,11 @@ plan. Nothing has been published yet.
 
 - `--format sarif` is refused with exit 2 (`src/cli:T103`).
 - `xnl init` does not exist yet (`src/cli:T96`).
+- A launchd plist's `sh -c` script is reported, never extracted: launchd runs
+  a job from `/`, so no load path is right on every machine
+  (`languages/data/xml:T190`).
+- A zsh script is linted with `zsh -n` only — shellcheck refuses zsh and
+  `shfmt -ln zsh` rejects valid zsh — and embeds inside a zsh script are not
+  checked.
+- A finding with no site (a stale exclude) is a warning, not a violation,
+  until the JSON shape can carry one honestly.

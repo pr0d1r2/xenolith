@@ -64,9 +64,10 @@ loop, a heredoc.
 
 ## Install
 
-Not on crates.io yet; this section will say `cargo install xenolith` the
-day it is. Until then it is a Nix flake, and a cargo build from a checkout
-works too.
+From crates.io, `cargo install xenolith` installs `xnl`; bring the
+linters its languages call onto your `PATH` yourself (`cargo install
+xenolith-lang-tcl` adds `xenolith-tcl-syntax`). The Nix flake ships `xnl`
+with those linters wrapped in.
 
 ### From a flake
 
@@ -406,10 +407,10 @@ a language can be added without touching the engines
 
 ## Status
 
-**Public, not yet released.** The source is open on GitHub; there is no
-crates.io release and no tagged version yet — install from the flake or
-from a checkout. What this page describes is what the tree builds today;
-anything planned is marked with the spec task that will deliver it.
+**`0.1.0` — the first public release** (odd rung: functional, not yet for
+production; see the ladder in [CHANGELOG.md](CHANGELOG.md)). What this
+page describes is what that release builds; anything planned is marked
+with the spec task that will deliver it.
 
 `0.1.0` is milestone M3 of [`SPEC.md`](SPEC.md): the six languages above,
 the public doc set, the release machinery ([`release.toml`](release.toml))
