@@ -109,6 +109,55 @@ fn trivial_is_check_s_verdict_threshold_included() {
     );
 }
 
+/// The real languages, as the registry of this build has them.
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+fn registry_langs() -> crate::check::Langs<'static> {
+    crate::check::Langs {
+        hosts: crate::registry::hosts(),
+        guests: crate::registry::guests(),
+    }
+}
+
+/// The just host of this build.
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+fn just() -> &'static dyn Host {
+    crate::registry::hosts()
+        .iter()
+        .copied()
+        .find(|h| h.id() == xenolith_lang_api::LangId::Just)
+        .unwrap_or_else(|| panic!("no just host"))
+}
+
+/// `src/extract:B1`: a just site opens at its recipe's header, before
+/// the load line its body goes back into; the site whose body holds the
+/// put-back lines is the one the load was.
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+#[test]
+fn a_just_load_reads_back_to_its_recipe() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let src = "build:\n    bash scripts/build.sh\n";
+    put(&root, "justfile", src);
+    put(&root, "scripts/build.sh", "make && make test\n");
+    let tree = Tree::new(Config::default());
+    let loads = just().loads(src).unwrap_or_else(|e| panic!("{e}"));
+    let [load] = loads.as_slice() else {
+        panic!("{loads:?}")
+    };
+    let read = back(
+        &root,
+        &tree,
+        &registry_langs(),
+        "justfile",
+        just(),
+        src,
+        load,
+        "scripts/build.sh",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(read.inlined, "build:\n    make && make test\n");
+}
+
 #[test]
 fn again_proves_the_bytes_and_refuses_a_file_it_would_rewrite() {
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/usr/bin/env sh\nmake && make test\n");
