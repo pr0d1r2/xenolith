@@ -13,6 +13,9 @@ Before a larger change, open an issue first: the spec decides what the tool
 does, and a patch against a rule the spec does not hold yet starts with a
 spec change.
 
+[`AGENTS.md`](../AGENTS.md) is the same loop as a short checklist, for coding
+agents and people alike.
+
 ## Getting a working tree
 
 Everything — the Rust toolchain, the linters, the gate runner and the spec

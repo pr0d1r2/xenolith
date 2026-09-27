@@ -33,7 +33,7 @@ id|status|task|cites
 T104|x|write `LICENSE` (MIT), CoC, CONTRIBUTING (gate, TDD & commit rules), LLM-DISCLAIMER, mirroring the siblings' texts|V106
 T105|x|write `docs/SECURITY.md` per V107, incl. CI trust boundary (fork PRs take config from base branch)|V107
 T106|.|notices generator + drift check (cargo metadata + nix eval of wrapped tools' `meta.license`)|V108
-T107|.|`AGENTS.md`: the gate (`hk check --all`), never `--no-verify`, TDD & atomic commits w/ `Why:` (`scripts/guard` C11, C12), spec-first flow, PR-per-change & pause for review|V106
+T107|x|`AGENTS.md`: the gate (`hk check --all`), never `--no-verify`, TDD & atomic commits w/ `Why:` (`scripts/guard` C11, C12), spec-first flow, PR-per-change & pause for review|V106
 
 ## §B BUGS
 
