@@ -204,5 +204,5 @@ The check was itself a Tcl program embedded in a shell heredoc.
   you can move them by hand or allow them.
 
 `xenolith-tcl-syntax` is a binary of the `xenolith-lang-tcl` crate in this
-workspace. The nix package does not ship it yet (`nix:T99`); from a checkout,
-`cargo build --workspace` builds it next to `xnl`.
+workspace. The nix package puts it on `xnl`'s `PATH` (`nix:T99`); from a
+checkout, `cargo build --workspace` builds it next to `xnl`.

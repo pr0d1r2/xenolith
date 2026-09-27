@@ -93,8 +93,10 @@ a sequence, a loop, a heredoc.
 | ------- | ------------ |
 | `xnl check [--format human\|json] [paths…]` | Report every non-trivial embed. |
 | `xnl extract [--write] <path>[:line]…` | Print the diff that moves each embed into its own file; `--write` applies it. |
+| `xnl extract --relocate [--write] <host>[:line]…` | Move extracts the config now places elsewhere, and rewrite their loads. |
+| `xnl inline [--write] <extract>…` | Put an extract that has become trivial back into its host (refused for a shared extract). |
 | `xnl graph [--format human\|json] [paths…]` | List host → extract loads; flag dangling loads and orphaned extracts. |
-| `xnl lint [--fix] [--trust-config] [--format human\|json] [paths…]` | Run each language's linters over extracts and host files. |
+| `xnl lint [--fix] [--trust-config] [--sites] [--format human\|json] [paths…]` | Run each language's linters over extracts and host files; `--sites` lints embeds in place and reports findings at the host's line. |
 | `xnl langs [--format human\|json]` | List every language xenolith knows, and whether this build has it. |
 | `xnl migrate [--write]` | Turn legacy `.<lang>-embedded-shell-allowlist` files into `xenolith.toml` ([migration guide](docs/MIGRATION.md)). |
 | `xnl --version` | Print the version. |
@@ -154,8 +156,9 @@ missing language, unless `[langs] missing_guest` says otherwise.
 The tools are looked up on `PATH`, and a missing one is an error (exit 2),
 never a silent skip. `xenolith-tcl-syntax` is a binary of this workspace (the
 `xenolith-lang-tcl` crate): Tcl's own parse errors, found in Rust, with no
-`tclsh` needed. The nix package does not yet bundle any of these tools
-(`nix:T99`); bring them into your shell alongside `xnl`.
+`tclsh` needed. The nix package wraps `xnl` with the linters of its compiled-in
+languages on its `PATH` (`nix:T99`), `xenolith-tcl-syntax` included; `git`
+comes from your own environment. Outside nix, bring the tools yourself.
 
 ## `xenolith.toml`
 
@@ -255,10 +258,18 @@ revision and the binary comes from the cache instead of being rebuilt:
 xenolith's other inputs (`nix-hk` and its spec tools) are for its own dev
 shell; they appear in your lock file but not in the package.
 
-Building with fewer languages (`nix:T41`) and a package that bundles each
-language's linters (`nix:T99`) are planned. From a checkout, `cargo build
---no-default-features --features lang-nix,lang-shell` builds a smaller `xnl`
-today.
+The package carries the linters of its languages (`nix:T99`). To build only
+the languages a repo has -- a smaller binary and fewer linters on its `PATH`
+(`nix:T41`) -- override it; cachix holds the default build only, so a subset
+builds locally:
+
+```nix
+(xenolith.packages.${system}.default.override { languages = [ "nix" "shell" ]; })
+```
+
+An empty list or an unknown name is an evaluation error that lists the
+supported names. Outside nix, `cargo build --no-default-features --features
+lang-nix,lang-shell` builds the same subset.
 
 ### The binary cache and `trusted-users`
 
