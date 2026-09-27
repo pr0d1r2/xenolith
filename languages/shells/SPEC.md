@@ -9,13 +9,14 @@ hub (`languages:V129`): shell family -- shell dialects & hosts built on the shel
 dir|owns|⊥owns|tokens
 shell|bash parser & host sinks, single-command classifier, shell linters|sinks in other hosts (their node)|-
 bats|bats grammar (based-on shell), `@test` sinks, test-host rules|shell classification (`languages/shells/shell`), mirror rule (`scripts/guard`)|-
+tcl|tcl grammar (expect dialect), `exec`/`spawn` sinks, guest rules|shell classification & shell-side sinks (`languages/shells/shell`)|-
 
 ## §N NAV
 
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-self|languages/shells|hub: shell family -- shell, bats
+self|languages/shells|hub: shell family -- shell, bats, tcl
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile

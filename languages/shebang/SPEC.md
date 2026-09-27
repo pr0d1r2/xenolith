@@ -11,7 +11,7 @@ up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
 self|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
-sib|languages/shells|hub: shell family -- shell, bats
+sib|languages/shells|hub: shell family -- shell, bats, tcl
 sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile
 sib|languages/data|hub: data, text & markup -- python, sql, jq, awk, perl, xml
 sib|languages/web|hub: web host & its guests -- html, js, css

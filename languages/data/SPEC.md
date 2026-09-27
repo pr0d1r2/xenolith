@@ -22,7 +22,7 @@ up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, lo
 self|languages/data|hub: data, text & markup -- python, sql, jq, awk, perl, xml
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
-sib|languages/shells|hub: shell family -- shell, bats
+sib|languages/shells|hub: shell family -- shell, bats, tcl
 sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile
 sib|languages/web|hub: web host & its guests -- html, js, css
 sib|languages/rust|rust parser, rust host sinks

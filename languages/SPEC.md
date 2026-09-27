@@ -9,7 +9,7 @@
 dir|owns|⊥owns|tokens
 api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness|any language specifics (its node), engines (`src`)|-
 shebang|shebang parse/strip/wrap ∀ guest|guest rules (their node), laws (`languages/api`)|-
-shells|hub: shell family -- shell, bats|other families (sibling hubs), contract (`languages/api`)|-
+shells|hub: shell family -- shell, bats, tcl|other families (sibling hubs), contract (`languages/api`)|-
 ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile|other families (sibling hubs), shell classification (`languages/shells/shell`)|-
 data|hub: data, text & markup -- python, sql, jq, awk, perl, xml|other families (sibling hubs), sinks holding them (their host node)|-
 web|hub: web host & its guests -- html, js, css|other families (sibling hubs)|-
@@ -30,7 +30,7 @@ sib|docs|public project docs & notices
 ## §C CONSTRAINTS
 
 - C24: ∀ language = member crate `languages/<hub>/<lang>` (hub per V129; ⊥ family → `languages/<lang>`) named `xenolith-lang-<lang>`: grammar dep, parser, sinks as host, load idiom, checks as guest; OPTIONAL behind feature `lang-<lang>`. contract crate `languages/api` = `xenolith-lang-api` (⊥ feature-gated, ⊥ grammar dep; re-exports `xenolith-shebang` from `languages/shebang`): `Host` & `Guest` traits, shared types, law harness. language crate depends only on api + own grammar; ⊥ root crate, ⊥ other language crate ∴ host names guest by `LangId`, ⊥ by type.
-- C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, xml, dockerfile ?, pkl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
+- C4: real parsers, ⊥ regex over source. nix → `rnix`; others → `tree-sitter` + per-language grammar crates (bash, yaml, rust, ruby, html, javascript, css, python, sql, jq, awk, just, xml, dockerfile ?, pkl ?, tcl ?). grammar missing for host → host unsupported, ⊥ regex fallback.
 - C18: markdown fenced code = documentation, ⊥ embed. out of scope by default ?.
 - C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now — revisit once api traits are stable semver surface.
 - C26: markdown as GUEST = potential ? (M3+ per `.` C25): md embedded in host string literals, e.g. rust tests holding spec fixtures (`const SOURCE: &str = "# SPEC\n\n## §G…"`) → extract to `tests/fixtures/<name>.md` + `include_str!`; detection by exclusion (`languages:V81`) via heading/table shape; checks `markdownlint`, `mth check` for SPEC-shaped bodies. markdown as HOST stays per C18 (fenced code = docs).

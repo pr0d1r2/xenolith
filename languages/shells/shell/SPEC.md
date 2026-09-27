@@ -9,9 +9,10 @@ crate `xenolith-lang-shell` (feature `lang-shell`): tree-sitter-bash; bash as ho
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-up|languages/shells|hub: shell family -- shell, bats
+up|languages/shells|hub: shell family -- shell, bats, tcl
 self|languages/shells/shell|bash parser & host sinks, single-command classifier, shell linters
 sib|languages/shells/bats|bats grammar (based-on shell), `@test` sinks, test-host rules
+sib|languages/shells/tcl|tcl grammar (expect dialect), `exec`/`spawn` sinks, guest rules
 
 ## §I INTERFACES
 
