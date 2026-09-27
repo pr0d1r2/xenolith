@@ -305,10 +305,13 @@ fn a_script_is_a_violation_carrying_every_field() {
 }
 
 #[test]
-fn the_extract_direction_never_claims_to_run_before_extract_can() {
-    // `xnl extract` refuses every host until `src/extract:T22` lands, so
-    // no direction may promise a mechanical fix -- least of all for a
-    // body the guest or the host cannot even read.
+fn the_extract_direction_is_a_judgement_saying_why_extract_would_refuse() {
+    // `src:B12`: `Mechanical` is a fix SARIF offers to apply
+    // (`src/cli:V102`), so it is offered only where `xnl extract` would
+    // do it -- the engine's own verdict, `src/extract` `viable`. A rule
+    // places the fake host's extracts; it still rewrites nothing, and a
+    // body it cannot unescape is refused before that. Each direction
+    // says which.
     let sandbox = Sandbox::new();
     let root = tree(
         &sandbox,
@@ -317,15 +320,29 @@ fn the_extract_direction_never_claims_to_run_before_extract_can() {
             "one=shell: a && b\ntwo=shell: BAD\nthree=shell: x \\!\n",
         )],
     );
-    let report = run(&root, &Config::default(), &["a.fake"]);
+    let placed =
+        config("version = 1\n[[extract.rule]]\nhost = \"just\"\npath = \"x/{sink}.{ext}\"\n");
+    let report = run(&root, &placed, &["a.fake"]);
     assert_eq!(report.violations().len(), 3, "{report:?}");
-    for v in report.violations() {
+    let whys = [
+        "does not support `rewrite`",
+        "does not support `rewrite`",
+        "the body cannot be read as its guest reads it",
+    ];
+    for (v, why) in report.violations().iter().zip(whys) {
         let first = v
             .directions
             .first()
             .unwrap_or_else(|| panic!("{v:?} has a direction"));
         assert_eq!(first.kind, Fix::Judgment, "{v:?}");
-        assert!(first.action.contains("src/extract:T22"), "{}", first.action);
+        assert!(
+            first
+                .action
+                .contains(&format!("`xnl extract a.fake:{}` refuses it: ", v.line)),
+            "{}",
+            first.action
+        );
+        assert!(first.action.contains(why), "{}", first.action);
         assert!(
             v.directions.iter().all(|d| d.kind != Fix::Mechanical),
             "{v:?}"
@@ -1422,6 +1439,60 @@ mod nix_shell {
         assert!(report.violations().is_empty(), "{text}\n{report:?}");
     }
 
+    /// The one violation's extract direction.
+    fn extract_direction(text: &str) -> crate::model::Direction {
+        let report = check_nix(text, &Config::default());
+        let [v] = report.violations() else {
+            panic!("{text}\n{report:?}")
+        };
+        v.directions
+            .first()
+            .cloned()
+            .unwrap_or_else(|| panic!("{v:?} has no direction"))
+    }
+
+    #[test]
+    fn a_script_extract_would_move_is_a_mechanical_direction() {
+        // `src:B12`: `xnl extract` moves it, so the direction is the
+        // command that does -- a fix SARIF may offer (`src/cli:V102`).
+        let first = extract_direction(SCRIPT);
+        assert_eq!(first.kind, crate::model::Fix::Mechanical, "{first:?}");
+        assert_eq!(first.action, "run `xnl extract service.nix:2`");
+    }
+
+    #[test]
+    fn a_script_with_holes_extract_would_move_is_mechanical_too() {
+        // `languages/nix:V174`: the hole goes back through
+        // `replaceStrings`, so extract moves it.
+        let text = "{ pkgs, ... }:\n{\n  systemd.services.a.script = ''\n    \
+                    ${pkgs.hello}/bin/hello\n    echo done > /tmp/x\n  '';\n}\n";
+        let first = extract_direction(text);
+        assert_eq!(first.kind, crate::model::Fix::Mechanical, "{first:?}");
+    }
+
+    #[test]
+    fn a_hole_the_shell_would_not_expand_is_a_judgement_saying_why() {
+        // `languages/api/src/holes:V40`: a hole in single quotes cannot
+        // become a param, and the direction says so rather than
+        // offering a command that would refuse.
+        let text = "{ pkgs, ... }:\n{\n  systemd.services.a.script = ''\n    \
+                    echo '${pkgs.hello}'\n    echo done > /tmp/x\n  '';\n}\n";
+        let first = extract_direction(text);
+        assert_eq!(first.kind, crate::model::Fix::Judgment, "{first:?}");
+        assert!(
+            first
+                .action
+                .contains("`xnl extract service.nix:3` refuses it: "),
+            "{}",
+            first.action
+        );
+        assert!(
+            first.action.contains("would not expand `HELLO`"),
+            "{}",
+            first.action
+        );
+    }
+
     #[test]
     fn a_three_command_pre_check_is_flagged() {
         // `languages/nix:T156`: a phase hook is shell like a phase.
@@ -1617,6 +1688,9 @@ fn a_pkl_hk_step_holding_a_script_is_flagged() {
     assert_eq!((v.host, v.guest), (LangId::Pkl, LangId::Shell));
     assert_eq!(v.sink, "lint.check");
     assert!(v.why.contains("and-or"), "{}", v.why);
+    // `src:B12`: extract moves it, so the direction is the command.
+    let first = v.directions.first().map(|d| (d.kind, d.action.as_str()));
+    assert_eq!(first, Some((Fix::Mechanical, "run `xnl extract hk.pkl:7`")));
 }
 
 /// `src:T46`'s nix-only build, end to end: a nix site holding shell,

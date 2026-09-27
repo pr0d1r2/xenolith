@@ -8,9 +8,9 @@ use xenolith_lang_api::{
     Prelude, Result, Shebang, Site, Span,
 };
 
-use super::{Edit, ExtractError, Options, Target, extract_with, write};
+use super::{Edit, ExtractError, Options, Target, extract_with, viable, write};
 use crate::check::Langs;
-use crate::config::{self, Config};
+use crate::config::{self, Config, Tree, Verb};
 use crate::discover::{Sandbox, write as put};
 
 // ---------------------------------------------------------------------
@@ -621,6 +621,58 @@ fn a_prelude_naming_another_language_leaves_the_guest_s_invoke() {
     let edit = plan_with(&sandbox, &root, toml, &["a.toy"]);
     let after: Vec<&str> = edit.hosts.iter().map(|h| h.after.as_str()).collect();
     assert_eq!(after, ["build< sh ./a/build.sh\n"]);
+}
+
+// ---------------------------------------------------------------------
+// one verdict for check and extract (T175, `src:B12`)
+// ---------------------------------------------------------------------
+
+/// `viable` for the one site of `name` under the root config.
+fn viable_at(root: &Path, name: &str) -> std::result::Result<(), String> {
+    let text = read(root, name);
+    let langs = Langs {
+        hosts: HOSTS,
+        guests: GUESTS,
+    };
+    let tree =
+        Tree::load(root, Config::default(), Verb::Check, [name]).unwrap_or_else(|e| panic!("{e}"));
+    let host = HOSTS
+        .iter()
+        .copied()
+        .find(|h| h.claims(Path::new(name), ""))
+        .unwrap_or_else(|| panic!("no toy host claims {name}"));
+    let sites = host.sites(&text).unwrap_or_else(|e| panic!("{e}"));
+    let [site] = sites.as_slice() else {
+        panic!("{sites:?}")
+    };
+    viable(root, &tree, &langs, name, &text, host, site)
+}
+
+#[test]
+fn viable_is_the_engine_s_own_verdict_on_one_site() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.toy", "build=shell: make && make test\n");
+    put(&root, "b.norewrite", "build=shell: make && make test\n");
+    put(&root, "c.toy", "build=shell: {{cc}} && make\n");
+    put(&root, "d.params", "build=shell: {{cc}} && make\n");
+    put(&root, "e.toy", "build=shell: make && make test\n");
+    put(&root, "e/build.sh", "mine\n");
+    assert_eq!(viable_at(&root, "a.toy"), Ok(()));
+    assert_eq!(viable_at(&root, "d.params"), Ok(()));
+    for (name, why) in [
+        ("b.norewrite", "does not support `rewrite`"),
+        ("c.toy", "does not support `rewrite_bound`"),
+        ("e.toy", "src/extract:V6"),
+    ] {
+        let found = viable_at(&root, name);
+        assert!(
+            found.as_ref().is_err_and(|e| e.contains(why)),
+            "{name}: {found:?}"
+        );
+    }
+    // Asking wrote nothing.
+    assert!(!root.join("a").exists());
 }
 
 // ---------------------------------------------------------------------
