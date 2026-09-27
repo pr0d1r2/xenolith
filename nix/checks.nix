@@ -7,6 +7,32 @@
 # vendored-crate fetches are shared and a check cannot drift onto a source
 # set the package does not use.
 { pkgs, package }:
+let
+  inherit (pkgs) lib;
+  tools = import ./tools.nix { inherit pkgs; };
+
+  # Both names a derivation goes by in the store: its own name without the
+  # version (`rustc-wrapper`) and its pname (`rustc`, the compiler the
+  # wrapper holds). Names, not paths: a second build of a dev tool at
+  # another path is still a dev tool in the closure.
+  names =
+    drv:
+    lib.unique [
+      (builtins.parseDrvName drv.name).name
+      (lib.getName drv)
+    ];
+  devNames = lib.concatMap names tools.dev ++ tools.specNames;
+
+  # `nix path-info -r`, where a sandboxed check can read it: closureInfo's
+  # `store-paths`, matched against `forbidden` by `scripts/nix/closure.sh`
+  # -- one command, so this file passes its own `xnl check` (`nix:B2`).
+  closureCheck =
+    name: drv: forbidden:
+    pkgs.runCommand name { }
+      "bash ${../scripts/nix/closure.sh} ${
+        pkgs.closureInfo { rootPaths = [ drv ]; }
+      }/store-paths $out ${lib.escapeShellArgs forbidden}";
+in
 {
   # The package itself, so `nix flake check` BUILDS `packages.default`
   # instead of only evaluating it -- and so the store path cachix receives
@@ -52,4 +78,9 @@
       pkgs.git
     ];
   } "bash ${../scripts/nix/dogfood.sh} ${../.} $out";
+
+  # `nix:T38`: the package's closure holds no dev tool (`nix:V29`,
+  # `nix:V250`) -- the toolchain it was built with, the gate's runner and
+  # linters, the spec tools.
+  closure = closureCheck "xenolith-closure" package devNames;
 }
