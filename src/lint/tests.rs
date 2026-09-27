@@ -77,7 +77,13 @@ impl Guest for FakeGuest {
 
     fn checks(&self, env: &GuestEnv) -> Vec<LintCmd> {
         let dialect = format!("--dialect={}", env.dialect.as_deref().unwrap_or("none"));
-        vec![cmd(&["alpha", &dialect]), cmd(&["beta"])]
+        // beta reads as shellcheck's JSON: a stub printing prose is
+        // unparseable and keeps its tail (`src/lint:V92`).
+        let beta = LintCmd {
+            format: Format::Json("shellcheck"),
+            ..cmd(&["beta"])
+        };
+        vec![cmd(&["alpha", &dialect]), beta]
     }
 
     fn fixers(&self, _env: &GuestEnv) -> Vec<LintCmd> {
@@ -583,6 +589,58 @@ fn a_trusted_config_fixer_runs_under_fix() {
     let report = fx.lint(&config, &options).unwrap_or_else(|e| panic!("{e}"));
     assert!(fx.root.join("ownfix-ran").exists());
     assert!(report.warnings().is_empty(), "{:?}", report.warnings());
+}
+
+// ---------------------------------------------------------------------
+// T93: findings
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_json_check_is_parsed_into_findings_and_its_tail_dropped() {
+    // `src/lint:V92`: shellcheck's `--format=json` counts a tab to the
+    // next stop of 8; the finding reports the editor's column.
+    let fx = Fixture::all_pass();
+    fx.tool(
+        "beta",
+        "echo '[{\"line\":2,\"column\":15,\"level\":\"info\",\"code\":2086,\
+         \"message\":\"quote\"}]'\necho chatter >&2\nexit 1",
+    );
+    fx.file("a.sh", "a=1\n\techo  $a\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    let beta = nth(&report, 1);
+    assert_eq!(beta.status, Status::Fail);
+    assert_eq!(beta.raw_tail, None);
+    let found: Vec<(usize, usize, &str)> = beta
+        .findings
+        .iter()
+        .map(|f| (f.line, f.col, f.code.as_str()))
+        .collect();
+    assert_eq!(found, [(2, 8, "SC2086")]);
+}
+
+#[test]
+fn a_raw_check_and_unparseable_json_keep_the_tail_and_no_findings() {
+    let fx = Fixture::all_pass();
+    fx.tool("alpha", "echo '[]'\nexit 1");
+    fx.tool("beta", "echo 'In a.sh line 1:'\nexit 1");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    for n in 0..2 {
+        let outcome = nth(&report, n);
+        assert!(outcome.findings.is_empty(), "{outcome:?}");
+        assert!(outcome.raw_tail.is_some(), "{outcome:?}");
+    }
+}
+
+#[test]
+fn parsed_json_with_no_finding_on_a_fail_keeps_the_tail() {
+    // Nothing is dropped (`src/lint:V92`): a fail with no finding to show
+    // must still say why.
+    let fx = Fixture::all_pass();
+    fx.tool("beta", "echo '[]'\necho broke >&2\nexit 1");
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.report(&Config::default(), &["a.sh"]);
+    assert_eq!(nth(&report, 1).raw_tail.as_deref(), Some("[]\nbroke"));
 }
 
 // ---------------------------------------------------------------------

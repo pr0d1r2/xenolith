@@ -9,6 +9,7 @@ use serde_json::Value;
 use xenolith_lang_api::LangId;
 
 use super::{Kind, LintReport, Outcome, Source, Status};
+use crate::lint::Finding;
 use crate::model::Warning;
 
 fn outcome(status: Status) -> Outcome {
@@ -24,6 +25,7 @@ fn outcome(status: Status) -> Outcome {
         exit: Some(1),
         raw_tail: Some("line 3: bad".to_owned()),
         fixer: false,
+        findings: Vec::new(),
     }
 }
 
@@ -118,4 +120,32 @@ fn warnings_are_sorted_and_kept_once() {
     let json = parsed(&report);
     assert_eq!(at(&json, "/warnings/0/code"), "a");
     assert!(json.pointer("/warnings/0/file").is_none());
+}
+
+#[test]
+fn findings_render_in_the_documented_shape() {
+    let mut report = LintReport::new();
+    report.push(Outcome {
+        findings: vec![Finding {
+            line: 3,
+            col: 7,
+            code: "SC2086".to_owned(),
+            severity: "warning".to_owned(),
+            message: "quote it".to_owned(),
+        }],
+        raw_tail: None,
+        ..outcome(Status::Fail)
+    });
+    let json = parsed(&report);
+    for (key, want) in [
+        ("line", Value::from(3)),
+        ("col", Value::from(7)),
+        ("code", Value::from("SC2086")),
+        ("severity", Value::from("warning")),
+        ("message", Value::from("quote it")),
+    ] {
+        let pointer = format!("/results/0/findings/0/{key}");
+        assert_eq!(at(&json, &pointer), want, "{key}");
+    }
+    assert_eq!(at(&json, "/results/0/raw_tail"), Value::Null);
 }

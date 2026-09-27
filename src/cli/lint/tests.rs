@@ -12,7 +12,7 @@ use super::{Flags, render, run};
 use crate::cli::EXIT_USAGE;
 use crate::cli::args::{OutputFormat, Scan};
 use crate::discover::Sandbox;
-use crate::lint::{Kind, LintReport, Outcome, Source, Status};
+use crate::lint::{Finding, Kind, LintReport, Outcome, Source, Status};
 use crate::model::Warning;
 
 fn outcome(check: &str, status: Status, exit: Option<i32>, tail: Option<&str>) -> Outcome {
@@ -28,6 +28,7 @@ fn outcome(check: &str, status: Status, exit: Option<i32>, tail: Option<&str>) -
         exit,
         raw_tail: tail.map(str::to_owned),
         fixer: false,
+        findings: Vec::new(),
     }
 }
 
@@ -102,6 +103,38 @@ fn a_fixer_that_did_not_pass_says_so() {
     assert!(
         out.starts_with("a.sh: fixer fixit: failed (exit 4)\n"),
         "{out:?}"
+    );
+}
+
+#[test]
+fn human_puts_one_line_per_finding_in_place_of_the_tail() {
+    let mut report = LintReport::new();
+    report.push(Outcome {
+        findings: vec![
+            Finding {
+                line: 3,
+                col: 7,
+                code: "SC2086".to_owned(),
+                severity: "info".to_owned(),
+                message: "Double quote.".to_owned(),
+            },
+            Finding {
+                line: 9,
+                col: 1,
+                code: "SC2034".to_owned(),
+                severity: "warning".to_owned(),
+                message: "unused".to_owned(),
+            },
+        ],
+        ..outcome("shellcheck", Status::Fail, Some(1), None)
+    });
+    let (code, out, _) = rendered(&report, OutputFormat::Human, false);
+    assert_eq!(code, 1);
+    assert_eq!(
+        out,
+        "a.sh:3:7 shellcheck: SC2086 (info) Double quote.\n\
+         a.sh:9:1 shellcheck: SC2034 (warning) unused\n\
+         1 checks, 1 failed\n"
     );
 }
 

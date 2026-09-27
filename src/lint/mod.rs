@@ -35,10 +35,12 @@ use crate::discover::{DiscoverError, discover_with};
 use crate::model::Warning;
 use crate::registry;
 
+pub mod findings;
 pub mod plan;
 pub mod report;
 pub mod run;
 
+pub use findings::Finding;
 pub use report::{Kind, LintReport, Outcome, Source, Status};
 
 use self::plan::{Cmd, Configured};

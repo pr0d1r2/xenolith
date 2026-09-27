@@ -47,6 +47,18 @@ fn a_non_zero_exit_is_a_fail_keeping_what_the_tool_printed() {
 }
 
 #[test]
+fn stdout_is_kept_on_its_own_for_the_findings_parsers() {
+    // `src/lint` §I findings: parsed from stdout only, so stderr noise
+    // cannot break a tool's JSON.
+    let sandbox = Sandbox::new();
+    let bin = sandbox.plain("bin");
+    stub(&bin, "js", "echo '[]'\necho noise >&2\nexit 1");
+    let ran = run(sandbox.path(), &argv(&["js"]), None, &Tools::on_path(&bin));
+    assert_eq!(ran.stdout, "[]\n");
+    assert_eq!(ran.tail.as_deref(), Some("[]\nnoise"));
+}
+
+#[test]
 fn a_silent_failure_still_says_it_failed() {
     let sandbox = Sandbox::new();
     let bin = sandbox.plain("bin");

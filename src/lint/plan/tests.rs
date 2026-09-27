@@ -143,3 +143,14 @@ fn no_config_is_the_defaults_alone() {
     assert_eq!(words(&got.run), ["a"]);
     assert!(got.untrusted.is_empty());
 }
+
+#[test]
+fn a_builtin_keeps_its_format_and_a_config_command_is_raw() {
+    // `src/lint` §I findings: config cannot say how to read a tool.
+    let json = LintCmd {
+        format: Format::Json("shellcheck"),
+        ..builtin(&["shellcheck"])
+    };
+    assert_eq!(Cmd::builtin(&json).format, Format::Json("shellcheck"));
+    assert_eq!(Cmd::configured("shellcheck -f json").format, Format::Raw);
+}
