@@ -202,8 +202,9 @@ fn bodies(src: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The load `rewrite` must leave for `path` in `y`, law (c).
-fn load_of(y: &str, path: &Path) -> LoadRef {
+/// The load `rewrite` must leave for `path` in `y`, law (c): either
+/// `languages/nix:V53` call, and whether it was `readWithoutStrict`.
+fn load_of(y: &str, path: &Path) -> (LoadRef, bool) {
     let loads = NIX
         .loads(y)
         .unwrap_or_else(|e| panic!("{y:?} did not parse: {e}"));
@@ -211,13 +212,17 @@ fn load_of(y: &str, path: &Path) -> LoadRef {
         panic!("law (c): no load of {} in {y}", path.display());
     };
     assert_eq!(load.guest, LangId::Shell);
-    let call = format!("nix-shebang.lib.readWithoutStrict {}", path.display());
-    assert_eq!(load.span.of(y), Some(call.as_str()), "{y}");
-    load
+    let call = load.span.of(y).unwrap_or_else(|| panic!("{y}: load span"));
+    let read_file = format!("builtins.readFile {}", path.display());
+    let tail = format!("nix-shebang.lib.readWithoutStrict {}", path.display());
+    let strips = call != read_file;
+    assert!(!strips || call.ends_with(&tail), "{y}");
+    (load, strips)
 }
 
-/// One site through the whole lens, or the refusal it must get.
-fn round_trip(src: &str, index: usize, site: &Site) -> Result<(), String> {
+/// One site through the whole lens, or the refusal it must get; `Some`
+/// of whether the load was `readWithoutStrict` when it went round.
+fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<bool>, String> {
     let ext = if site.env.dialect.as_deref() == Some("zsh") {
         "zsh"
     } else {
@@ -230,7 +235,7 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<(), String> {
     let rewritten = NIX.rewrite(src, site, &invoke, &path);
     if !site.holes.is_empty() || site.guest != LangId::Shell {
         return match rewritten {
-            Err(Error::Unsupported { .. }) => Ok(()),
+            Err(Error::Unsupported { .. }) => Ok(None),
             other => Err(format!("must be refused, got {other:?}")),
         };
     }
@@ -243,7 +248,7 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<(), String> {
     if after.contains(&this) || after.len() + 1 != before.len() {
         return Err(format!("law (b): sites after rewrite {after:?}"));
     }
-    let load = load_of(&y, &path);
+    let (load, strips) = load_of(&y, &path);
     // Law (a): inlining the body puts back what was there.
     let inlined = NIX
         .inline(&y, &load, &this.1)
@@ -251,12 +256,13 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<(), String> {
     if normalized(&inlined) != normalized(src) || bodies(&inlined) != before {
         return Err(format!("law (a): inline gave\n{inlined}"));
     }
-    Ok(())
+    Ok(Some(strips))
 }
 
 #[test]
 fn the_lens_laws_hold_for_every_positive_fixture_site() {
     let mut extracted = 0;
+    let mut stripping = 0;
     let mut failures = Vec::new();
     for case in cases() {
         let name = case.display().to_string();
@@ -270,10 +276,11 @@ fn the_lens_laws_hold_for_every_positive_fixture_site() {
         let (src, sites) = fixture(&case);
         for (index, site) in sites.iter().enumerate() {
             match round_trip(&src, index, site) {
-                Ok(()) if site.holes.is_empty() && site.guest == LangId::Shell => {
+                Ok(Some(strips)) => {
                     extracted += 1;
+                    stripping += usize::from(strips);
                 }
-                Ok(()) => {}
+                Ok(None) => {}
                 Err(e) => failures.push(format!("{name} {}: {e}", site.sink)),
             }
         }
@@ -283,4 +290,8 @@ fn the_lens_laws_hold_for_every_positive_fixture_site() {
         extracted >= 20,
         "only {extracted} sites went round the lens"
     );
+    // Both `languages/nix:V53` loads go round: `pos-load-scope` binds
+    // nix-shebang, and most fixtures do not.
+    assert!(stripping > 0, "no site went round as readWithoutStrict");
+    assert!(stripping < extracted, "no site went round as readFile");
 }

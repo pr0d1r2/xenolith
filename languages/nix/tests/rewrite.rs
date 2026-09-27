@@ -52,16 +52,61 @@ fn refused(operation: &'static str) -> Result<String, Error> {
 // --- rewrite -----------------------------------------------------------
 
 #[test]
-fn rewrite_replaces_the_string_with_the_read_without_strict_load() {
-    // `languages/nix:V53`: the shell guest's prelude always carries a
-    // shebang, so the load is the one that strips it again.
+fn without_nix_shebang_in_scope_the_load_is_read_file() {
+    // `languages/nix:V53`: a name nothing binds would not evaluate, and
+    // `builtins.readFile` always does.
     let src = "{ systemd.services.a.script = ''\n  echo a\n  echo b\n''; }";
     assert_eq!(
         rewrite(src, "./a/script.sh"),
-        Ok(
-            "{ systemd.services.a.script = nix-shebang.lib.readWithoutStrict ./a/script.sh; }"
-                .into()
-        )
+        Ok("{ systemd.services.a.script = builtins.readFile ./a/script.sh; }".into())
+    );
+    let module = "{ pkgs, ... }: { shellHook = ''\n  a\n  b\n''; x = pkgs.a; }";
+    assert_eq!(
+        rewrite(module, "./x.sh"),
+        Ok("{ pkgs, ... }: { shellHook = builtins.readFile ./x.sh; x = pkgs.a; }".into())
+    );
+}
+
+#[test]
+fn a_module_taking_nix_shebang_gets_read_without_strict() {
+    // The shell guest's prelude always carries a shebang, and this is
+    // the load that strips it again.
+    let src = "{ nix-shebang, ... }: { script = ''\n  a\n  b\n''; }";
+    assert_eq!(
+        rewrite(src, "./x.sh"),
+        Ok("{ nix-shebang, ... }: { script = nix-shebang.lib.readWithoutStrict ./x.sh; }".into())
+    );
+}
+
+#[test]
+fn a_let_bound_nix_shebang_gets_read_without_strict() {
+    let src = "{ inputs }: let inherit (inputs) nix-shebang; in { script = ''\n  a\n''; }";
+    let want = "{ inputs }: let inherit (inputs) nix-shebang; in \
+                { script = nix-shebang.lib.readWithoutStrict ./x.sh; }";
+    assert_eq!(rewrite(src, "./x.sh"), Ok(want.into()));
+}
+
+#[test]
+fn a_path_the_file_already_uses_is_the_load_s_prefix() {
+    let src = "{ inputs }: {\n  a = inputs.nix-shebang.lib.toShellScript;\n  \
+               script = ''\n    a\n  '';\n}";
+    let written = rewrite(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert!(
+        written.contains("script = inputs.nix-shebang.lib.readWithoutStrict ./x.sh;"),
+        "{written}"
+    );
+    assert_eq!(only_load(&written).path, Path::new("./x.sh"));
+}
+
+#[test]
+fn a_shadowed_prefix_falls_back_to_read_file() {
+    // The inner `inputs` is not the value the path was used on.
+    let src = "{ inputs }: {\n  a = inputs.nix-shebang.lib.toShellScript;\n  \
+               b = inputs: { script = ''\n    a\n  ''; };\n}";
+    let written = rewrite(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert!(
+        written.contains("script = builtins.readFile ./x.sh;"),
+        "{written}"
     );
 }
 
@@ -78,13 +123,13 @@ fn a_bare_relative_path_gets_the_dot_slash_nix_needs() {
 
 #[test]
 fn an_argument_slot_gets_parentheses_and_inline_takes_them_away() {
-    // Application is left-associative: `f "n" readWithoutStrict ./x`
+    // Application is left-associative: `f "n" builtins.readFile ./x`
     // would hand `f` two more arguments than it had.
     let src = "{ pkgs }: pkgs.writeShellScript \"n\" ''\n  a\n  b\n''";
     let written = rewrite(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         written,
-        "{ pkgs }: pkgs.writeShellScript \"n\" (nix-shebang.lib.readWithoutStrict ./x.sh)"
+        "{ pkgs }: pkgs.writeShellScript \"n\" (builtins.readFile ./x.sh)"
     );
     let back = NIX.inline(&written, &only_load(&written), "a\nb\n");
     assert_eq!(
@@ -98,7 +143,7 @@ fn a_binop_operand_needs_no_parentheses() {
     let src = "{ extra }: { shellHook = ''\n  a\n  b\n'' + extra; }";
     assert_eq!(
         rewrite(src, "./x.sh"),
-        Ok("{ extra }: { shellHook = nix-shebang.lib.readWithoutStrict ./x.sh + extra; }".into())
+        Ok("{ extra }: { shellHook = builtins.readFile ./x.sh + extra; }".into())
     );
 }
 
@@ -135,13 +180,23 @@ fn a_guest_other_than_shell_is_refused() {
 }
 
 #[test]
-fn a_body_led_by_the_strict_line_is_refused() {
+fn a_body_led_by_the_strict_line_is_refused_under_read_without_strict() {
     // nix-shebang's `stripStrict` drops a `set -euo pipefail` right
     // under the shebang whether the prelude wrote it or the body did.
-    let src = "{ shellHook = ''\n  set -euo pipefail\n  a\n''; }";
+    let src = "{ nix-shebang }: { shellHook = ''\n  set -euo pipefail\n  a\n''; }";
     assert_eq!(
         rewrite(src, "./x.sh"),
         refused("rewrite of a body led by `set -euo pipefail`")
+    );
+}
+
+#[test]
+fn a_body_led_by_the_strict_line_is_kept_under_read_file() {
+    // `builtins.readFile` strips nothing, so the body's own line stays.
+    let src = "{ shellHook = ''\n  set -euo pipefail\n  a\n''; }";
+    assert_eq!(
+        rewrite(src, "./x.sh"),
+        Ok("{ shellHook = builtins.readFile ./x.sh; }".into())
     );
 }
 
@@ -203,6 +258,24 @@ fn inline_writes_a_one_line_body_as_a_double_quoted_string() {
         NIX.inline(src, &only_load(src), "echo \"hi\""),
         Ok("{ a.script = \"echo \\\"hi\\\"\"; }".into())
     );
+}
+
+#[test]
+fn inline_takes_either_load_through_any_prefix() {
+    // `languages/nix:V170`: whichever load `rewrite` chose, and the
+    // parentheses it added around either.
+    for call in [
+        "builtins.readFile ./x.sh",
+        "nix-shebang.lib.readWithoutStrict ./x.sh",
+        "inputs.nix-shebang.lib.readWithoutStrict ./x.sh",
+    ] {
+        let src = format!("{{ inputs }}: f ({call})");
+        assert_eq!(
+            NIX.inline(&src, &only_load(&src), "a"),
+            Ok("{ inputs }: f \"a\"".into()),
+            "{call}"
+        );
+    }
 }
 
 #[test]

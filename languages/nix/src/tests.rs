@@ -285,14 +285,15 @@ fn claims_reads_the_extension_and_never_the_head() {
 
 #[test]
 fn rewrite_and_inline_are_the_write_side_and_undo_each_other() {
-    // `languages/nix:V170`: the V53 load in, then the body back out of it.
+    // `languages/nix:V170`: the V53 load in -- `readFile`, as nothing binds
+    // `nix-shebang` here -- then the body back out of it.
     let src = "{ script = ''\n  a\n  b\n''; }";
     let site = sites(src)
         .into_iter()
         .next()
         .unwrap_or_else(|| panic!("no site"));
     let invoke = Invoke { argv: Vec::new() };
-    let call = "nix-shebang.lib.readWithoutStrict ./x.sh";
+    let call = "builtins.readFile ./x.sh";
     let written = NixHost.rewrite(src, &site, &invoke, Path::new("./x.sh"));
     assert_eq!(written, Ok(format!("{{ script = {call}; }}")));
     let load = LoadRef {
