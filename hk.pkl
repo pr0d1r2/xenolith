@@ -307,6 +307,29 @@ local all = (fast) {
     depends = List("hack-test")
     check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature --no-dev-deps check"
   }
+  // The two ratchets (`scripts:V28`, `scripts:C14`): each CALLS sherd
+  // rather than re-deriving its rule here, so the number and the rule that
+  // reads it live in one place. Both run the toolchain themselves --
+  // `cargo llvm-cov` for the floor, clippy without `-D` for the debt -- so
+  // they sit at the end of the cargo chain rather than beside it, where
+  // they would only wait on the build directory's lock.
+  //
+  // `fix` may move each number one way only: `--record` RAISES the
+  // coverage floor and LOWERS the debt ceilings, and refuses the other
+  // direction. A drop in coverage or a rise in debt is written into the
+  // file by hand, with its reason (`.coverage`, `.lint-debt`).
+  ["coverage"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "Cargo.lock", "tests/fixtures/**/*", ".coverage")
+    depends = List("hack-no-dev-deps")
+    check = "scripts/hk/run-tool.sh sherd coverage --check"
+    fix = "scripts/hk/run-tool.sh sherd coverage --record"
+  }
+  ["lint-debt"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "clippy.toml", ".lint-debt")
+    depends = List("coverage")
+    check = "scripts/hk/run-tool.sh sherd debt --check"
+    fix = "scripts/hk/run-tool.sh sherd debt --record"
+  }
   // The mirror rule is a property of the BRANCH, not of every commit on
   // it (`scripts/guard:B1`). TDD requires a RED test commit before the
   // script it covers (`scripts/guard:C11`), so between those two commits

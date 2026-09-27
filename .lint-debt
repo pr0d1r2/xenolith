@@ -1,0 +1,25 @@
+# Lint debt, ratcheted: both ratios may go DOWN, never up (`scripts:V28`,
+# `scripts:C14`). `sherd debt --check` runs clippy over the workspace
+# without `-D warnings` and compares what it counts with the rows below;
+# `sherd debt --record` lowers them and refuses to raise them.
+#
+#   density  clippy warnings per thousand lines of Rust
+#   shape    lines inside an over-long function, as a percent of the tree
+#
+# MEASURED 2026-09-27 at adoption (`scripts:T36`): 0 warnings and 0 excess
+# lines over 21688 lines of Rust. Zero because the `clippy` step already
+# runs with `-D warnings`, so no warning survives to be counted; the ratchet
+# is what keeps an `allow` or a relaxed step from turning that into debt.
+#
+# WHAT IS NOT MEASURED, stated rather than hidden: sherd's ratio reads the
+# `src/` tree only (its fixed directory set), so the crates under
+# `languages/` sit outside both the numerator and the denominator. They are
+# held by `clippy -D warnings` alone (`scripts:T36`).
+#
+# RESOLUTION, measured rather than assumed: sherd reads both ratios in
+# tenths, so at ~21.7k lines a density step is three warnings -- two new
+# ones read 0.0 and pass, five read 0.2 and fail (2026-09-27, a scratch
+# copy with `let_and_return` probes). Shape moves in steps of ~22 excess
+# lines. Below that, `clippy -D warnings` is the finer guard.
+density 0.0
+shape 0.0
