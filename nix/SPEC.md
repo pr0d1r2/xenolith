@@ -26,6 +26,7 @@ sib|docs|public project docs & notices
 
 - nix: `packages.<sys>.default` = xenolith; `overlays.default` ?; `checks` run cargo test + clippy + dogfood.
 - nix: `packages.<sys>.default.override { languages = [ "nix" "pkl" ]; }` → `buildNoDefaultFeatures` + `buildFeatures = lang-<l>` ∀ l; default `languages` = ∀ supported.
+- nix: `packages.<sys>.default` = `xnl` wrapped `--prefix PATH` ∀ runtime tool (V250); `passthru.tools` = {argv0 → drv} & `passthru.languages` of that build; supported names = `lang-*` features of root `Cargo.toml`.
 
 ## §V INVARIANTS
 
@@ -33,6 +34,8 @@ V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith`, `sher
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 V96: `packages.default` = `xnl` wrapped w/ PATH ⊇ ∀ confirmed (non-`?`) default check & fixer of compiled-in languages & hosts; `languages` override drops tools of excluded languages; dev-only inputs still excluded (V29).
+V250: runtime tool = argv0 of ∀ `checks()` & `fixers()` (host & guest) of a compiled-in language crate: nix `statix` `deadnix` `nixfmt`; shell `shellcheck` `shfmt` `checkbashisms` `zsh`; just `just`; xml `xmllint`; tcl `xenolith-tcl-syntax` (own drv from the tcl crate); pkl ∅. dev tool = devShell-only: Rust toolchain & `cargo-*`, llvm, git (discovery's, ⊥ a check: xnl exits 2 w/o it, the consumer's serves), hk, bats, repo-file linters, itok, microlith, sherd. tool in both = runtime. closure (`closureInfo` ≡ `nix path-info -r`) ∌ ∀ dev tool by store name. `--prefix` ∴ pinned tool wins (`.:C3`); ∅ tools → ⊥ PATH entry.
+V251: `checks`: `tools` = wrapped `xnl lint` on a generated fixture (∀ host & guest dialect) w/ PATH = stdenv + git + package → exit ≠ 2, ⊥ `status: error`, ∀ runtime tool ran; `subset-*` = override `[ "nix" ]`: `xnl langs` compiled-in ≡ {nix}, tools ≡ nix's, closure ∌ excluded languages' tools.
 V109: release ONLY via cargo-release (`release.toml`, `pre-release-hook` = full gate); version bump lands through a PR; tag, publish & push run from `main` (`cargo release hook` first ∵ `tag`/`publish`/`push` skip the hook); ⊥ release scripts.
 V110: CHANGELOG keeps `Unreleased` & a version LADDER — each minor = a stated guarantee, a patch sits off the ladder; ∀ user-visible change adds an `Unreleased` entry in its PR.
 V111: `cargo semver-checks` in the gate ∀ published crate vs last release tag; any break ⇒ minor bump in the same PR; lockstep version across the workspace (`src` C1).
@@ -49,10 +52,10 @@ V113: packaged content proven: `cargo package` ∀ crate & `cargo test` from the
 id|status|task|cites
 T1|x|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
 T26|x|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,`.:V19`
-T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,C6
+T38|.|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,V250,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
-T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,C8
-T99|.|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96
+T41|.|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset|V31,V251,C8
+T99|.|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96,V250,V251
 T108|.|`release.toml` for the workspace (lockstep, publish order api → languages → root) + runbook section|V109
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
