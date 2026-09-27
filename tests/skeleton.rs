@@ -32,20 +32,23 @@ fn binary_prints_the_same_version_the_library_reports() {
 }
 
 #[test]
-fn a_verb_whose_engine_has_not_landed_exits_two_and_says_so() {
+fn a_format_whose_writer_has_not_landed_exits_two_and_says_so() {
+    // `--format sarif` waits for `src/cli:T103`; every verb the parser
+    // knows reaches its engine now, so the request still refused is a
+    // format.
     let out = Command::new(XNL)
-        .args(["extract", "--relocate", "a.nix"])
+        .args(["check", "--format", "sarif"])
         .output()
         .unwrap_or_else(|e| panic!("running {XNL}: {e}"));
     assert_eq!(
         out.status.code(),
         Some(2),
-        "an unimplemented verb must exit 2, not pretend to succeed"
+        "an unimplemented format must exit 2, not pretend to succeed"
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("extract"),
-        "the refusal must name the verb asked for; got {stderr:?}"
+        stderr.contains("check") && stderr.contains("sarif"),
+        "the refusal must name the verb and format asked for; got {stderr:?}"
     );
 }
 
