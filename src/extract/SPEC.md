@@ -89,3 +89,4 @@ T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose lo
 id|date|cause|fix
 B1|2026-09-27|V270 site sought inside put-back span; just site opens @ recipe header ∴ just load ⊥ read back|⊥ such site → site whose body holds span
 B2|2026-09-27|read-back verdict = copy of `src/check`'s ∴ ⊥ line by line (`src/config:V240`)|`src/check` verdict itself
+B3|2026-09-27|V270 read-back refused ∀ inline touching bytes before load span; nix inline replaces `( … )` of an argument load ∴ ⊥ read back|site sought in span widened to ∀ bytes inline changed

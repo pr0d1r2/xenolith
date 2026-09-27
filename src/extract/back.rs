@@ -194,20 +194,16 @@ impl<'a> PutBack<'_, 'a> {
 }
 
 /// The one site of `after` -- `before` with the load inlined -- that
-/// sits where the load was: the bytes before the load untouched, and
-/// the site inside the span the inline wrote (a nix string in place of
-/// a `readFile`) -- or, when none is, the site whose BODY holds that
-/// span (a just recipe, whose site opens at its header, before the load
-/// line; `src/extract:B1`).
+/// sits where the load was: inside the span the inline wrote (a nix
+/// string in place of a `readFile`) -- or, when none is, the site whose
+/// BODY holds that span (a just recipe, whose site opens at its header,
+/// before the load line; `src/extract:B1`).
+///
+/// The span written is the load's, widened to every byte the inline
+/// changed: a host may replace what encloses the load too, as nix does
+/// the parentheses of a load passed as an argument (`src/extract:B3`).
 fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result<Site, String> {
-    let start = load.span.start;
-    if before.get(..start) != after.get(..start) {
-        return Err(format!(
-            "the {} host's inline changed the text before the load",
-            host.id()
-        ));
-    }
-    let end = (load.span.end + after.len()).saturating_sub(before.len());
+    let (start, end) = written(before, after, load);
     let sites = host
         .sites(after)
         .map_err(|e| format!("the host does not parse with the body put back: {e}"))?;
@@ -224,6 +220,24 @@ fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result
         (None, _) => Err("no site sits where the load was once its body is put back".to_owned()),
         (Some(_), Some(_)) => Err("more than one site sits where the load was".to_owned()),
     }
+}
+
+/// The byte span of `after` the inline of `load` wrote: from the first
+/// byte that differs from `before`, or the load's start if earlier, to
+/// the last, or the load's end as shifted, if later.
+fn written(before: &str, after: &str, load: &LoadRef) -> (usize, usize) {
+    let (b, a) = (before.as_bytes(), after.as_bytes());
+    let prefix = b.iter().zip(a).take_while(|(x, y)| x == y).count();
+    let room = b.len().min(a.len()) - prefix;
+    let suffix = b
+        .iter()
+        .rev()
+        .zip(a.iter().rev())
+        .take(room)
+        .take_while(|(x, y)| x == y)
+        .count();
+    let shifted = (load.span.end + a.len()).saturating_sub(b.len());
+    (prefix.min(load.span.start), (a.len() - suffix).max(shifted))
 }
 
 /// `back`'s site extracted again, to `path`, from the host with its body
