@@ -270,3 +270,41 @@ fn stdin_is_sql_unless_psql_was_given_a_command_file_or_listing() {
     assert!(!stdin("psql", &["--command", "'x'"]));
     assert!(!stdin("psql", &["-l"]));
 }
+
+#[test]
+fn tcl_interpreters_run_tcl_and_expect_is_its_dialect() {
+    for word in ["tclsh", "tclsh8.6", "/usr/bin/wish", "expect"] {
+        assert_eq!(named(word).guest, LangId::Tcl, "{word}");
+    }
+    assert_eq!(env(&named("tclsh8.6"), &[]), GuestEnv::default());
+    assert_eq!(env(&named("wish"), &[]), GuestEnv::default());
+    let expect = env(&named("expect"), &argv(&["-c", "'x'"]));
+    assert_eq!(expect.dialect.as_deref(), Some("expect"));
+    assert!(expect.options.is_empty());
+}
+
+#[test]
+fn only_expect_takes_a_c_program() {
+    assert_eq!(program("expect", &["-c", "'x'"]), Some(1));
+    assert_eq!(program("expect", &["-c", "'x'", "login.exp"]), Some(1));
+    assert_eq!(program("expect", &["-c", "'a'", "-c", "'b'"]), None);
+    assert_eq!(program("expect", &["login.exp", "-c", "'x'"]), None);
+    // tclsh has no `-c`: the argument is the script's own.
+    assert_eq!(program("tclsh", &["-c", "'x'"]), None);
+    assert_eq!(program("wish", &["-c", "'x'"]), None);
+}
+
+#[test]
+fn stdin_is_a_tcl_program_with_no_script_or_one_naming_stdin() {
+    for word in ["tclsh", "wish", "expect"] {
+        assert!(stdin(word, &[]), "{word}");
+        assert!(stdin(word, &["-", "'arg'"]), "{word}");
+        assert!(stdin(word, &["/dev/stdin", "'arg'"]), "{word}");
+        assert!(!stdin(word, &["script.tcl"]), "{word}");
+        assert!(!stdin(word, &["'script.tcl'"]), "{word}");
+    }
+    assert!(!stdin("tclsh", &["-c", "'x'"]));
+    assert!(!stdin("expect", &["-c", "'x'"]));
+    assert!(!stdin("expect", &["-f", "login.exp"]));
+    assert!(!stdin("tclsh", &["-encoding", "utf-8", "x.tcl"]));
+}

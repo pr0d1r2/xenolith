@@ -1,0 +1,11 @@
+# Tcl as a guest (`languages/shells/tcl:V197`): a heredoc fed to tclsh,
+# wish or expect given no script, `-` or `/dev/stdin` naming stdin, and
+# expect's `-c`. expect is tcl's dialect; tclsh has no `-c`. A heredoc
+# under `-c` is data.
+tclsh <<TCL | tcl | <<'TCL' | - | - | "puts [info patchlevel]\n"
+tclsh <<TCL | tcl | <<'TCL' | - | - | "puts [lindex $argv 0]\n"
+tclsh8.6 <<TCL | tcl | <<TCL | - | $HOME | "puts $HOME\n"
+wish <<TK | tcl | <<'TK' | - | - | "button .b -text hi\n"
+expect <<EXP | tcl | <<'EXP' | expect | - | "spawn ssh host\nexpect \"word:\"\nsend \"x\\r\"\n"
+expect -c | tcl | ' | expect | - | "spawn true; expect eof"
+expect -c | tcl | ' | expect | - | "exit 0"
