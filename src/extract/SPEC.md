@@ -26,7 +26,8 @@ sib|src/cli|verbs, flags, exit codes, rule ids, output formats, hk wiring
 - `[extract] depth` (default 5, ≥1): max nesting levels extracted in one run.
 - lib: `xenolith::extract(root, &Config, &Options) -> Result<Edit, ExtractError>` extracts exactly the `xenolith` sites `xenolith::check` flags (`src:V152`) in files ⊥ `[[exclude]]` \| `[extract] exclude`; `:line` w/ ⊥ such site → refused. `Edit` = per host: before, after, extracts, refusals, explain; `apply(root, &Edit)` = `--write`.
 - template vars: `{host_dir}` @ root = `""`; `{path}`/`{path_stem}` = extract path w/ \| sans ext as loaded (`invoke` only; in `path` → exit 2). load text = extract path relative to base (default host dir; `Host::runtime_base` ⊥ yet), `./`-led unless `../`.
-- refused until V4 provable: holes (`Guest::param` ⊥, `languages/api/src/holes:T76`), host `loads` \| `inline` ⊥, rule `companion` (T51: stub content unspecified), `strict = "enforce"`. extract ends `\n`.
+- holes: `holes::bind` (file's `[threshold.load]`) → `Host::rewrite_bound`, else refused w/ why & `hole_advice`. `invoke` argv[0] = prelude's interpreter iff same guest. `viable` = per-site run `xnl check` shares.
+- refused until V4 provable: host `loads` \| `inline` ⊥, rule `companion` (T51: stub content unspecified), `strict = "enforce"`. extract ends `\n`.
 - collision suffix (V47) = sink's last dotted segment, lowercased, ⊥ `[a-z0-9]` → `-`, appended to ∀ colliding stems; lock (V127) = OS advisory lock, text `pid start`, removed on release; `apply` re-reads hosts under it, changed → refused.
 - `[extract] inactive_rules` ∈ `ignore` \| `warn` (default) \| `error`: handling of `[[extract.rule]]` whose host or guest is compiled out | `[langs]`-disabled.
 
@@ -55,7 +56,7 @@ V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advi
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84-T85, T126 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84-T85, T126, T175 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T67, T101, T102 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 | M4 | CI languages -- yaml, dockerfile, just | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
@@ -76,6 +77,7 @@ T85|x|atomic writes & write order; test kills between extract & host write|V84
 T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
 T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
 T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
+T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src:B12`
 
 ## §B BUGS
 
