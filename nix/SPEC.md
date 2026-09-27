@@ -55,7 +55,7 @@ T26|x|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix p
 T38|x|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,V250,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T41|x|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset rides `.:T30` (README owner)|V31,V251,C8
-T99|.|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96,V250,V251
+T99|x|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96,V250,V251
 T108|.|`release.toml` for the workspace (lockstep, publish order api → languages → root) + runbook section|V109
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111

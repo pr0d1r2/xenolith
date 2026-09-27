@@ -45,6 +45,26 @@ let
   # other one is provably left out.
   subset = package.override { languages = [ "nix" ]; };
 
+  # The wrapped `xnl lint` over a fixture of every dialect, with only stdenv,
+  # git and the package on PATH, runs each of the build's runtime tools and
+  # errors on none (`nix:V96`, `nix:V251`), through `scripts/nix/tools.sh`.
+  # git is discovery's, as in `dogfood` (`nix:B1`): xnl asks it first and
+  # refuses when it cannot be spawned, and it is no linter (`nix:V250`).
+  toolsCheck =
+    name: drv:
+    pkgs.runCommand name {
+      nativeBuildInputs = [
+        drv
+        pkgs.git
+      ];
+    } "bash ${../scripts/nix/tools.sh} $out ${lib.escapeShellArgs (lib.attrNames drv.tools)}";
+
+  # What the subset must NOT carry: the tools of the languages it left out
+  # (`nix:V96`). By command name, so a tool two languages share stays.
+  excluded = lib.concatMap names (
+    lib.attrValues (removeAttrs package.tools (lib.attrNames subset.tools))
+  );
+
   # V31's refusals are EVAL errors, so they are proven at eval time:
   # `tryEval` catches the `throw`, and forcing `drvPath` forces the list.
   refused = languages: !(builtins.tryEval (package.override { inherit languages; }).drvPath).success;
@@ -115,4 +135,11 @@ in
       "cobol"
     ];
     pkgs.runCommand "xenolith-subset-refusals" { } "touch $out";
+
+  # `nix:T99`: every build finds its linters on the wrapper's PATH, and the
+  # subset's closure holds no tool of a language it left out -- nor any
+  # dev tool (`nix:V29`).
+  tools = toolsCheck "xenolith-tools" package;
+  subset-tools = toolsCheck "xenolith-subset-tools" subset;
+  subset-closure = closureCheck "xenolith-subset-closure" subset (devNames ++ excluded);
 }

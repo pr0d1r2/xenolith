@@ -4,13 +4,18 @@
 # its own to keep in step with the lock -- the lock IS the pin, and a
 # `cargoHash` beside it would be a second pin to forget.
 #
-# The closure holds rustPlatform's output and nothing from the dev shell:
-# itok, microlith, sherd and hk are not arguments here, so they cannot reach
-# it (`nix:C6`, `nix:V29`); `checks.closure` proves it (`nix:T38`).
+# The closure holds rustPlatform's output and the runtime tools, and no dev
+# tool: itok, microlith, sherd and hk are not arguments here, so they cannot
+# reach it (`nix:C6`, `nix:V29`); `checks.closure` proves it (`nix:T38`).
 #
 # `.override { languages = [ "nix" "pkl" ]; }` builds a subset
 # (`nix:C8`, `nix:V31`): only those `lang-*` features, so only those
 # grammars and sinks are in the binary.
+#
+# `xnl` is WRAPPED with the runtime tools of exactly those languages on
+# PATH (`nix:V96`, `nix:V250`): the linters their checks and fixers run,
+# so `xnl lint` from this package never stops at exit 2 for a tool the
+# package could have shipped, and a subset ships no tool it cannot call.
 { pkgs }:
 let
   inherit (pkgs) lib;
@@ -51,6 +56,44 @@ let
   );
   named = names: lib.concatStringsSep " " names;
 
+  # tcl's check is a binary of this repo's own tcl crate
+  # (`languages/shells/tcl:V198`), built on its own so it is a tool like
+  # any other: on the wrapper's PATH when tcl is compiled in, absent from
+  # the closure when it is not. Same source and lock as `xnl`, so the
+  # locked crates are fetched once for both.
+  tclSyntax = pkgs.rustPlatform.buildRustPackage {
+    pname = "xenolith-tcl-syntax";
+    inherit (manifest.workspace.package) version;
+    inherit src;
+    cargoLock.lockFile = ../Cargo.lock;
+    cargoBuildFlags = [
+      "--package"
+      "xenolith-lang-tcl"
+      "--bin"
+      "xenolith-tcl-syntax"
+    ];
+    doCheck = false;
+    meta.mainProgram = "xenolith-tcl-syntax";
+  };
+
+  # Per language, argv0 → the package that provides it (`nix/tools.nix`).
+  runtime = (import ./tools.nix { inherit pkgs; }).runtime // {
+    tcl.xenolith-tcl-syntax = tclSyntax;
+  };
+
+  # A supported language with no entry is an eval error, never a build
+  # that silently ships none of its tools: a new `lang-*` feature must say
+  # what it runs, even when that is `{ }` (`nix:V250`).
+  toolsOf =
+    chosen:
+    lib.foldl' (
+      acc: l:
+      acc
+      // (runtime.${l}
+        or (throw "xenolith: no runtime tool list for language ${l} in nix/tools.nix (nix:V250)")
+      )
+    ) { } chosen;
+
   # V31: an unknown name or an empty list is an EVAL error naming every
   # supported language -- never a silent drop, never a binary that claims
   # nothing. Sorted and deduplicated, so `[ "pkl" "nix" ]` and
@@ -73,6 +116,7 @@ let
     }:
     let
       chosen = choose languages;
+      tools = toolsOf chosen;
     in
     pkgs.rustPlatform.buildRustPackage {
       pname = manifest.package.name;
@@ -93,8 +137,21 @@ let
       # always does (`nix:C8`) -- to prove what CI already proved on `main`.
       doCheck = false;
 
+      # `--prefix`, so the pinned tool wins over whatever the host has
+      # (`.:C3`: same input, same verdict). A binary wrapper keeps bash out
+      # of the closure. A build with no tools (pkl alone) is not wrapped at
+      # all: an empty PATH entry means the working directory (`nix:V250`).
+      # One command, so this file passes its own `xnl check` (`nix:B2`).
+      nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+      postInstall = lib.optionalString (
+        tools != { }
+      ) "wrapProgram $out/bin/xnl --prefix PATH : ${lib.makeBinPath (lib.attrValues tools)}";
+
       # What this build carries, for the checks that prove it (`nix:V251`).
-      passthru.languages = chosen;
+      passthru = {
+        languages = chosen;
+        inherit tools;
+      };
 
       meta = {
         inherit (manifest.package) description;
