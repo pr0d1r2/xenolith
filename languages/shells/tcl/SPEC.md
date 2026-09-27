@@ -19,7 +19,9 @@ sib|languages/shells/bats|bats grammar (based-on shell), `@test` sinks, test-hos
 - host sinks (V196): `exec sh|bash|zsh|dash -c <word>` → shell; `exec <interp> << <word>` (Tcl's stdin-from-value redirection) → guest per interp; expect `spawn sh|bash -c <word>` → shell. `spawn` + `send` (interactive) ⊥ site; `open "\|sh -c …"` ?.
 - body: braced `{…}` word verbatim; `"…"` word w/ `$var` \| `[cmd]` → holes (`languages/api/src/holes:V40`) ?, until fixture.
 - guest: per V197; shell side = `languages/shells/shell:V139`, added by T200 ⊥ here.
-- host checks ? (V198).
+- host checks ? (V198). `loads`/`rewrite`/`inline` = `Unsupported` (⊥ load idiom here).
+- walk: script = top level, `[cmd]`, builtin bodies (`proc` `if` `while` `foreach` `catch` `try`), `namespace eval`; braced ARG of any other cmd = opaque data, ⊥ searched. grammar parses ∀ braces as script ∴ ERROR inside opaque braces ⊥ fails file, else `languages:V78`. measured 2026-09-27: grammar rejects valid `"$ "`, `a; b`, `set x [expr {…}]` → host-parse-error.
+- shebang claim read in-crate: `api` shebang table ⊥ tcl (widening it moves other hosts' guests).
 
 ## §R RESEARCH
 
@@ -41,7 +43,7 @@ V198: checks ? (unconfirmed until measured, as `languages/shells/bats:V136`): fl
 | M3 | publication -- just, xml, tcl | T199-T202 | host & guest tcl w/ fixtures, checks decided (`languages:V56`) |
 
 id|status|task|cites
-T199|.|scaffold `languages/shells/tcl` crate (vendored `tree-sitter-tcl`, `LangId` variant 1st per `languages/api:V33`): `claims` + V196 sinks; fixtures: `exec sh -c {a \| b}` flagged, `exec bash -c {ls}` ⊥ flagged, `exec python3 << $src` → python, `spawn sh -c` flagged, `spawn ssh` + `send` ⊥ site, `.exp` → dialect expect|V195,V196,R194,`tests:V14`,`tests:V15`
+T199|x|scaffold `languages/shells/tcl` crate (vendored `tree-sitter-tcl`, `LangId` variant 1st per `languages/api:V33`): `claims` + V196 sinks; fixtures: `exec sh -c {a \| b}` flagged, `exec bash -c {ls}` ⊥ flagged, `exec python3 << $src` → python, `spawn sh -c` flagged, `spawn ssh` + `send` ⊥ site, `.exp` → dialect expect|V195,V196,R194,`tests:V14`,`tests:V15`
 T200|.|shell side of V197: `tclsh`/`wish`/`expect` heredoc & `expect -c` as shell sinks → guest tcl; fixture = R193's shape (`tclsh /dev/stdin "$f" <<'TCL'`)|V197,`languages/shells/shell:V139`,`languages:V81`
 T201|.|MEASURE the 3 check candidates (V198), record counts & shapes, promote the winner & drop the `?`|V198,`src/lint:V8`
 T202|.|lookalike tcl~shell ? (`puts hi`, `set x 1` read as bash commands): measure; if confirmed add kinship edge + fixture pair|`languages:V131`,`languages/api:V33`
