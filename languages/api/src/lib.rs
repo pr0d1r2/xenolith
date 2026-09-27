@@ -581,4 +581,55 @@ pub trait Guest {
 
     /// Default fixers for the same.
     fn fixers(&self, env: &GuestEnv) -> Vec<LintCmd>;
+
+    /// Every variable name `body` reads or assigns, sorted and
+    /// deduplicated -- the names a param must not take
+    /// (`languages/api/src/holes:V40`). `body` holds
+    /// [`holes::marker`] words where the holes were.
+    ///
+    /// The default is [`Error::Unsupported`], never an empty list
+    /// (`languages/api:V37`), which would read as "no name can clash".
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Parse`] when `body` does not parse, and
+    /// [`Error::Unsupported`] when this guest takes no params.
+    fn vars(&self, body: &str) -> Result<Vec<String>> {
+        let _ = body;
+        Err(Error::unsupported(self.id(), "vars"))
+    }
+
+    /// `body` with each param's marker replaced by a reference to that env
+    /// param, in the form its context needs -- shell `"$NAME"` as a word,
+    /// `${NAME}` inside `"…"` -- or [`holes::Bound::Unexpanded`] naming
+    /// the first param whose marker sits where this guest would not
+    /// expand a reference (`languages/api/src/holes:V40`).
+    ///
+    /// The default is [`Error::Unsupported`]: holes of such a guest stay
+    /// a judgement.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Parse`] when `body` does not parse, and
+    /// [`Error::Unsupported`] when this guest takes no params.
+    fn params(&self, body: &str, params: &[holes::Param]) -> Result<holes::Bound> {
+        let _ = (body, params);
+        Err(Error::unsupported(self.id(), "params"))
+    }
+
+    /// The references in `body` to any of `names`, sorted by span, each
+    /// span covering what [`Guest::params`] wrote -- `"$NAME"` whole --
+    /// so the inverse direction can put the hole back
+    /// (`languages/api/src/lens:V34` (e)).
+    ///
+    /// The default is [`Error::Unsupported`], never an empty list.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::Parse`] when `body` does not parse, and
+    /// [`Error::Unsupported`] when this guest takes no params.
+    fn param_refs(&self, body: &str, names: &[String]) -> Result<Vec<(Span, String)>> {
+        let _ = (body, names);
+        Err(Error::unsupported(self.id(), "param_refs"))
+    }
 }
