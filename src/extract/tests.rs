@@ -333,6 +333,15 @@ impl Guest for Sh {
 const HOSTS: &[&dyn Host] = &[&SOUND, &NO_LOADS, &NO_REWRITE, &LOSSY, &STICKY, &PARAMS];
 const GUESTS: &[&dyn Guest] = &[&Sh];
 
+/// The toy hosts and the `sh` guest, for the engines that read loads
+/// back (`src/extract:V270`) and for `src/graph`'s judgement of them.
+pub(crate) fn toys() -> Langs<'static> {
+    Langs {
+        hosts: HOSTS,
+        guests: GUESTS,
+    }
+}
+
 // ---------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------

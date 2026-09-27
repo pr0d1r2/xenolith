@@ -122,6 +122,7 @@ fn no_arguments_prints_the_usage_on_stderr() {
         "langs",
         "migrate",
         "--write",
+        "--relocate",
         "--format",
         "--verbose",
         "--strict-hosts",
@@ -160,31 +161,38 @@ fn flags_are_parsed_before_a_verb_is_refused() {
 }
 
 // ---------------------------------------------------------------------
-// verbs whose engines have not landed
+// relocate reaches its engine
 // ---------------------------------------------------------------------
 
 #[test]
-fn every_scanning_verb_is_refused_naming_the_task_that_brings_it() {
-    // Refusing matters more than it looks: `xnl check` exiting 0 having
-    // scanned nothing is, in a gate, a clean tree.
-    for (args, verb, task) in [
+fn relocate_is_routed_to_its_engine_not_refused() {
+    // `src/extract:T101`: the arm runs its engine. A named path that does
+    // not exist is the engine's refusal (`src/discover:V57`), naming the
+    // verb and the path.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    for (args, verb) in [
         (
-            &["extract", "--relocate", "a.nix:3"][..],
+            &["extract", "--relocate", "nope.nix:3"][..],
             "extract --relocate",
-            "src/extract:T101",
         ),
         (
-            &["extract", "--relocate", "--write", "a.nix"][..],
+            &["extract", "--relocate", "--write", "nope.nix"][..],
             "extract --relocate",
-            "src/extract:T101",
         ),
     ] {
-        let err = refused(args);
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let code = super::run_in(&root, args, &mut out, &mut err);
+        let err = String::from_utf8_lossy(&err);
+        assert_eq!(code, EXIT_USAGE, "{args:?}: {err}");
         assert!(
-            err.starts_with(&format!("xnl: `{verb}` is not implemented yet")),
+            err.starts_with(&format!("xnl: {verb}: ")),
             "{args:?}: {err:?}"
         );
-        assert!(err.contains(task), "{args:?} should name {task}: {err:?}");
+        assert!(err.contains("nope."), "{args:?}: {err:?}");
+        assert!(!err.contains("not implemented"), "{args:?}: {err:?}");
+        assert!(out.is_empty());
     }
 }
 
@@ -277,11 +285,11 @@ fn sarif_is_refused_naming_its_own_task() {
 
 #[test]
 fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
-    // A verb still refused, so nothing scans the tree the tests run in.
+    // A format still refused, so nothing scans the tree the tests run in.
     let args = vec![
-        "extract".to_owned(),
-        "--relocate".to_owned(),
-        "a.nix".to_owned(),
+        "check".to_owned(),
+        "--format".to_owned(),
+        "sarif".to_owned(),
     ];
     let mut out = Vec::new();
     assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);

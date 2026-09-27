@@ -3,7 +3,7 @@ use std::path::Path;
 
 use super::{apply, apply_with};
 use crate::discover::{Sandbox, write as put};
-use crate::extract::{Edit, HostEdit, NewFile};
+use crate::extract::{Edit, Gone, HostEdit, NewFile};
 
 fn new_file(path: &str, text: &str, executable: bool, present: bool) -> NewFile {
     NewFile {
@@ -21,6 +21,7 @@ fn edit(extracts: Vec<NewFile>) -> Edit {
             before: "old\n".to_owned(),
             after: "new\n".to_owned(),
             extracts,
+            removes: Vec::new(),
         }],
         ..Edit::default()
     }
@@ -190,4 +191,43 @@ fn a_host_changed_since_the_plan_is_refused_and_nothing_is_written() {
     assert!(err.contains("changed"), "{err}");
     assert!(!root.join("h/x.sh").exists());
     assert_eq!(read(&root, "h.toy"), "someone else's edit\n");
+}
+
+#[test]
+fn a_removed_extract_goes_last_and_a_kill_before_it_leaves_an_orphan() {
+    // src/extract:V99, src/extract:V101: the old file goes only once the
+    // host no longer loads it, so a run stopped short leaves an orphan
+    // `xnl graph` reports, never a dangling load.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "h.toy", "old\n");
+    put(&root, "old/x.sh", "x\n");
+    let mut plan = edit(vec![new_file("h/x.sh", "x\n", true, false)]);
+    for host in &mut plan.hosts {
+        host.removes = vec![Gone {
+            path: "old/x.sh".to_owned(),
+            text: "x\n".to_owned(),
+            to: Some("h/x.sh".to_owned()),
+        }];
+    }
+    let mut killed = |path: &str| {
+        if path == "old/x.sh" {
+            Err(std::io::Error::other("killed"))
+        } else {
+            Ok(())
+        }
+    };
+    let err = apply_with(&root, &plan, &mut killed)
+        .err()
+        .unwrap_or_default();
+    assert!(err.contains("killed"), "{err}");
+    assert_eq!(read(&root, "h.toy"), "new\n");
+    assert!(
+        root.join("old/x.sh").exists(),
+        "left for graph to call an orphan"
+    );
+    put(&root, "h.toy", "old\n");
+    let written = apply(&root, &plan).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(written, ["h/x.sh", "h.toy", "old/x.sh"]);
+    assert!(!root.join("old/x.sh").exists());
 }
