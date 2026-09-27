@@ -384,6 +384,38 @@ pub trait Host {
     /// [`Error::Unsupported`] when this host cannot express the load.
     fn rewrite(&self, src: &str, site: &Site, invoke: &Invoke, path: &Path) -> Result<String>;
 
+    /// [`Host::rewrite`] for a site whose holes [`holes::bind`] made
+    /// `params`: the host with a load that passes each hole, and the body
+    /// the extract holds, given as `body` (bind's) and possibly rewritten
+    /// into this host's own form (`languages/api/src/lens` §I).
+    ///
+    /// The default carries no holes: with no params it is `rewrite` and
+    /// `body` unchanged, and with any it is [`Error::Unsupported`]
+    /// (`languages/api:V37`) -- a load that dropped a hole would run
+    /// the extract with nothing where the host's value was.
+    ///
+    /// # Errors
+    ///
+    /// Whatever `rewrite` fails with, and [`Error::Unsupported`] for
+    /// params this host cannot pass.
+    fn rewrite_bound(
+        &self,
+        src: &str,
+        site: &Site,
+        invoke: &Invoke,
+        path: &Path,
+        body: &str,
+        params: &[holes::Param],
+    ) -> Result<lens::Rewrite> {
+        if !params.is_empty() {
+            return Err(Error::unsupported(self.id(), "rewrite_bound"));
+        }
+        Ok(lens::Rewrite {
+            src: self.rewrite(src, site, invoke, path)?,
+            body: body.to_owned(),
+        })
+    }
+
     /// The inverse: a load replaced by the body it points at.
     ///
     /// # Errors

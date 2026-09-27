@@ -9,8 +9,8 @@
 //! stays host syntax, in the host.
 //!
 //! [`bind`] runs the steps in order. Its parts are public for a host that
-//! writes the body its own way -- nix `replaceVars` wants `@NAME@`
-//! (`languages/nix:V54`) -- and so needs the holes and names without the
+//! writes the body its own way -- nix writes `__NAME__`
+//! (`languages/nix:V174`) -- and so needs the holes and names without the
 //! guest's references.
 
 use std::fmt;

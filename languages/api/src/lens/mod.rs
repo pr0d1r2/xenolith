@@ -7,6 +7,22 @@
 
 use crate::{Delim, Host};
 
+/// What [`Host::rewrite_bound`] made of one site: the host with the
+/// site's load in its place, and the body its extract holds
+/// (`languages/api/src/lens` §I).
+///
+/// Two values rather than one, because with holes the HOST decides the
+/// body's form: the guest's env references by default, `__NAME__` for a
+/// nix load that substitutes text (`languages/nix:V174`). The engine
+/// writes the extract from this body, never from its own guess.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Rewrite {
+    /// The host source, the site replaced by its load.
+    pub src: String,
+    /// The body the extract holds, each hole in the form the load fills.
+    pub body: String,
+}
+
 /// The escape law (`languages/api/src/lens:V39`) over one fixture: `raw`
 /// is text as it sits between the delimiters of `delim` in a host file.
 ///
