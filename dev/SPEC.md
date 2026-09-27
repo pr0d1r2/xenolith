@@ -56,7 +56,7 @@ V347: `docs/THIRD-PARTY-NOTICES.md` = generated output only (`docs:V108`): ∀ t
 | M3 | publication | T340-T342 | README badges & langs block and the notices are generated & gated (`.:T32`) |
 
 id|status|task|cites
-T340|.|`xenolith-dev`: workspace member, lib + shim, `readme` badges & langs blocks from owners, `--check`, input selection; unit + e2e tests on a fixture repository|V340,V341,V342,V343,V344,V345,V346
+T340|x|`xenolith-dev`: workspace member, lib + shim, `readme` badges & langs blocks from owners, `--check`, input selection; unit + e2e tests on a fixture repository|V340,V341,V342,V343,V344,V345,V346
 T341|.|`xenolith-dev notices`: `cargo metadata` + vendored `UPSTREAM` + `nix eval .#default.toolLicenses` → `docs/THIRD-PARTY-NOTICES.md`, `--check` drift|V347,`docs:V108`,`docs:T106`
 T342|.|hk: scoped `dev-generated` step in `fast`, unscoped `dev-generated-full` in `all`, both `depends = test`, `fix` regenerates|V345,`scripts:V122`
 
