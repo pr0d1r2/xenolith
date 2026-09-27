@@ -59,3 +59,4 @@ T125|x|timeout per check/fixer + fixture: a sleeping tool errors at the limit|V1
 
 id|date|cause|fix
 B1|2026-09-27|file host-claimed ∧ extract, same lang → `Host::checks` & `Guest::checks` both ran ∴ `*.tcl` → `xenolith-tcl-syntax` ×2; `*.sh` → shellcheck ×2 (host's ⊥ `--shell`) & `shfmt --diff` ×2; zsh-shebang file → host's shellcheck on zsh ⊥ reads|§I targets: same lang → extract only; other-lang host & `--sites` unchanged
+B2|2026-09-27|timeout & site tests stubbed tools as `/bin/sleep`, `/bin/cat`: on macOS & in `cargo test`, but ⊥ in the Linux nix build sandbox (only `/bin/sh`) ∴ `checks.test` failed 3 tests on Linux CI|stubs name tools by the test process's own `PATH` (`on_path`)

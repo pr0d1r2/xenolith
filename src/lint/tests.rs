@@ -36,6 +36,23 @@ pub(super) fn stub(dir: &Path, name: &str, body: &str) {
         .unwrap_or_else(|e| panic!("chmod {}: {e}", path.display()));
 }
 
+/// The absolute path of `name` on the TEST process's `PATH` (`src/lint:B2`).
+/// A stub runs under the stub dir alone, so it names tools absolutely --
+/// and `/bin/<tool>` exists on macOS but not in the Linux nix build
+/// sandbox, which has only `/bin/sh`. The test's own `PATH` always does.
+pub(super) fn on_path(name: &str) -> String {
+    std::env::var_os("PATH")
+        .and_then(|p| {
+            std::env::split_paths(&p)
+                .map(|d| d.join(name))
+                .find(|c| c.is_file())
+        })
+        .map_or_else(
+            || panic!("`{name}` is not on the test's PATH"),
+            |p| p.display().to_string(),
+        )
+}
+
 fn cmd(argv: &[&str]) -> LintCmd {
     LintCmd {
         argv: argv.iter().map(|a| (*a).to_owned()).collect(),
@@ -811,7 +828,7 @@ fn a_check_past_the_timeout_is_an_error_and_the_rest_still_run() {
     // `src/lint:V126`, the task's fixture: a sleeping tool errors at the
     // limit, exit 2, naming the tool and the limit.
     let fx = Fixture::all_pass();
-    fx.tool("alpha", "exec /bin/sleep 30");
+    fx.tool("alpha", &format!("exec {} 30", on_path("sleep")));
     fx.file("a.sh", "echo hi\n");
     let config = parsed("version = 1\n[lint]\ntimeout = 1\n");
     let started = Instant::now();
