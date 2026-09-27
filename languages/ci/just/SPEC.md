@@ -29,6 +29,7 @@ sib|languages/ci/dockerfile|Dockerfile parser, `RUN` sinks, placement
 
 id|topic|finding|src
 R178|fleet 2026-09-27|34 repos / 188 justfiles; 19 w/ shebang recipes; 1 w/ `set shell`. fleet hook (xnl replaces it): files named exactly `justfile`, EVERY body line ! match an allowlist — `just --list`, `bash scripts/…`, `bats tests/…`, `expect tests/…`, `ssh -t u@h …` ∴ fleet extracts already load as `bash scripts/<path>`|read-only fleet survey, counts only (`scripts/guard` C17)
+R207|V181 delta 2026-09-27|xnl vs the fleet hook, measured w/ `xnl check`: LOOSER — 1 simple command off the allowlist passes (`cargo build`, `rm -rf dist`), so does `#!` + 1 command (shebang ⊥ allowlisted there); STRICTER — ≥2 lines ALL allowlisted (`bash scripts/lint.sh` + `bats tests/unit`) flagged `sequence`, hook passes; WIDER — claims `Justfile`, `.justfile`, `*.just` (V58), hook `justfile` only. `[threshold.shell] allow` relaxes every shell site alike ∴ fleet parity waits on T185|fixture `pos-fleet-delta` (sites, rewrite), e2e `xnl check`
 
 ## §V INVARIANTS
 

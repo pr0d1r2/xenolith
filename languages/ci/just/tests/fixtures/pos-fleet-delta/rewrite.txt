@@ -1,0 +1,4 @@
+# The flagged recipe extracts mechanically: its lines already load scripts.
+build | ok | sh ./scripts/just/build.sh | "cargo build --release"
+check | ok | sh ./scripts/just/check.sh | "bash scripts/lint.sh\nbats tests/unit"
+hello | refused | shebang recipe
