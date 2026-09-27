@@ -6,6 +6,9 @@ an embed it misses, an extraction that changes behaviour. A minimal
 reproducing file is worth more than a description of one, and it becomes a
 fixture once the fix lands.
 
+A security problem is the exception: report it privately, as
+[`SECURITY.md`](SECURITY.md) describes, not in a public issue.
+
 Before a larger change, open an issue first: the spec decides what the tool
 does, and a patch against a rule the spec does not hold yet starts with a
 spec change.

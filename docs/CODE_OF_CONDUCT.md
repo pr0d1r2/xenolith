@@ -13,8 +13,8 @@ any other space the project runs — and what happens when that is not met.
 - Say plainly when you were wrong, and accept it gracefully when someone
   else says so.
 - Keep private things private: other people's details, and anything a
-  reporter asked to keep out of public view (see the security policy for
-  vulnerabilities).
+  reporter asked to keep out of public view (vulnerabilities go through
+  [`SECURITY.md`](SECURITY.md)).
 - Respect a "no". A declined feature or a closed thread is not an invitation
   to reopen it somewhere else.
 

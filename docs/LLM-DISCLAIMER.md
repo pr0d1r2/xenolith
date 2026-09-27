@@ -59,3 +59,7 @@ The maintainer named in [`LICENSE`](../LICENSE) is responsible for this code,
 including the parts a model wrote and the mistakes nobody caught. "A model
 wrote it" explains where the code came from; it does not move
 responsibility anywhere else.
+
+Bug reports are welcome, and unflattering ones are the most useful: see
+[`CONTRIBUTING.md`](CONTRIBUTING.md), or [`SECURITY.md`](SECURITY.md) for
+anything that should not be public.
