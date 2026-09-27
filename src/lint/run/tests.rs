@@ -173,7 +173,11 @@ fn a_tool_past_its_limit_is_killed_and_is_an_error_naming_it_and_the_limit() {
     // `src/lint:V126`: a gate that hangs is bypassed next commit.
     let sandbox = Sandbox::new();
     let bin = sandbox.plain("bin");
-    stub(&bin, "sleeper", "exec /bin/sleep 30");
+    stub(
+        &bin,
+        "sleeper",
+        &format!("exec {} 30", crate::lint::tests::on_path("sleep")),
+    );
     let started = Instant::now();
     let ran = run(
         sandbox.path(),

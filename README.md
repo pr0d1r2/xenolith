@@ -406,10 +406,10 @@ a language can be added without touching the engines
 
 ## Status
 
-**Pre-release.** Nothing is published yet — no crates.io release, no
-tagged version, and the GitHub repository is not public until the first
-release. What this page describes is what the tree builds today; anything
-planned is marked with the spec task that will deliver it.
+**Public, not yet released.** The source is open on GitHub; there is no
+crates.io release and no tagged version yet — install from the flake or
+from a checkout. What this page describes is what the tree builds today;
+anything planned is marked with the spec task that will deliver it.
 
 `0.1.0` is milestone M3 of [`SPEC.md`](SPEC.md): the six languages above,
 the public doc set, the release machinery ([`release.toml`](release.toml))

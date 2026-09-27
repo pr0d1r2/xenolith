@@ -403,9 +403,13 @@ fn each_check_runs_on_the_site_and_is_reported_as_a_site_of_the_host() {
     stub(
         &fx.bin,
         "sc",
-        "/bin/cat \"$1\" > seen\necho \"$1\" > seen-path\n\
+        &format!(
+            "{} {}",
+            crate::lint::tests::on_path("cat"),
+            "\"$1\" > seen\necho \"$1\" > seen-path\n\
          echo '[{\"line\":3,\"column\":6,\"level\":\"info\",\"code\":2086,\
-         \"message\":\"quote\"}]'\nexit 1",
+         \"message\":\"quote\"}]'\nexit 1"
+        ),
     );
     stub(&fx.bin, "fmtck", "echo \"bad $1\"\nexit 1");
     write(&fx.root, "a.hx", "top\nx = [echo $a]\n");
