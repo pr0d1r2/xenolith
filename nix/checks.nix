@@ -32,6 +32,22 @@ let
       "bash ${../scripts/nix/closure.sh} ${
         pkgs.closureInfo { rootPaths = [ drv ]; }
       }/store-paths $out ${lib.escapeShellArgs forbidden}";
+
+  # `xnl langs` of a build lists exactly its languages as compiled in
+  # (`nix:V31`), through `scripts/nix/langs.sh`.
+  langsCheck =
+    name: drv:
+    pkgs.runCommand name {
+      nativeBuildInputs = [ drv ];
+    } "bash ${../scripts/nix/langs.sh} $out ${lib.escapeShellArgs drv.languages}";
+
+  # The consumer's subset (`nix:C8`, `nix:T41`): one language, so every
+  # other one is provably left out.
+  subset = package.override { languages = [ "nix" ]; };
+
+  # V31's refusals are EVAL errors, so they are proven at eval time:
+  # `tryEval` catches the `throw`, and forcing `drvPath` forces the list.
+  refused = languages: !(builtins.tryEval (package.override { inherit languages; }).drvPath).success;
 in
 {
   # The package itself, so `nix flake check` BUILDS `packages.default`
@@ -83,4 +99,20 @@ in
   # `nix:V250`) -- the toolchain it was built with, the gate's runner and
   # linters, the spec tools.
   closure = closureCheck "xenolith-closure" package devNames;
+
+  # `nix:T41`: the default build compiles in every supported language, the
+  # `[ "nix" ]` override exactly nix (`nix:V31`, `nix:V251`).
+  langs = langsCheck "xenolith-langs" package;
+  subset-langs = langsCheck "xenolith-subset-langs" subset;
+
+  # An empty list and an unknown name, alone or beside a good one, are
+  # refused rather than built (`nix:V31`).
+  subset-refusals =
+    assert refused [ ];
+    assert refused [ "cobol" ];
+    assert refused [
+      "nix"
+      "cobol"
+    ];
+    pkgs.runCommand "xenolith-subset-refusals" { } "touch $out";
 }
