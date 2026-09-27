@@ -16,12 +16,15 @@
 //!
 //! What `rewrite` refuses, it refuses by name:
 //!
-//! - holes: `replaceVars` and friends are advice (`languages/nix:V54`),
-//!   and a `${…}` copied into a shell file is shell, not nix;
+//! - holes, in `rewrite`: a `${…}` copied into a shell file is shell, not
+//!   nix. `rewrite_bound` takes them, with the params bind named, into a
+//!   `replaceStrings` load (`languages/nix:V174`, `crate::bound`);
 //! - a systemd exec line: its load is `toShellScript`
 //!   (`languages/nix:V69`), which is `languages/nix:T71`;
 //! - a guest other than shell: `readWithoutStrict` and `loads` both
 //!   speak shell extracts only;
+//! - a `"…"` string holding a line break: `inline` writes that body back
+//!   as `''…''`, and the host would not come back as it was;
 //! - under `readWithoutStrict`, a body whose first line is
 //!   `set -euo pipefail`: nix-shebang's `stripStrict` drops that line
 //!   under a shebang whether the prelude wrote it or the body did, and
@@ -36,9 +39,11 @@
 use std::path::Path;
 
 use rnix::{SyntaxKind, SyntaxNode};
+use xenolith_lang_api::holes::Param;
+use xenolith_lang_api::lens::Rewrite;
 use xenolith_lang_api::{DelimKind, Error, LangId, LoadRef, Result, Site, Span};
 
-use crate::{escape, loads, parse, scope, sinks, span, unescape};
+use crate::{bound, escape, loads, parse, scope, sinks, span, unescape};
 
 #[cfg(test)]
 mod tests;
@@ -69,8 +74,57 @@ const fn refuse(operation: &'static str) -> Error {
 /// [`Error::Unsupported`] for every refusal in the module doc.
 pub(crate) fn rewrite(src: &str, site: &Site, path: &Path) -> Result<String> {
     let root = parse(src)?;
-    let (string, sink) = root
-        .descendants()
+    let (string, sink) = find(&root, site)?;
+    if !site.holes.is_empty() {
+        return Err(refuse("rewrite of a string with holes"));
+    }
+    shell_site(site, sink)?;
+    let raw = site.delim.body.of(src).unwrap_or_default();
+    let body = unescape::unescape(&site.delim.kind, raw)?;
+    one_line(site, &body)?;
+    let load = v53_load(&string, &body, path)?;
+    place(src, &string, &load, path)
+}
+
+/// [`rewrite`] for a site whose holes became `params`
+/// (`languages/nix:V174`): the V53 load goes inside
+/// `builtins.replaceStrings`, and the extract holds `__NAME__` wherever a
+/// hole was ([`bound`]). With no params it IS [`rewrite`], and `body`
+/// passes through.
+///
+/// # Errors
+///
+/// As [`rewrite`], and [`Error::Unsupported`] for params that are not
+/// the site's holes or a body `replaceStrings` would not give back.
+pub(crate) fn rewrite_bound(
+    src: &str,
+    site: &Site,
+    path: &Path,
+    body: &str,
+    params: &[Param],
+) -> Result<Rewrite> {
+    if params.is_empty() {
+        return Ok(Rewrite {
+            src: rewrite(src, site, path)?,
+            body: body.to_owned(),
+        });
+    }
+    let root = parse(src)?;
+    let (string, sink) = find(&root, site)?;
+    shell_site(site, sink)?;
+    let (body, pairs) = bound::bind(src, site, params)?;
+    one_line(site, &body)?;
+    let load = v53_load(&string, &body, path)?;
+    let call = bound::call(&pairs, &format!("({load})"));
+    Ok(Rewrite {
+        src: place(src, &string, &call, path)?,
+        body,
+    })
+}
+
+/// The string node of `site` in `root`, and its sink.
+fn find(root: &SyntaxNode, site: &Site) -> Result<(SyntaxNode, sinks::Sink)> {
+    root.descendants()
         .filter(|node| node.kind() == SyntaxKind::NODE_STRING)
         .filter(|node| {
             span(node.text_range()) == Span::new(site.delim.open.start, site.delim.close.end)
@@ -85,19 +139,36 @@ pub(crate) fn rewrite(src: &str, site: &Site, path: &Path) -> Result<String> {
                 LangId::Nix,
                 format!("no site `{}` at bytes {at:?}", site.sink),
             )
-        })?;
-    if !site.holes.is_empty() {
-        return Err(refuse("rewrite of a string with holes"));
+        })
+}
+
+/// Refuses a `"…"` body holding a line break: `inline` writes it back as
+/// `''…''`, so the host would not come back as it was
+/// (`languages/api/src/lens:V34` (a)).
+fn one_line(site: &Site, body: &str) -> Result<()> {
+    if site.delim.kind == DelimKind::NixString && body.contains('\n') {
+        return Err(refuse("rewrite of a `\"…\"` string holding a line break"));
     }
+    Ok(())
+}
+
+/// Refuses the sites no V53 load stands in for: an exec line, a guest
+/// other than shell.
+fn shell_site(site: &Site, sink: sinks::Sink) -> Result<()> {
     if matches!(sink, sinks::Sink::ExecStart) {
         return Err(refuse("rewrite of a systemd exec line"));
     }
     if site.guest != LangId::Shell {
         return Err(refuse("rewrite of a guest other than shell"));
     }
-    let raw = site.delim.body.of(src).unwrap_or_default();
-    let body = unescape::unescape(&site.delim.kind, raw)?;
-    let function = match scope::nix_shebang(&string) {
+    Ok(())
+}
+
+/// The V53 load of `path` for the site at `string` whose extract holds
+/// `body`: `readWithoutStrict` through the name scope proves, else
+/// `readFile`.
+fn v53_load(string: &SyntaxNode, body: &str, path: &Path) -> Result<String> {
+    let function = match scope::nix_shebang(string) {
         Some(nix_shebang) => {
             if body.split('\n').next() == Some(STRICT) {
                 return Err(refuse("rewrite of a body led by `set -euo pipefail`"));
@@ -107,14 +178,25 @@ pub(crate) fn rewrite(src: &str, site: &Site, path: &Path) -> Result<String> {
         None => READ_FILE.to_owned(),
     };
     let literal = path_literal(path).ok_or(refuse("rewrite to a path nix cannot load"))?;
-    let call = if needs_parens(&string) {
-        format!("({function} {literal})")
+    Ok(format!("{function} {literal}"))
+}
+
+/// `src` with `string` replaced by `call`, parenthesised where an
+/// argument goes, and checked: `loads` must read back a load of `path`
+/// spanning exactly `call`.
+fn place(src: &str, string: &SyntaxNode, call: &str, path: &Path) -> Result<String> {
+    let text = if needs_parens(string) {
+        format!("({call})")
     } else {
-        format!("{function} {literal}")
+        call.to_owned()
     };
-    let out = splice(src, span(string.text_range()), &call)?;
+    let out = splice(src, span(string.text_range()), &text)?;
+    let literal = path_literal(path).ok_or(refuse("rewrite to a path nix cannot load"))?;
     let back = loads::loads(&parse(&out)?);
-    if !back.iter().any(|load| load.path == Path::new(&literal)) {
+    if !back
+        .iter()
+        .any(|load| load.path == Path::new(&literal) && load.span.of(&out) == Some(call))
+    {
         return Err(refuse("rewrite to a path nix cannot load"));
     }
     Ok(out)
@@ -144,6 +226,9 @@ pub(crate) fn inline(src: &str, load: &LoadRef, body: &str) -> Result<String> {
         .descendants()
         .find(|node| node.kind() == SyntaxKind::NODE_APPLY && span(node.text_range()) == load.span)
         .ok_or_else(missing)?;
+    // A `replaceStrings` load puts its holes back where the body holds
+    // their patterns (`languages/nix:V174`).
+    let pairs = bound::parts(&apply).map(|(pairs, _)| pairs);
     let target = match apply.parent() {
         Some(paren) if paren.kind() == SyntaxKind::NODE_PAREN && needs_parens(&paren) => paren,
         _ => apply,
@@ -157,13 +242,28 @@ pub(crate) fn inline(src: &str, load: &LoadRef, body: &str) -> Result<String> {
         let raw = escape::double_quoted(body);
         (DelimKind::NixString, format!("\"{raw}\""))
     };
+    let Some(pairs) = pairs else {
+        let out = splice(src, at, &literal)?;
+        if read_back(&out, at.start, &kind)? != body {
+            return Err(Error::parse(
+                LangId::Nix,
+                "the inlined string would not read back as the body",
+            ));
+        }
+        return Ok(out);
+    };
+    // The escaped body still spells each pattern as it was: `escape`
+    // never touches `@`, letters, digits or `_`.
+    let (patterns, holes): (Vec<String>, Vec<String>) = pairs.iter().cloned().unzip();
+    let literal = bound::replace_strings(&literal, &patterns, &holes);
     let out = splice(src, at, &literal)?;
-    if read_back(&out, at.start, &kind)? != body {
-        return Err(Error::parse(
-            LangId::Nix,
-            "the inlined string would not read back as the body",
-        ));
-    }
+    let string = parse(&out)?
+        .descendants()
+        .find(|node| {
+            node.kind() == SyntaxKind::NODE_STRING && span(node.text_range()).start == at.start
+        })
+        .ok_or_else(|| Error::parse(LangId::Nix, "the inlined string is not one string"))?;
+    bound::read_back(&out, &string, &pairs, body)?;
     Ok(out)
 }
 

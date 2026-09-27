@@ -1,6 +1,8 @@
 //! The loads an extraction leaves in a nix file (`languages/nix:V53`):
 //! `nix-shebang.lib.readWithoutStrict ./x.sh` where nix-shebang is in
-//! scope, `builtins.readFile ./x.sh` everywhere else.
+//! scope, `builtins.readFile ./x.sh` everywhere else -- and, for a site with
+//! holes, either one inside the `builtins.replaceStrings` call that puts
+//! them back (`languages/nix:V174`), which is then the load's span.
 //!
 //! Read off the tree, never the text (`languages:V2`): a call in a
 //! comment is no call, and a path is the grammar's path node. Anywhere
@@ -15,7 +17,7 @@ use std::path::PathBuf;
 use rnix::{SyntaxKind, SyntaxNode};
 use xenolith_lang_api::{LangId, LoadRef};
 
-use crate::span;
+use crate::{bound, span};
 
 #[cfg(test)]
 mod tests;
@@ -67,8 +69,12 @@ fn load(apply: &SyntaxNode) -> Option<LoadRef> {
     }
     let path = relative_path(&argument)?;
     let extension = path.extension().and_then(|ext| ext.to_str())?;
+    // A site with holes loads through the `replaceStrings` call around
+    // this one, and `inline` must replace all of it
+    // (`languages/nix:V174`).
+    let whole = bound::wrapper(apply).unwrap_or_else(|| apply.clone());
     SHELL_EXTENSIONS.contains(&extension).then(|| LoadRef {
-        span: span(apply.text_range()),
+        span: span(whole.text_range()),
         path,
         guest: LangId::Shell,
     })
@@ -78,7 +84,7 @@ fn load(apply: &SyntaxNode) -> Option<LoadRef> {
 /// select of one: `builtins.readFile` → `[builtins, readFile]`. `None`
 /// for anything computed (`(f x).y`, `a.${b}`, `a."b"`), which names no
 /// call this module can know.
-fn dotted(function: &SyntaxNode) -> Option<Vec<String>> {
+pub(crate) fn dotted(function: &SyntaxNode) -> Option<Vec<String>> {
     match function.kind() {
         SyntaxKind::NODE_IDENT => Some(vec![function.text().to_string()]),
         SyntaxKind::NODE_SELECT => {

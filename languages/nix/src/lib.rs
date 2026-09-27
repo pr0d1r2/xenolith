@@ -30,6 +30,8 @@ mod tests;
 use std::path::Path;
 
 use rnix::{Root, SyntaxKind, SyntaxNode, TextRange};
+use xenolith_lang_api::holes::Param;
+use xenolith_lang_api::lens::Rewrite;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Placement,
     Result, Site, Span,
@@ -77,8 +79,9 @@ impl Host for NixHost {
 
     /// `builtins.readFile ./x.sh` and
     /// `nix-shebang.lib.readWithoutStrict ./x.sh`, anywhere in the file
-    /// (`languages/nix:V53`); a broken file is refused as in
-    /// [`NixHost::sites`].
+    /// (`languages/nix:V53`), spanning the `replaceStrings` call around
+    /// either when it is one `rewrite_bound` writes (`languages/nix:V174`);
+    /// a broken file is refused as in [`NixHost::sites`].
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
         Ok(loads::loads(&parse(src)?))
     }
@@ -96,8 +99,25 @@ impl Host for NixHost {
         rewrite::rewrite(src, site, path)
     }
 
+    /// With params, the V53 load goes inside `builtins.replaceStrings`,
+    /// which puts each hole back where the extract holds its `__NAME__`
+    /// (`languages/nix:V174`, `bound`); the body is nix's own, and bind's
+    /// `body` is not read. Without, it is [`NixHost::rewrite`].
+    fn rewrite_bound(
+        &self,
+        src: &str,
+        site: &Site,
+        _invoke: &Invoke,
+        path: &Path,
+        body: &str,
+        params: &[Param],
+    ) -> Result<Rewrite> {
+        rewrite::rewrite_bound(src, site, path, body, params)
+    }
+
     /// Either load becomes a string holding `body`: `''…''` indented under
-    /// the load's line when the body has a line break, `"…"` when not.
+    /// the load's line when the body has a line break, `"…"` when not; a
+    /// `replaceStrings` load's holes go back where its patterns are.
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
         rewrite::inline(src, load, body)
     }
@@ -203,6 +223,21 @@ fn parse(src: &str) -> Result<SyntaxNode> {
 /// check above has already ruled out -- kept as `None` rather than a
 /// panic, so a grammar surprise costs one site and not the scan.
 fn site(string: &SyntaxNode, sink: sinks::Sink) -> Option<Site> {
+    let (delim, holes) = delim(string)?;
+    Some(Site {
+        sink: sinks::sink_path(string),
+        guest: sink.guest(),
+        env: sink.env(),
+        delim,
+        holes,
+    })
+}
+
+/// The delimiter of a string node and the spans of its holes, or `None`
+/// for a string without both quote tokens -- what a [`Site`] is made of
+/// before its sink says what it is, and what `inline` reads a string it
+/// wrote back with (`languages/nix:V174`).
+fn delim(string: &SyntaxNode) -> Option<(Delim, Vec<Span>)> {
     let tokens = || {
         string
             .children_with_tokens()
@@ -224,18 +259,13 @@ fn site(string: &SyntaxNode, sink: sinks::Sink) -> Option<Site> {
         .filter(|c| c.kind() == SyntaxKind::NODE_INTERPOL)
         .map(|c| span(c.text_range()))
         .collect();
-    Some(Site {
-        sink: sinks::sink_path(string),
-        guest: sink.guest(),
-        env: sink.env(),
-        delim: Delim {
-            kind,
-            open,
-            body: Span::new(open.end, close.start),
-            close,
-        },
-        holes,
-    })
+    let delim = Delim {
+        kind,
+        open,
+        body: Span::new(open.end, close.start),
+        close,
+    };
+    Some((delim, holes))
 }
 
 /// A rowan range as the api's byte span.
