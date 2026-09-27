@@ -15,6 +15,7 @@
 pub mod grammar;
 pub mod host;
 mod placement;
+mod shell;
 pub mod string;
 
 pub use crate::host::{PklHost, SINKS};

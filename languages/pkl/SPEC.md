@@ -26,7 +26,7 @@ T13|x|host pkl (vendored `apple/tree-sitter-pkl`, Apache-2.0, `languages:V121`):
 T54|x|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52
 T147|x|`src:C139` backfill: `languages/pkl/src/host/tests.rs`, `languages/pkl/src/string/tests.rs`|`src:C139`,`scripts/guard:V140`
 T171|x|`escape` + `escape_law` ∀ fixture site; `inline` keeps CRLF; `rewrite` refuses holes|V171,B2,`languages/api/src/lens:V39`
-T172|.|site `env` from hk's shell: default, step, `Group`, unreadable; fixture|V172,B3,`languages/shell:V82`
+T172|x|site `env` from hk's shell: default, step, `Group`, unreadable; fixture|V172,B3,`languages/shell:V82`
 
 ## §B BUGS
 

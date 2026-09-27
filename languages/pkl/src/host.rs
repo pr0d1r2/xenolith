@@ -25,11 +25,10 @@ use std::path::{Path, PathBuf};
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
-    Delim, DelimKind, Error, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef, Placement, Result,
-    Site, Span,
+    Delim, DelimKind, Error, Host, Invoke, LangId, LintCmd, LoadRef, Placement, Result, Site, Span,
 };
 
-use crate::{grammar, placement, string};
+use crate::{grammar, placement, shell, string};
 
 #[cfg(test)]
 mod tests;
@@ -59,9 +58,13 @@ struct Sink<'t> {
     step: String,
     property: String,
     value: Node<'t>,
+    /// The step's `["name"] { … }` entry and its body, where hk's shell
+    /// for it is read (`languages/pkl:V172`).
+    entry: Node<'t>,
+    body: Node<'t>,
 }
 
-fn parse(src: &str) -> Result<Tree> {
+pub(crate) fn parse(src: &str) -> Result<Tree> {
     let mut parser = Parser::new();
     parser
         .set_language(&grammar::language())
@@ -71,7 +74,7 @@ fn parse(src: &str) -> Result<Tree> {
         .ok_or_else(|| Error::parse(LangId::Pkl, "the parser returned no tree"))
 }
 
-fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
+pub(crate) fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
     src.get(node.byte_range()).unwrap_or_default()
 }
 
@@ -81,7 +84,7 @@ fn span(node: Node<'_>) -> Span {
 
 /// The content of a single-line string with no escapes and no
 /// interpolation, or `None` for any other node.
-fn plain_string<'s>(node: Node<'_>, src: &'s str) -> Option<&'s str> {
+pub(crate) fn plain_string<'s>(node: Node<'_>, src: &'s str) -> Option<&'s str> {
     if !matches!(node.kind(), "slStringLiteralExpr" | "stringConstant") {
         return None;
     }
@@ -138,6 +141,8 @@ fn as_sink<'t>(property: Node<'t>, src: &str) -> Option<Sink<'t>> {
         step: step.to_owned(),
         property: text(*name, src).to_owned(),
         value: *value,
+        entry,
+        body,
     })
 }
 
@@ -188,9 +193,10 @@ fn site(sink: &Sink<'_>, src: &str) -> Option<Site> {
     Some(Site {
         sink: format!("{}.{}", sink.step, sink.property),
         guest: LangId::Shell,
-        // hk states no dialect or options per step that this host reads
-        // yet, so the guest's own default applies (`languages/shell:V51`).
-        env: GuestEnv::default(),
+        // The shell hk runs this step under, never the guest's default,
+        // whose strict line the inline step did not have
+        // (`languages/pkl:V172`).
+        env: shell::env(sink.entry, sink.body, src),
         delim: Delim {
             kind: DelimKind::PklMultiline { pounds },
             open: span(open),
