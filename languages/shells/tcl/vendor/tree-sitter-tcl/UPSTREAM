@@ -1,0 +1,22 @@
+Vendored grammar record (languages:V121).
+
+repo:     https://github.com/tree-sitter-grammars/tree-sitter-tcl
+version:  1.1.0 (package.json; upstream publishes no tags)
+rev:      850a72ab6436e06645b33b11cfa60cbdb04b1f01
+license:  MIT (LICENSE beside this file, verbatim)
+abi:      tree-sitter LANGUAGE_VERSION 15
+fetched:  2026-09-27
+
+Files, copied verbatim from the rev above and never edited here:
+
+  LICENSE
+  src/parser.c
+  src/scanner.c
+  src/tree_sitter/alloc.h
+  src/tree_sitter/array.h
+  src/tree_sitter/parser.h
+
+Why vendored: the grammar is not published on crates.io (404, measured
+2026-09-27, languages/shells/tcl:R194), and a git dependency cannot be
+published and breaks the offline build. A refresh is its own commit naming
+the new rev.
