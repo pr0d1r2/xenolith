@@ -610,6 +610,53 @@ struct Move {
     params: Vec<Param>,
 }
 
+/// Whether `xnl extract <name>:<line>` would move `site`, one of the
+/// sites of `text`, the host file `name` that `host` reads: `Ok` when
+/// this engine would, else the refusal it would give (`src:B12`).
+///
+/// It runs the same steps as a real run on that one site -- placement,
+/// holes, rewrite, the asserts -- so `xnl check` can offer the
+/// extraction as `Mechanical` exactly when it works, and say why when
+/// it does not, without a second opinion that could drift from this
+/// one. Nothing is written.
+///
+/// # Errors
+///
+/// The refusal, as `xnl extract` would print it.
+pub(crate) fn viable(
+    root: &Path,
+    tree: &Tree,
+    langs: &Langs<'_>,
+    name: &str,
+    text: &str,
+    host: &dyn Host,
+    site: &Site,
+) -> Result<(), String> {
+    if let Some(why) = excluded(tree, name) {
+        return Err(why);
+    }
+    let (line, col) = position(text, site.delim.open.start);
+    let Some(p) = plan(tree, langs, name, host, site.clone(), line, col) else {
+        return Err(format!(
+            "its guest, {}, is not in this build (src:V42)",
+            site.guest
+        ));
+    };
+    let file = Read {
+        text: text.to_owned(),
+        host,
+    };
+    edit_file(root, name, &file, &[&p])
+        .map(|_| ())
+        .map_err(|refusals| {
+            refusals
+                .into_iter()
+                .next()
+                .map(|r| r.message)
+                .unwrap_or_default()
+        })
+}
+
 /// Rewrite one host for its planned sites and prove the result, or
 /// refuse.
 fn rewrite_file(root: &Path, name: &str, file: &Read<'_>, sites: &[&Planned<'_>], edit: &mut Edit) {

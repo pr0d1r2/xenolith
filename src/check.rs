@@ -281,7 +281,17 @@ pub(crate) fn check_with(
                 Ok((src, sites)) => {
                     scanned.insert(name.clone());
                     for site in &sites {
-                        judge_site(&mut report, &mut seen, &tree, langs, host, &name, src, site)?;
+                        judge_site(
+                            root,
+                            &mut report,
+                            &mut seen,
+                            &tree,
+                            langs,
+                            host,
+                            &name,
+                            src,
+                            site,
+                        )?;
                     }
                 }
                 Err(detail) => host_error(&mut report, config, host.id(), &name, &detail),
@@ -345,6 +355,7 @@ fn unclaimed(
 /// Stages 4 to 6 for one site, under the config effective for its file.
 #[allow(clippy::too_many_arguments)] // one call site, every argument a stage input
 fn judge_site(
+    root: &Path,
     report: &mut Report,
     seen: &mut Vec<Seen>,
     tree: &Tree,
@@ -435,21 +446,7 @@ fn judge_site(
         Rule::Xenolith,
         why,
         vec![
-            // Never `Mechanical` yet (`src:B6`): `xnl extract` refuses
-            // every host until `src/extract:T22` lands, and a mechanical
-            // direction is a fix SARIF offers to apply (`src/cli:V102`).
-            // When it lands, a body with no holes that the host
-            // unescaped and the guest parsed may become mechanical;
-            // holes stay a judgement until `languages/api/src/holes:V40`
-            // can be checked.
-            Direction {
-                kind: Fix::Judgment,
-                action: format!(
-                    "extract it to a file of its own, by hand for now: `xnl extract {}` \
-                     rewrites no host yet (src/extract:T22)",
-                    shell_word(&format!("{name}:{line}"))
-                ),
-            },
+            extract_direction(root, tree, langs, host, name, src, site, line),
             Direction {
                 kind: Fix::Judgment,
                 action: format!(
@@ -462,6 +459,36 @@ fn judge_site(
     );
     report.push_site(violation, hash);
     Ok(())
+}
+
+/// The first direction of a xenolith (`src:B12`): `Mechanical` -- run
+/// `xnl extract <file>:<line>` -- exactly when that command would move the
+/// site, by the extract engine's own verdict ([`crate::extract::viable`]),
+/// since a mechanical direction is a fix SARIF offers to apply
+/// (`src/cli:V102`); else a `Judgment` carrying the refusal the command
+/// would print.
+#[allow(clippy::too_many_arguments)] // one call site, every argument a stage input
+fn extract_direction(
+    root: &Path,
+    tree: &Tree,
+    langs: &Langs<'_>,
+    host: &dyn Host,
+    name: &str,
+    src: &str,
+    site: &Site,
+    line: usize,
+) -> Direction {
+    let command = format!("`xnl extract {}`", shell_word(&format!("{name}:{line}")));
+    match crate::extract::viable(root, tree, langs, name, src, host, site) {
+        Ok(()) => Direction {
+            kind: Fix::Mechanical,
+            action: format!("run {command}"),
+        },
+        Err(why) => Direction {
+            kind: Fix::Judgment,
+            action: format!("extract it to a file of its own by hand: {command} refuses it: {why}"),
+        },
+    }
 }
 
 /// `word` as ONE shell word, for a command a direction prints to be
