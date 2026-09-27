@@ -8,6 +8,9 @@
 
 use crate::{LangId, Span};
 
+#[cfg(test)]
+mod tests;
+
 /// One place in a host file that holds guest code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Site {

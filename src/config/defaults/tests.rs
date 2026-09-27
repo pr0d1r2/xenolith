@@ -15,7 +15,8 @@ use super::{
     Entry, LANGS_MISSING_GUEST, LANGS_UNCLAIMED, LAYOUTS, LINT_EXTEND, LINT_HOSTS, LINT_TIMEOUT,
     PARSE_HOST_ERRORS, POLICIES, STRICTNESS, Setting, TABLE, THRESHOLD_EXEC_MAX_ARGS,
     THRESHOLD_EXEC_MAX_LEN, THRESHOLD_GUEST_MAX_BYTES, THRESHOLD_GUEST_MAX_LINES,
-    THRESHOLD_LOAD_MAX_PARAMS, THRESHOLD_LOAD_PARAM_PREFIX, THRESHOLD_SHELL_ALLOW, choice, row,
+    THRESHOLD_JUST_MAX_LINES, THRESHOLD_LOAD_MAX_PARAMS, THRESHOLD_LOAD_PARAM_PREFIX,
+    THRESHOLD_SHELL_ALLOW, choice, row,
 };
 
 fn entry(key: &str) -> Entry {
@@ -88,6 +89,7 @@ fn the_table_holds_every_default_the_spec_names() {
         "threshold.<guest>.max_lines",
         "threshold.exec.max_args",
         "threshold.exec.max_len",
+        "threshold.just.max_lines",
         "threshold.load.max_params",
         "threshold.load.param_prefix",
         "threshold.shell.allow",
@@ -198,6 +200,10 @@ fn each_row_holds_its_named_constant() {
             Setting::Int(THRESHOLD_EXEC_MAX_LEN),
         ),
         (
+            "threshold.just.max_lines",
+            Setting::Int(THRESHOLD_JUST_MAX_LINES),
+        ),
+        (
             "threshold.load.max_params",
             Setting::Int(THRESHOLD_LOAD_MAX_PARAMS),
         ),
@@ -232,6 +238,7 @@ fn the_defaults_are_the_values_the_spec_states() {
     assert_eq!(THRESHOLD_GUEST_MAX_LINES, 1);
     assert_eq!(THRESHOLD_EXEC_MAX_ARGS, 8);
     assert_eq!(THRESHOLD_EXEC_MAX_LEN, 120);
+    assert_eq!(THRESHOLD_JUST_MAX_LINES, 1);
     assert_eq!(THRESHOLD_LOAD_MAX_PARAMS, 6);
     assert_eq!(THRESHOLD_LOAD_PARAM_PREFIX, "");
     assert!(THRESHOLD_SHELL_ALLOW.is_empty());

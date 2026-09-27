@@ -54,6 +54,17 @@ fn a_line_body_is_shell_under_the_file_s_line_shell() {
 }
 
 #[test]
+fn a_line_body_runs_line_by_line_and_a_shebang_body_does_not() {
+    // The engine judges a line body line by line up to `[threshold.just]
+    // max_lines` (`languages/ci/just:V180`, `src/config:V240`); a shebang
+    // body is one script whatever its length.
+    let lines = only("a:\n    echo one\n    echo two\n");
+    assert!(lines.delim.kind.runs_line_by_line());
+    let script = only("a:\n    #!/usr/bin/env bash\n    echo one\n    echo two\n");
+    assert!(!script.delim.kind.runs_line_by_line());
+}
+
+#[test]
 fn an_unreadable_shell_leaves_the_env_empty() {
     let site = only("set windows-shell := [\"pwsh\", \"-c\"]\na:\n    echo hi\n");
     assert_eq!(site.env, xenolith_lang_api::GuestEnv::default());

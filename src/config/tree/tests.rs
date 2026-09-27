@@ -106,6 +106,7 @@ fn every_table_key_is_overridable_from_a_nested_file() {
             "threshold.<guest>.max_lines" => "[threshold.python]\nmax_lines = 3",
             "threshold.exec.max_args" => "[threshold.exec]\nmax_args = 2",
             "threshold.exec.max_len" => "[threshold.exec]\nmax_len = 2",
+            "threshold.just.max_lines" => "[threshold.just]\nmax_lines = 4",
             "threshold.load.max_params" => "[threshold.load]\nmax_params = 2",
             "threshold.load.param_prefix" => "[threshold.load]\nparam_prefix = \"P_\"",
             "threshold.shell.allow" => "[threshold.shell]\nallow = [\"case\"]",
@@ -198,6 +199,37 @@ fn threshold_shell_allow_overrides_rather_than_appends() {
     assert_eq!(
         tree.config_for("x.nix").construct_allow(LangId::Shell),
         ["and-or".to_owned()]
+    );
+}
+
+#[test]
+fn the_just_line_ceiling_is_set_per_subtree() {
+    // `languages/ci/just:T185`: per repo or subtree. Inherited where the
+    // nested file is silent, overridden where it speaks, and never above
+    // the file that set it.
+    let layered = tree(&[
+        ("", "version = 1\n[threshold.just]\nmax_lines = 2\n"),
+        ("a", "version = 1\n[langs]\nunclaimed = \"warn\"\n"),
+        ("b", "version = 1\n[threshold.just]\nmax_lines = 5\n"),
+    ]);
+    assert_eq!(
+        layered.config_for("justfile").line_ceiling(LangId::Just),
+        Some(2)
+    );
+    assert_eq!(
+        layered.config_for("a/justfile").line_ceiling(LangId::Just),
+        Some(2)
+    );
+    assert_eq!(
+        layered.config_for("b/justfile").line_ceiling(LangId::Just),
+        Some(5)
+    );
+    let nested_only = tree(&[("b", "version = 1\n[threshold.just]\nmax_lines = 5\n")]);
+    assert_eq!(
+        nested_only
+            .config_for("justfile")
+            .line_ceiling(LangId::Just),
+        Config::default().line_ceiling(LangId::Just)
     );
 }
 

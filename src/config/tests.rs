@@ -559,6 +559,55 @@ fn the_engine_reads_thresholds_resolved_per_guest() {
     );
 }
 
+#[test]
+fn the_just_line_ceiling_defaults_to_one_and_is_adjustable() {
+    // `src/config:V240`, `languages/ci/just:T185`: one line is the
+    // default, a file may raise it.
+    assert_eq!(
+        ok("version = 1\n").line_ceiling(LangId::Just),
+        Some(super::defaults::THRESHOLD_JUST_MAX_LINES)
+    );
+    let config = ok("version = 1\n[threshold.just]\nmax_lines = 3\n");
+    assert_eq!(config.line_ceiling(LangId::Just), Some(3));
+    assert_eq!(
+        config.effective("threshold.just.max_lines"),
+        Some(Effective::Int(3))
+    );
+    assert_eq!(
+        config.source("threshold.just.max_lines"),
+        Some(Source::File)
+    );
+}
+
+#[test]
+fn only_a_host_that_has_a_line_ceiling_reports_one() {
+    // The engine asks per host (`src/config:V240`); a host with no
+    // `[threshold.<host>] max_lines` key has none to relax by.
+    let config = ok("version = 1\n[threshold.nix]\nmax_lines = 3\n");
+    assert_eq!(config.line_ceiling(LangId::Nix), None);
+    assert_eq!(config.line_ceiling(LangId::Shell), None);
+}
+
+#[test]
+fn the_just_table_has_no_byte_ceiling() {
+    // `[threshold.just]` holds `max_lines` only (`src/config` §I): a
+    // `max_bytes` there would read as a rule nothing applies
+    // (`src/config:V55`).
+    let e = err("version = 1\n[threshold.just]\nmax_bytes = 80\n");
+    assert_eq!(e.key, "threshold.just.max_bytes");
+    assert_eq!(
+        ok("version = 1\n").effective("threshold.just.max_bytes"),
+        None
+    );
+}
+
+#[test]
+fn a_negative_just_line_ceiling_is_refused() {
+    let e = err("version = 1\n[threshold.just]\nmax_lines = -1\n");
+    assert_eq!(e.key, "threshold.just.max_lines");
+    assert!(e.message.contains("negative"), "{e}");
+}
+
 // ---------------------------------------------------------------------
 // resolution against the defaults table (`src/config:V73`)
 // ---------------------------------------------------------------------

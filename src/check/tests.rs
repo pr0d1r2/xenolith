@@ -32,7 +32,8 @@ use crate::model::{Fix, Report, Rule, Violation};
 
 /// A host that claims `*.fake` and reads one site per line,
 /// `<sink>=<guest>: <body>`. `{{…}}` in a body is a hole; a line `!` is
-/// a parse error.
+/// a parse error. Its sites are just recipe bodies, which run line by
+/// line (`src/config:V240`), and `\n` in one unescapes to a line break.
 struct FakeHost;
 
 impl Host for FakeHost {
@@ -101,12 +102,13 @@ impl Host for FakeHost {
         Err(Error::unsupported(LangId::Just, "inline"))
     }
 
-    /// `\&` is an escaped `&`; `\!` is an escape nothing decodes.
+    /// `\&` is an escaped `&`, `\n` a line break; `\!` is an escape
+    /// nothing decodes.
     fn unescape(&self, _: &Delim, raw: &str) -> Result<String> {
         if raw.contains("\\!") {
             return Err(Error::parse(LangId::Just, "a fake bad escape"));
         }
-        Ok(raw.replace("\\&", "&"))
+        Ok(raw.replace("\\&", "&").replace("\\n", "\n"))
     }
 
     fn checks(&self) -> Vec<LintCmd> {
@@ -119,8 +121,9 @@ impl Host for FakeHost {
 }
 
 /// A guest with a construct vocabulary, like shell: `&&` is `and-or`,
-/// `|` is `pipeline`, `BAD` does not parse, and a body holding
-/// [`HOLE`]'s text records that the engine replaced a hole.
+/// `|` is `pipeline`, more than one line is `sequence`, `BAD` does not
+/// parse, and a body holding [`HOLE`]'s text records that the engine
+/// replaced a hole.
 struct FakeShell;
 
 /// A guest without one, like python so far: never trivial unless
@@ -140,6 +143,9 @@ fn fake_constructs(body: &str) -> Result<Vec<&'static str>> {
     }
     if body.contains('|') {
         names.push("pipeline");
+    }
+    if body.trim().contains('\n') {
+        names.push("sequence");
     }
     Ok(names)
 }
@@ -441,6 +447,109 @@ fn a_guest_without_constructs_is_judged_by_its_size_ceiling() {
     let report = run(&root, &tight, &["a.fake"]);
     let why = &only(&report).why;
     assert!(why.contains("max_bytes = 4"), "{why}");
+}
+
+// ---------------------------------------------------------------------
+// line by line (`src/config:V240`, `languages/ci/just:V180`)
+// ---------------------------------------------------------------------
+
+/// `[threshold.just] max_lines = n`.
+fn just_lines(n: u64) -> Config {
+    config(&format!("version = 1\n[threshold.just]\nmax_lines = {n}\n"))
+}
+
+#[test]
+fn two_lines_run_line_by_line_are_flagged_at_the_default_ceiling() {
+    // The default is one line: the body is judged whole, and the reason
+    // names the ceiling a config could raise.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "r=shell: make\\nmake test\n")]);
+    let report = run(&root, &Config::default(), &["a.fake"]);
+    let why = &only(&report).why;
+    assert!(why.contains("sequence"), "{why}");
+    assert!(
+        why.contains("2 lines, over threshold.just max_lines = 1"),
+        "{why}"
+    );
+}
+
+#[test]
+fn lines_within_the_ceiling_are_judged_one_by_one() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[(
+            "a.fake",
+            "two=shell: make\\nmake test\nthree=shell: a\\nb\\nc\n",
+        )],
+    );
+    let report = run(&root, &just_lines(2), &["a.fake"]);
+    let v = only(&report);
+    assert_eq!(v.sink, "three");
+    assert!(
+        v.why.contains("3 lines, over threshold.just max_lines = 2"),
+        "{}",
+        v.why
+    );
+    assert!(
+        run(&root, &just_lines(3), &["a.fake"])
+            .violations()
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_line_within_the_ceiling_is_still_judged_by_its_guest() {
+    // Each line is the guest's whole program there: a pipeline on one
+    // line is a pipeline, named with the line it is on, and
+    // `[threshold.shell]` relaxes it as it would anywhere.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "r=shell: make\\nls | wc\n")]);
+    let report = run(&root, &just_lines(2), &["a.fake"]);
+    let why = &only(&report).why;
+    assert!(why.starts_with("body line 2: "), "{why}");
+    assert!(why.contains("pipeline"), "{why}");
+    assert!(!why.contains("sequence"), "{why}");
+    let relaxed = config(
+        "version = 1\n[threshold.just]\nmax_lines = 2\n\
+         [threshold.shell]\nallow = [\"pipeline\"]\n",
+    );
+    assert!(run(&root, &relaxed, &["a.fake"]).violations().is_empty());
+}
+
+#[test]
+fn a_zero_line_ceiling_flags_nothing_a_single_line_would_not() {
+    // `src/config:V55`: a threshold only relaxes. `0` is as strict as
+    // it gets and still leaves a one-line command inline.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "r=shell: make\n")]);
+    assert!(
+        run(&root, &just_lines(0), &["a.fake"])
+            .violations()
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_nested_line_ceiling_governs_its_subtree() {
+    let sandbox = Sandbox::new();
+    let body = "r=shell: make\\nmake test\n";
+    let root = tree(
+        &sandbox,
+        &[
+            ("a.fake", body),
+            ("sub/b.fake", body),
+            (
+                "sub/xenolith.toml",
+                "version = 1\n[threshold.just]\nmax_lines = 2\n",
+            ),
+        ],
+    );
+    let report = run(&root, &Config::default(), &["a.fake", "sub/b.fake"]);
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)]
+    );
 }
 
 #[test]
@@ -1741,6 +1850,57 @@ fn a_just_recipe_of_two_lines_is_flagged_and_one_line_is_not() {
         .and_then(|v| v.directions.first());
     let action = docs.map_or("", |d| d.action.as_str());
     assert!(action.contains("changes shell state"), "{action}");
+}
+
+/// `[threshold.just] max_lines` end to end (`languages/ci/just:T185`,
+/// `src/config:V240`): at 2, a recipe of two simple commands stays
+/// inline, three lines do not, and a line holding a script is flagged
+/// as that line.
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+#[test]
+fn a_just_line_ceiling_keeps_recipes_within_it_inline() {
+    let justfile = [
+        "check:",
+        "    bash scripts/lint.sh",
+        "    bats tests/unit",
+        "",
+        "all:",
+        "    cargo build",
+        "    cargo test",
+        "    cargo doc",
+        "",
+        "count:",
+        "    echo start",
+        "    ls | wc -l",
+        "",
+    ]
+    .join("\n");
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("justfile", justfile.as_str())]);
+    let options = Options {
+        paths: vec!["justfile".into()],
+        ..Options::default()
+    };
+    let ceiling = config("version = 1\n[threshold.just]\nmax_lines = 2\n");
+    let report = super::check(&root, &ceiling, &options).unwrap_or_else(|e| panic!("{e}"));
+    let found: Vec<(&str, &str)> = report
+        .violations()
+        .iter()
+        .map(|v| (v.sink.as_str(), v.why.as_str()))
+        .collect();
+    let [(all, over), (count, line)] = found.as_slice() else {
+        panic!("expected `all` and `count`, got {found:#?}");
+    };
+    assert_eq!((*all, *count), ("all", "count"));
+    assert!(
+        over.contains("3 lines, over threshold.just max_lines = 2"),
+        "{over}"
+    );
+    assert!(line.starts_with("body line 2: "), "{line}");
+    assert!(line.contains("pipeline"), "{line}");
+    let default =
+        super::check(&root, &Config::default(), &options).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(default.violations().len(), 3, "{default:#?}");
 }
 
 /// `src/registry:T46`'s nix-only build, end to end: a nix site holding shell,
