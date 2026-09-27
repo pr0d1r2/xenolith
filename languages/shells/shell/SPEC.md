@@ -17,7 +17,7 @@ sib|languages/shells/tcl|tcl grammar (expect dialect), `exec`/`spawn` sinks, gue
 ## §I INTERFACES
 
 - `claims`: `*.sh`, `*.bash`, `.envrc`, shebang resolving to a shell dialect (`shebang::resolves_to`) — ⊥ `*.bats` (`languages/shells/bats:V134`, V137).
-- sinks: heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`), `awk` program > threshold ?, `jq` filter > threshold ? → guest python \| ruby \| sql \| js \| perl \| awk \| jq; load after extract: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
+- sinks: heredoc fed to interpreter (`python <<`, `ruby <<`, `psql <<`, `tclsh`\|`wish`\|`expect <<`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`, `expect -c`), `awk` program > threshold ?, `jq` filter > threshold ? → guest python \| ruby \| sql \| js \| perl \| tcl (`languages/shells/tcl:V197`) \| awk \| jq; load after extract: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
 - `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` regardless of context, diff marks it `Judgment` (semantic change).
 - placement prototype ? (T86 evaluates): bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (whitelisted in V3).
 
@@ -28,7 +28,7 @@ V51: shell guest defaults: `prelude(env)` = shebang `#!/usr/bin/env <dialect>` +
 V82: dialects `sh`, `bash`, `zsh` (`dash`/`ksh` ? as sh-family): `env.dialect` from context (`sh -c`, `bash -c`, `zsh -c`, shebang, GH `shell:`, nix systemd `script`; host declares) & `env.options` = effective `set -o`/`setopt` state; prelude reproduces both exactly. grammar: tree-sitter-bash ∀ sh & bash, zsh best-effort ? (unsupported construct → `Judgment`).
 V137: shell `claims` ⊥ `*.bats` (`languages:V130`, `languages/shells/bats:V134`). measured 2026-09-21: tree-sitter-bash PARSES `@test "x" { run echo hi }` as command + brace group, classified `sequence` ∴ claimed `*.bats` = script offered for extraction: confident & wrong.
 V138: zsh-only syntax (flags `${(f)x}`, anon fn `() { print hi }`, glob qualifier `*(.)`) ⊥ parsed by tree-sitter-bash ∴ classifier ! return `Judgment` (`languages/shells:V132`), ⊥ `Err`, ⊥ `host-parse-error`: the body is valid zsh & the gap is OURS. `Classification` carries a 3rd state ∴ engine reports `Judgment` w/ why `zsh construct unsupported`.
-V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` stdin = data); `-c`/`-e` arg `'…'` \| `"…"` w/o `\`; env ← ITS argv, ⊥ enclosing `set`.
+V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` stdin = data; tcl: `-`\|`/dev/stdin` = stdin); `-c`/`-e` arg `'…'` \| `"…"` w/o `\`; env ← ITS argv, ⊥ enclosing `set`.
 
 ## §T TASKS
 
