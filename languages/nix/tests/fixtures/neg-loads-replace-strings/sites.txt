@@ -1,0 +1,2 @@
+# Loads, not sites: the pattern and hole strings sit in the lists of a
+# `replaceStrings` call, which is no sink (`languages/nix:V174`).

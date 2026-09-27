@@ -1,0 +1,9 @@
+# Holes as params (`languages/nix:V174`): each site goes round the lens
+# through `replaceStrings`. A hole used twice (`${pkgs.hello}/bin/hello`),
+# one hole with two tails (`${cfg.dir}/flag`, `${cfg.dir}/out`), a `''${`
+# literal beside holes, a `"…"` body with escaped quotes, and holes in a
+# heredoc and in single quotes -- which nix substitutes as text, whatever
+# the shell guest would say of them.
+systemd.services.a.script | '' | bash errexit | ${pkgs.hello}, ${cfg.name}, ${pkgs.hello}, ${cfg.dir}, ${cfg.dir} | "\n    ${pkgs.hello}/bin/hello --name \"${cfg.name}\"\n    ${pkgs.hello}/bin/hello again\n    if [ -e ${cfg.dir}/flag ]; then\n      echo \"''${HOME}\" > ${cfg.dir}/out\n    fi\n  "
+systemd.services.a.postStart | " | bash errexit | ${cfg.dir}, ${cfg.dir} | "mkdir -p ${cfg.dir} && echo \\\"${cfg.dir}\\\""
+shellHook | '' | bash | ${cfg.banner}, ${cfg.name} | "\n    cat <<EOF\n      ${cfg.banner}\n    EOF\n    echo '${cfg.name}'\n  "

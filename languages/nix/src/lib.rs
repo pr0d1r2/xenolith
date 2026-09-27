@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod bound;
 mod escape;
 mod loads;
 mod placement;

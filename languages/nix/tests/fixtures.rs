@@ -34,7 +34,7 @@
 //! (`languages/nix:V53`):
 //!
 //! ```text
-//! <path> | <guest> | <load expression as written>
+//! <path> | <guest> | <load expression as written, whitespace collapsed>
 //! ```
 
 use std::fs;
@@ -194,7 +194,10 @@ fn every_loads_file_lists_the_loads_in_span_order() {
                         "{} | {} | {}",
                         load.path.display(),
                         load.guest,
-                        load.span.of(&src).unwrap_or("?")
+                        load.span.of(&src).map_or_else(
+                            || "?".to_owned(),
+                            |text| text.split_whitespace().collect::<Vec<_>>().join(" ")
+                        )
                     )
                 })
                 .collect(),

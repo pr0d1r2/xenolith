@@ -7,6 +7,8 @@
 
 use std::path::Path;
 
+use xenolith_lang_api::holes::{self, Param};
+use xenolith_lang_api::lens::Rewrite;
 use xenolith_lang_api::{Error, Host, Invoke, LangId, LoadRef, Site};
 use xenolith_lang_nix::NixHost;
 
@@ -148,15 +150,221 @@ fn a_binop_operand_needs_no_parentheses() {
 }
 
 #[test]
-fn a_site_with_holes_is_refused() {
-    // `languages/nix:V54`: `replaceVars` is advice, and copying `${…}`
-    // into the extract verbatim would run it as shell
-    // (`languages/api/src/holes:V40`).
+fn a_site_with_holes_is_refused_without_params() {
+    // Copying `${…}` into the extract verbatim would run it as shell
+    // (`languages/api/src/holes:V40`): holes go through `rewrite_bound`
+    // with the params bind named, or not at all (`languages/nix:V174`).
     let src = "{ pkgs }: { shellHook = ''\n  ${pkgs.hello}/bin/hello\n  b\n''; }";
     assert_eq!(
         rewrite(src, "./x.sh"),
         refused("rewrite of a string with holes")
     );
+    let site = only_site(src);
+    let path = Path::new("./x.sh");
+    let found = NIX.rewrite_bound(src, &site, &bash("./x.sh"), path, "b\n", &[]);
+    assert_eq!(
+        found,
+        Err(Error::unsupported(
+            LangId::Nix,
+            "rewrite of a string with holes"
+        ))
+    );
+}
+
+// --- rewrite_bound (`languages/nix:V174`) ------------------------------
+
+/// The params `holes::bind` would name for `site`, taken from the api's
+/// own parts: this crate links no guest (`languages:C24`), and the
+/// shell guest's say in it -- which contexts expand -- is the engine's
+/// to ask.
+fn params(src: &str, site: &Site) -> Vec<Param> {
+    let found = holes::collect(src, site);
+    holes::names(&found, "", &[])
+        .into_iter()
+        .zip(&found)
+        .enumerate()
+        .map(|(index, (name, hole))| Param {
+            name,
+            hole: hole.text(),
+            marker: holes::marker(index),
+        })
+        .collect()
+}
+
+/// `rewrite_bound` of the one site in `src` to `path`, with its params.
+fn bound(src: &str, path: &str) -> Result<Rewrite, Error> {
+    let site = only_site(src);
+    let params = params(src, &site);
+    // The guest's body is bind's; nix writes its own (`__NAME__`), so what
+    // is passed here must not matter.
+    NIX.rewrite_bound(src, &site, &bash(path), Path::new(path), "ignored", &params)
+}
+
+/// The e2e shape: a NixOS job script calling a package by store path.
+const HELLO: &str = "{ pkgs, ... }: {\n  systemd.services.x.script = ''\n    \
+                     ${pkgs.hello}/bin/hello\n    echo done > /tmp/x\n  '';\n}\n";
+
+#[test]
+fn a_site_with_holes_loads_through_replace_strings() {
+    // Pure string substitution over what `readFile` read: no derivation
+    // is built to evaluate it, and the hole's string context -- the
+    // store path `pkgs.hello` -- stays on the script.
+    let rewritten = bound(HELLO, "./x/x-script.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rewritten.src,
+        "{ pkgs, ... }: {\n  systemd.services.x.script = builtins.replaceStrings \
+         [ \"__HELLO_BIN__\" ] [ \"${pkgs.hello}/bin/hello\" ] \
+         (builtins.readFile ./x/x-script.sh);\n}\n"
+    );
+    assert_eq!(rewritten.body, "__HELLO_BIN__\necho done > /tmp/x\n");
+}
+
+#[test]
+fn the_load_of_a_bound_site_is_the_whole_call_and_inline_undoes_it() {
+    // `loads` must span the call, or `inline` would leave the
+    // `replaceStrings` behind around a string; `inline` puts each hole
+    // back as it was written, tail and all.
+    let rewritten = bound(HELLO, "./x/x-script.sh").unwrap_or_else(|e| panic!("{e}"));
+    let load = only_load(&rewritten.src);
+    assert_eq!(load.path, Path::new("./x/x-script.sh"));
+    assert_eq!(
+        load.span.of(&rewritten.src),
+        Some(
+            "builtins.replaceStrings [ \"__HELLO_BIN__\" ] [ \"${pkgs.hello}/bin/hello\" ] \
+             (builtins.readFile ./x/x-script.sh)"
+        )
+    );
+    assert_eq!(
+        NIX.inline(&rewritten.src, &load, &rewritten.body),
+        Ok(HELLO.to_owned())
+    );
+}
+
+#[test]
+fn a_hole_used_twice_is_one_pair_and_every_use_a_pattern() {
+    let src = "{ cfg }: { shellHook = ''\n  mkdir -p ${cfg.dir}\n  cd ${cfg.dir} && ls\n''; }";
+    let rewritten = bound(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rewritten.src,
+        "{ cfg }: { shellHook = builtins.replaceStrings [ \"__DIR__\" ] [ \"${cfg.dir}\" ] \
+         (builtins.readFile ./x.sh); }"
+    );
+    assert_eq!(rewritten.body, "mkdir -p __DIR__\ncd __DIR__ && ls\n");
+}
+
+#[test]
+fn a_bound_site_under_nix_shebang_reads_without_strict_inside_the_call() {
+    let src = "{ nix-shebang, cfg }: { script = ''\n  a ${cfg.x}\n  b\n''; }";
+    let rewritten = bound(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rewritten.src,
+        "{ nix-shebang, cfg }: { script = builtins.replaceStrings [ \"__X__\" ] [ \"${cfg.x}\" ] \
+         (nix-shebang.lib.readWithoutStrict ./x.sh); }"
+    );
+    assert_eq!(only_load(&rewritten.src).path, Path::new("./x.sh"));
+}
+
+#[test]
+fn an_argument_slot_parenthesises_the_whole_call_and_inline_drops_them() {
+    let src = "{ pkgs, cfg }: pkgs.writeShellScript \"n\" ''\n  a ${cfg.x}\n  b\n''";
+    let rewritten = bound(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rewritten.src,
+        "{ pkgs, cfg }: pkgs.writeShellScript \"n\" (builtins.replaceStrings [ \"__X__\" ] \
+         [ \"${cfg.x}\" ] (builtins.readFile ./x.sh))"
+    );
+    let load = only_load(&rewritten.src);
+    assert_eq!(
+        NIX.inline(&rewritten.src, &load, &rewritten.body),
+        Ok(src.to_owned())
+    );
+}
+
+#[test]
+fn a_one_line_bound_site_inlines_back_as_a_double_quoted_string() {
+    let src = "{ cfg }: { systemd.services.a.postStart = \
+               \"mkdir -p ${cfg.dir} && echo \\\"${cfg.dir}\\\"\"; }";
+    let rewritten = bound(src, "./x.sh").unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(rewritten.body, "mkdir -p __DIR__ && echo \"__DIR__\"");
+    let load = only_load(&rewritten.src);
+    assert_eq!(
+        NIX.inline(&rewritten.src, &load, &rewritten.body),
+        Ok(src.to_owned())
+    );
+}
+
+#[test]
+fn a_body_already_spelling_a_pattern_is_refused() {
+    // `replaceStrings` would fill the author's `__DIR__` as well.
+    let src = "{ cfg }: { shellHook = ''\n  echo __DIR__ ${cfg.dir}\n  b\n''; }";
+    assert_eq!(
+        bound(src, "./x.sh"),
+        Err(Error::unsupported(
+            LangId::Nix,
+            "rewrite of holes `replaceStrings` would not put back"
+        ))
+    );
+}
+
+#[test]
+fn params_that_do_not_name_the_site_s_holes_are_refused() {
+    let src = "{ cfg }: { shellHook = ''\n  echo ${cfg.dir}\n  b\n''; }";
+    let site = only_site(src);
+    let wrong = [Param {
+        name: "DIR".to_owned(),
+        hole: "${cfg.other}".to_owned(),
+        marker: holes::marker(0),
+    }];
+    let found = NIX.rewrite_bound(src, &site, &bash("./x.sh"), Path::new("./x.sh"), "", &wrong);
+    assert_eq!(
+        found,
+        Err(Error::unsupported(
+            LangId::Nix,
+            "rewrite of holes the params do not name"
+        ))
+    );
+}
+
+#[test]
+fn a_bound_systemd_exec_line_is_still_refused() {
+    // `languages/nix:V69`: its load is `toShellScript`, holes or not.
+    let src = "{ pkgs }: { systemd.services.a.serviceConfig.ExecStart = \
+               \"${pkgs.a}/bin/a && b\"; }";
+    assert_eq!(
+        bound(src, "./x.sh"),
+        Err(Error::unsupported(
+            LangId::Nix,
+            "rewrite of a systemd exec line"
+        ))
+    );
+}
+
+#[test]
+fn a_hole_free_site_through_rewrite_bound_is_plain_rewrite() {
+    let src = "{ systemd.services.a.script = ''\n  echo a\n  echo b\n''; }";
+    let site = only_site(src);
+    let path = Path::new("./a.sh");
+    assert_eq!(
+        NIX.rewrite_bound(src, &site, &bash("./a.sh"), path, "echo a\necho b\n", &[]),
+        Ok(Rewrite {
+            src: "{ systemd.services.a.script = builtins.readFile ./a.sh; }".to_owned(),
+            body: "echo a\necho b\n".to_owned(),
+        })
+    );
+}
+
+#[test]
+fn a_double_quoted_body_holding_a_line_break_is_refused() {
+    // `inline` writes a body with a line break as `''…''`, so the host
+    // would not come back as it was (`languages/api/src/lens:V34` (a)).
+    let src = "{ pkgs }: { a.text = \"#!${pkgs.bash}/bin/bash\\nexec true\\n\"; }";
+    let refusal = Err(Error::unsupported(
+        LangId::Nix,
+        "rewrite of a `\"…\"` string holding a line break",
+    ));
+    assert_eq!(bound(src, "./x.sh").map(|r| r.src), refusal);
+    let plain = "{ systemd.services.a.script = \"a\\nb\"; }";
+    assert_eq!(rewrite(plain, "./x.sh"), refusal);
 }
 
 #[test]

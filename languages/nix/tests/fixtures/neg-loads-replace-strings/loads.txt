@@ -1,0 +1,14 @@
+# `languages/nix:V174`: a site with holes loads through
+# `builtins.replaceStrings [ "__NAME__" … ] [ "<hole>" … ] (<V53 load>)`,
+# and the load spans the WHOLE call -- `inline` replaces all of it, and
+# `xnl graph` follows its path. Only the shape `rewrite_bound` writes is
+# the whole call: `__NAME__` patterns, as many holes, each a `${…}` with at
+# most a path tail. Any other `replaceStrings` around a V53 load is the
+# author's own, and the load is the V53 call inside it. Whitespace is
+# shown collapsed.
+./a/a-script.sh | shell | builtins.replaceStrings [ "__HELLO_BIN__" "__DIR__" ] [ "${pkgs.hello}/bin/hello" "${cfg.dir}" ] (builtins.readFile ./a/a-script.sh)
+./a/b-script.sh | shell | builtins.replaceStrings [ "__X__" ] [ "${cfg.x}" ] ( nix-shebang.lib.readWithoutStrict ./a/b-script.sh )
+./a/hook.sh | shell | builtins.replaceStrings [ "__X__" ] [ "${cfg.x}" ] (builtins.readFile ./a/hook.sh)
+./a/other.sh | shell | builtins.readFile ./a/other.sh
+./a/uneven.sh | shell | builtins.readFile ./a/uneven.sh
+./a/escaped.sh | shell | builtins.readFile ./a/escaped.sh

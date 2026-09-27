@@ -11,12 +11,14 @@
 //! `rewrite` and `inline` are the same lens one level up: every site of
 //! every positive fixture is extracted and inlined back, and laws (a)
 //! to (c) of `languages/api/src/lens:V34` are checked on the way. A site
-//! `languages/nix:V170` refuses -- holes, a guest other than shell -- must
-//! be refused, and loudly.
+//! `languages/nix:V170` refuses -- an exec line, a guest other than shell --
+//! must be refused, and loudly; a site with holes goes round through
+//! `rewrite_bound` and `replaceStrings` (`languages/nix:V174`).
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use xenolith_lang_api::holes::{self, Param};
 use xenolith_lang_api::{Delim, DelimKind, Error, Host, Invoke, LangId, LoadRef, Site, Span, lens};
 use xenolith_lang_nix::NixHost;
 
@@ -213,6 +215,15 @@ fn load_of(y: &str, path: &Path) -> (LoadRef, bool) {
     };
     assert_eq!(load.guest, LangId::Shell);
     let call = load.span.of(y).unwrap_or_else(|| panic!("{y}: load span"));
+    // A site with holes loads through `replaceStrings` (`languages/nix:V174`),
+    // and its load spans the whole call: the V53 load is its last argument.
+    let call = match call.strip_prefix("builtins.replaceStrings ") {
+        Some(rest) => rest
+            .rsplit_once(" (")
+            .and_then(|(_, inner)| inner.strip_suffix(')'))
+            .unwrap_or_else(|| panic!("{y}: no load inside the call")),
+        None => call,
+    };
     let read_file = format!("builtins.readFile {}", path.display());
     let tail = format!("nix-shebang.lib.readWithoutStrict {}", path.display());
     let strips = call != read_file;
@@ -221,8 +232,9 @@ fn load_of(y: &str, path: &Path) -> (LoadRef, bool) {
 }
 
 /// One site through the whole lens, or the refusal it must get; `Some`
-/// of whether the load was `readWithoutStrict` when it went round.
-fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<bool>, String> {
+/// of whether the load was `readWithoutStrict`, and whether the site had
+/// holes, when it went round.
+fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<(bool, bool)>, String> {
     let ext = if site.env.dialect.as_deref() == Some("zsh") {
         "zsh"
     } else {
@@ -232,14 +244,24 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<bool>, Stri
     let invoke = Invoke {
         argv: vec!["bash".to_owned(), path.display().to_string()],
     };
-    let rewritten = NIX.rewrite(src, site, &invoke, &path);
-    if !site.holes.is_empty() || site.guest != LangId::Shell {
+    // Holes go through `rewrite_bound` with the params bind would name
+    // (`languages/nix:V174`); a site without any, with none.
+    let params = params(src, site);
+    let unused = "the guest's body, which nix does not read with params";
+    let rewritten = NIX.rewrite_bound(src, site, &invoke, &path, unused, &params);
+    // A `"…"` body holding a line break would come back as `''…''`.
+    let multi_line = site.delim.kind == DelimKind::NixString
+        && NIX
+            .unescape(&site.delim, raw(src, site))
+            .is_ok_and(|body| body.contains('\n'));
+    if site.guest != LangId::Shell || site.sink.contains("ExecStart") || multi_line {
         return match rewritten {
             Err(Error::Unsupported { .. }) => Ok(None),
             other => Err(format!("must be refused, got {other:?}")),
         };
     }
-    let y = rewritten.map_err(|e| format!("rewrite: {e}"))?;
+    let rewritten = rewritten.map_err(|e| format!("rewrite: {e}"))?;
+    let y = rewritten.src;
     // Law (b): that site is gone, and only that one.
     let before = bodies(src);
     let after = bodies(&y);
@@ -249,20 +271,44 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<bool>, Stri
         return Err(format!("law (b): sites after rewrite {after:?}"));
     }
     let (load, strips) = load_of(&y, &path);
-    // Law (a): inlining the body puts back what was there.
+    // Law (a): inlining the extract's body puts back what was there --
+    // for a site with holes, each `${…}` exactly as it was written
+    // (`languages/api/src/lens:V34` (e)).
+    let body = if params.is_empty() {
+        this.1.clone()
+    } else {
+        rewritten.body
+    };
     let inlined = NIX
-        .inline(&y, &load, &this.1)
+        .inline(&y, &load, &body)
         .map_err(|e| format!("inline: {e}"))?;
     if normalized(&inlined) != normalized(src) || bodies(&inlined) != before {
         return Err(format!("law (a): inline gave\n{inlined}"));
     }
-    Ok(Some(strips))
+    Ok(Some((strips, !params.is_empty())))
+}
+
+/// The params `holes::bind` would name for `site`, from the api's own
+/// parts: this crate links no guest (`languages:C24`).
+fn params(src: &str, site: &Site) -> Vec<Param> {
+    let found = holes::collect(src, site);
+    holes::names(&found, "", &[])
+        .into_iter()
+        .zip(&found)
+        .enumerate()
+        .map(|(index, (name, hole))| Param {
+            name,
+            hole: hole.text(),
+            marker: holes::marker(index),
+        })
+        .collect()
 }
 
 #[test]
 fn the_lens_laws_hold_for_every_positive_fixture_site() {
     let mut extracted = 0;
     let mut stripping = 0;
+    let mut holed = 0;
     let mut failures = Vec::new();
     for case in cases() {
         let name = case.display().to_string();
@@ -276,9 +322,10 @@ fn the_lens_laws_hold_for_every_positive_fixture_site() {
         let (src, sites) = fixture(&case);
         for (index, site) in sites.iter().enumerate() {
             match round_trip(&src, index, site) {
-                Ok(Some(strips)) => {
+                Ok(Some((strips, with_holes))) => {
                     extracted += 1;
                     stripping += usize::from(strips);
+                    holed += usize::from(with_holes);
                 }
                 Ok(None) => {}
                 Err(e) => failures.push(format!("{name} {}: {e}", site.sink)),
@@ -294,4 +341,8 @@ fn the_lens_laws_hold_for_every_positive_fixture_site() {
     // nix-shebang, and most fixtures do not.
     assert!(stripping > 0, "no site went round as readWithoutStrict");
     assert!(stripping < extracted, "no site went round as readFile");
+    // `languages/nix:V174`: holes go round too, through `replaceStrings`
+    // -- `pos-holes`, `pos-holes-params` and the fixtures whose scripts
+    // call a package by store path.
+    assert!(holed >= 6, "only {holed} sites with holes went round");
 }
