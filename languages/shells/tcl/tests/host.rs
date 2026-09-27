@@ -68,9 +68,10 @@ fn an_exp_file_is_the_expect_dialect() {
 #[test]
 fn a_file_with_an_error_outside_braces_fails_whole() {
     // `languages:V78`: spans after an `ERROR` node are the parser's guess.
-    // `"$ "` is valid Tcl the vendored grammar rejects; the file is then
-    // a host parse error, never a partial list of sites.
-    let src = "expect \"$ \"\nexec sh -c {a | b}\n";
+    // `set x a(b)` is valid Tcl the vendored grammar still rejects, even
+    // patched (`languages/shells/tcl:B1`); the file is then a host parse
+    // error, never a partial list of sites.
+    let src = "set x a(b)\nexec sh -c {a | b}\n";
     let err = TclHost.sites(src);
     assert!(
         matches!(

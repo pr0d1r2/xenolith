@@ -219,7 +219,7 @@ fn errors_inside_opaque_braces_are_contained() {
 
 #[test]
 fn errors_outside_opaque_braces_are_not() {
-    let src = "expect \"$ \"\n";
+    let src = "set x a(b)\n";
     let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
     assert!(tree.root_node().has_error());
     let walk = walked(src);

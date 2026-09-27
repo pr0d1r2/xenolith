@@ -1,0 +1,7 @@
+expect "$ "
+puts hi; exec sh -c {a | b}
+set n [expr {1+2}]
+exec bash -c "echo $ $HOME"
+set v $cfg(cmd)
+if {$ok && true} then { exec sh -c "ls $v" }
+try {exec bash -c {echo x}} on error {m} {puts "failed]"}
