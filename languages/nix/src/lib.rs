@@ -19,6 +19,7 @@ mod escape;
 mod loads;
 mod placement;
 mod rewrite;
+mod scope;
 mod sinks;
 mod unescape;
 
@@ -82,9 +83,10 @@ impl Host for NixHost {
     }
 
     /// The string becomes `nix-shebang.lib.readWithoutStrict ./<path>`
-    /// (`languages/nix:V53`, `languages/nix:V170`), parenthesised where an
-    /// argument goes; what cannot round-trip is refused by name
-    /// (`rewrite`).
+    /// where nix-shebang is provably in scope, `builtins.readFile
+    /// ./<path>` elsewhere (`languages/nix:V53`, `languages/nix:V170`),
+    /// parenthesised where an argument goes; what cannot round-trip is
+    /// refused by name (`rewrite`).
     ///
     /// `invoke` is not read: nix runs the text the load reads, in the
     /// sink that ran the string, so the guest's command line has nowhere
@@ -93,7 +95,7 @@ impl Host for NixHost {
         rewrite::rewrite(src, site, path)
     }
 
-    /// The load becomes a string holding `body`: `''…''` indented under
+    /// Either load becomes a string holding `body`: `''…''` indented under
     /// the load's line when the body has a line break, `"…"` when not.
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
         rewrite::inline(src, load, body)

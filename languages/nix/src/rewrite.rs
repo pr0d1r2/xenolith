@@ -9,6 +9,11 @@
 //! check that fails is a refusal, never a best effort: an extraction that
 //! changed what the host runs is worse than none (`src/extract:V4`).
 //!
+//! Which load is the site's own scope's call: `readWithoutStrict` through
+//! whatever name `scope` proves nix-shebang goes by there, and
+//! `builtins.readFile` wherever it proves none -- a load that does not
+//! evaluate is no load.
+//!
 //! What `rewrite` refuses, it refuses by name:
 //!
 //! - holes: `replaceVars` and friends are advice (`languages/nix:V54`),
@@ -17,9 +22,10 @@
 //!   (`languages/nix:V69`), which is `languages/nix:T71`;
 //! - a guest other than shell: `readWithoutStrict` and `loads` both
 //!   speak shell extracts only;
-//! - a body whose first line is `set -euo pipefail`: nix-shebang's
-//!   `stripStrict` drops that line under a shebang whether the prelude
-//!   wrote it or the body did, and `rewrite` does not see the prelude;
+//! - under `readWithoutStrict`, a body whose first line is
+//!   `set -euo pipefail`: nix-shebang's `stripStrict` drops that line
+//!   under a shebang whether the prelude wrote it or the body did, and
+//!   `rewrite` does not see the prelude. `readFile` strips nothing;
 //! - a path nix cannot write as a relative path literal, or `loads`
 //!   would not read back.
 //!
@@ -32,14 +38,20 @@ use std::path::Path;
 use rnix::{SyntaxKind, SyntaxNode};
 use xenolith_lang_api::{DelimKind, Error, LangId, LoadRef, Result, Site, Span};
 
-use crate::{escape, loads, parse, sinks, span, unescape};
+use crate::{escape, loads, parse, scope, sinks, span, unescape};
 
 #[cfg(test)]
 mod tests;
 
-/// The load a site with a prelude gets (`languages/nix:V53`). Every shell
-/// prelude carries a shebang, and this is the load that strips it.
-const LOAD: &str = "nix-shebang.lib.readWithoutStrict";
+/// The load a site gets where nix-shebang is in scope, after the name it
+/// goes by there (`languages/nix:V53`): every shell prelude carries a
+/// shebang, and this is the load that strips it.
+const STRIPPING: &str = "lib.readWithoutStrict";
+
+/// The load a site gets everywhere else: it always evaluates, and the
+/// prelude it keeps is a comment and a harmless `set -e`
+/// (`languages/nix:V53`).
+const READ_FILE: &str = "builtins.readFile";
 
 /// The strict line nix-shebang's `stripStrict` removes below a shebang.
 const STRICT: &str = "set -euo pipefail";
@@ -85,14 +97,20 @@ pub(crate) fn rewrite(src: &str, site: &Site, path: &Path) -> Result<String> {
     }
     let raw = site.delim.body.of(src).unwrap_or_default();
     let body = unescape::unescape(&site.delim.kind, raw)?;
-    if body.split('\n').next() == Some(STRICT) {
-        return Err(refuse("rewrite of a body led by `set -euo pipefail`"));
-    }
+    let function = match scope::nix_shebang(&string) {
+        Some(nix_shebang) => {
+            if body.split('\n').next() == Some(STRICT) {
+                return Err(refuse("rewrite of a body led by `set -euo pipefail`"));
+            }
+            format!("{nix_shebang}.{STRIPPING}")
+        }
+        None => READ_FILE.to_owned(),
+    };
     let literal = path_literal(path).ok_or(refuse("rewrite to a path nix cannot load"))?;
     let call = if needs_parens(&string) {
-        format!("({LOAD} {literal})")
+        format!("({function} {literal})")
     } else {
-        format!("{LOAD} {literal}")
+        format!("{function} {literal}")
     };
     let out = splice(src, span(string.text_range()), &call)?;
     let back = loads::loads(&parse(&out)?);

@@ -1,6 +1,6 @@
 //! The loads an extraction leaves in a nix file (`languages/nix:V53`):
-//! `builtins.readFile ./x.sh`, or `nix-shebang.lib.readWithoutStrict
-//! ./x.sh` when the extract carries a prelude.
+//! `nix-shebang.lib.readWithoutStrict ./x.sh` where nix-shebang is in
+//! scope, `builtins.readFile ./x.sh` everywhere else.
 //!
 //! Read off the tree, never the text (`languages:V2`): a call in a
 //! comment is no call, and a path is the grammar's path node. Anywhere
@@ -20,11 +20,11 @@ use crate::span;
 #[cfg(test)]
 mod tests;
 
-/// The load without a prelude, matched whole (`languages/nix:V53`): a
-/// bare `readFile` is whatever its scope made it.
+/// The load where nix-shebang is not in scope, matched whole
+/// (`languages/nix:V53`): a bare `readFile` is whatever its scope made it.
 const READ_FILE: &[&str] = &["builtins", "readFile"];
 
-/// The load with one, matched as the callee's TAIL: the input may be
+/// The load where it is, matched as the callee's TAIL: the input may be
 /// reached through whatever binds it (`inputs.nix-shebang.lib…`).
 const READ_WITHOUT_STRICT: &[&str] = &["nix-shebang", "lib", "readWithoutStrict"];
 
