@@ -108,7 +108,10 @@ for commit in $commits; do
       fi
       ;;
     esac
-  done < <(git show --no-renames --diff-filter=A --name-only --pretty=format: "$commit")
+    # Renames ARE detected (git's default, >= 50% similar): a moved file,
+    # even one lightly edited on the way, adds no code (`scripts/guard:B2`).
+    # A file rewritten beyond that under a new name still counts as added.
+  done < <(git show -M --diff-filter=A --name-only --pretty=format: "$commit")
 done
 
 exit "$status"

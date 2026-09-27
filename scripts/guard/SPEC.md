@@ -46,3 +46,4 @@ T141|x|`scripts/guard/rust-mirror.sh` + bats: 1-to-1 `.rs` ↔ `tests.rs` over `
 
 id|date|cause|fix
 B1|2026-09-20|`bats-mirror` ran on pre-commit ∴ ⊥ RED commit possible: C11 test commit precedes its script, so orphan test = method working, ⊥ defect. V21 read as per-commit ⊥ per-branch|step moved to `all` (pre-push, `hk check`); mirror = property of branch, checked before push when GREEN exists
+B2|2026-09-27|`--no-renames` listed a moved file as added ∴ moving a crate under a hub (`languages:T137`) read as Rust w/o a prior `test:` commit|`git show -M`: rename (≥50% similar) ≠ added; rewritten beyond that = new code
