@@ -24,6 +24,9 @@ pub enum Kind {
     Extract,
     /// A host file: linted by `Host::checks` (`[lint] hosts`).
     Host,
+    /// A site inside a host file, linted in place under `--sites`
+    /// (`src/lint:V93`): the file is the host, findings in its lines.
+    Site,
 }
 
 impl Kind {
@@ -33,6 +36,7 @@ impl Kind {
         match self {
             Kind::Extract => "extract",
             Kind::Host => "host",
+            Kind::Site => "site",
         }
     }
 }

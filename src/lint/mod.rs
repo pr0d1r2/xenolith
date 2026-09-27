@@ -16,6 +16,10 @@
 //! 4. runs -- [`run`]: a tool not on PATH is an `error`, exit 2
 //!    (`src/lint:V8`). Under `--fix` an extract's fixers run first and
 //!    its checks judge the result; a host file is never rewritten.
+//!    What a tool printed is read into findings by [`findings`]
+//!    (`src/lint:V92`).
+//! 5. sites -- [`sites`], under `--sites`: each host file's sites linted
+//!    in place, findings mapped back to host lines (`src/lint:V93`).
 //!
 //! `src/cli` renders the [`LintReport`] and maps its exit code.
 
@@ -55,6 +59,10 @@ mod tests;
 pub const UNTRUSTED_COMMAND: &str = "untrusted-command";
 
 /// What a run is asked to do.
+///
+/// Four switches, each a flag the user typed; an enum would only rename
+/// them.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options {
     /// The paths named; empty means every tracked file (`src/discover:V57`).
@@ -67,6 +75,9 @@ pub struct Options {
     /// `--trust-config`: run the commands a `xenolith.toml` defines;
     /// only the flag grants it, never a config key (`src/lint:V91`).
     pub trust_config: bool,
+    /// `--sites`: also lint each host file's sites in place, before
+    /// extraction (`src/lint:V93`).
+    pub sites: bool,
 }
 
 /// Why a run was refused rather than carried out; every variant exit 2.
@@ -200,9 +211,12 @@ pub(crate) fn lint_with(
             unclaimed(&mut report, config, options, name)?;
             continue;
         }
-        if config.lint.hosts {
-            for host in hosts {
+        for host in hosts {
+            if config.lint.hosts {
                 run.host(&mut report, host, name, limit(config.lint.timeout));
+            }
+            if options.sites {
+                run.sites(&mut report, config, host, langs.guests, name);
             }
         }
         match found {
@@ -309,6 +323,7 @@ impl Run<'_> {
     fn host(&self, report: &mut LintReport, host: &dyn Host, name: &str, limit: Option<Duration>) {
         let target = Target {
             name,
+            arg: name,
             kind: Kind::Host,
             guest: None,
             dialect: None,
@@ -334,6 +349,7 @@ impl Run<'_> {
         let extend = extend(config, id);
         let target = Target {
             name,
+            arg: name,
             kind: Kind::Extract,
             guest: Some(id),
             dialect: env.dialect.clone(),
@@ -370,18 +386,31 @@ impl Run<'_> {
 
     /// Run one command on the target and make its outcome.
     fn one(&self, target: &Target<'_>, cmd: &Cmd, fixer: bool) -> Outcome {
-        let argv = cmd.argv(target.name);
-        let ran = run::run(self.root, &argv, target.limit, self.tools);
-        let (findings, raw_tail) = judged(cmd, &ran.stdout, ran.tail, || {
+        self.ran_on(target, cmd, fixer, target.name, || {
             fs::read_to_string(self.root.join(target.name)).unwrap_or_default()
-        });
+        })
+    }
+
+    /// Run one command on `path` -- the target itself, or a site's temp
+    /// file -- and make its outcome, `argv` showing `target.arg`; `text`
+    /// is what the tool read, for undoing tab stops.
+    fn ran_on(
+        &self,
+        target: &Target<'_>,
+        cmd: &Cmd,
+        fixer: bool,
+        path: &str,
+        text: impl FnOnce() -> String,
+    ) -> Outcome {
+        let ran = run::run(self.root, &cmd.argv(path), target.limit, self.tools);
+        let (findings, raw_tail) = judged(cmd, &ran.stdout, ran.tail, text);
         Outcome {
             file: PathBuf::from(target.name),
             kind: target.kind,
             guest: target.guest,
             dialect: target.dialect.clone(),
             check: cmd.check(),
-            argv,
+            argv: cmd.argv(target.arg),
             source: cmd.source,
             status: ran.status,
             exit: ran.exit,
@@ -394,7 +423,11 @@ impl Run<'_> {
 
 /// The file a command runs on, as outcomes name it.
 struct Target<'a> {
+    /// The file outcomes name.
     name: &'a str,
+    /// The file word `argv` shows: `name`, or a site's
+    /// `<host>:<line>:<col>` (`src/lint` §I sites).
+    arg: &'a str,
     kind: Kind,
     guest: Option<LangId>,
     dialect: Option<String>,
@@ -405,7 +438,7 @@ struct Target<'a> {
 /// A config command held back (`src/lint:V91`): a `skipped` outcome, and
 /// one warning per distinct command naming it.
 fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd, fixer: bool) {
-    let argv = cmd.argv(target.name);
+    let argv = cmd.argv(target.arg);
     report.warn(Warning {
         code: UNTRUSTED_COMMAND.to_owned(),
         file: None,

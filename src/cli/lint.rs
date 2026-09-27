@@ -51,6 +51,7 @@ pub fn run(
         strict_hosts: flags.strict_hosts,
         fix: flags.fix,
         trust_config: flags.trust_config,
+        ..Options::default()
     };
     match crate::lint::lint(root, &config, &options) {
         Ok(report) => render(&report, scan.format, flags.verbose, out, err),
