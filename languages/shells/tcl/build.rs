@@ -1,10 +1,11 @@
 //! Builds the vendored `tree-sitter-grammars/tree-sitter-tcl` grammar
 //! (`languages:V121`).
 //!
-//! The C is upstream's generated output, copied verbatim at the rev named
-//! in `vendor/tree-sitter-tcl/UPSTREAM`. Nothing here generates it: a
-//! build that needed the tree-sitter CLI and node would need a network,
-//! and the build is offline (`.:C3`).
+//! The C is generated from upstream's grammar at the rev named in
+//! `vendor/tree-sitter-tcl/UPSTREAM`, plus the local patch recorded there
+//! (`vendor/tree-sitter-tcl/xenolith.patch`, `languages/shells/tcl:B1`).
+//! Nothing here generates it: a build that needed the tree-sitter CLI and
+//! node would need a network, and the build is offline (`.:C3`).
 
 fn main() {
     let src = std::path::Path::new("vendor/tree-sitter-tcl/src");

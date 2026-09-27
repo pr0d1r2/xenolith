@@ -19,12 +19,16 @@ bool tree_sitter_tcl_external_scanner_scan(void *payload, TSLexer *lexer,
     return false;
   }
 
+  // xenolith: `;` ends a command as a newline does, so it never concats;
+  // `(` opens an array index (`$a(k)`, `a(k)`), which attaches by itself.
   if (valid_symbols[CONCAT] && (
         !iswspace(c) &&
+        c != '(' &&
         c != ')' &&
         c != ':' &&
         c != '}' &&
-        c != ']')) {
+        c != ']' &&
+        c != ';')) {
     lexer->result_symbol = CONCAT;
     return true;
   }
