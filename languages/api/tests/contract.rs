@@ -357,3 +357,21 @@ fn a_host_without_hole_advice_says_so_rather_than_advising_nothing() {
         })
     );
 }
+
+#[test]
+fn a_guest_without_params_says_so_for_each_part() {
+    // `languages/api/src/holes` §I: a guest that cannot name its vars,
+    // bind a param or find one back refuses, and V40 keeps its holes a
+    // judgement. `Ok(vec![])` from `vars` would read as "no clash".
+    let guest: &dyn Guest = &FakeGuest;
+    let unsupported = |operation| Error::Unsupported {
+        lang: LangId::Shell,
+        operation,
+    };
+    assert_eq!(guest.vars("X=1"), Err(unsupported("vars")));
+    assert_eq!(guest.params("x", &[]), Err(unsupported("params")));
+    assert_eq!(
+        guest.param_refs("\"$X\"", &["X".to_owned()]),
+        Err(unsupported("param_refs"))
+    );
+}

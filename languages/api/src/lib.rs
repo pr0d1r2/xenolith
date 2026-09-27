@@ -25,6 +25,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod holes;
 pub mod lens;
 pub mod shebang;
 pub mod site;
