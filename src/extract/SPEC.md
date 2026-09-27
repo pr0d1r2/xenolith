@@ -53,6 +53,7 @@ V83: rendered extract path & path in load text ⊆ `[A-Za-z0-9._/-]`, ⊥ leadin
 V84: writes atomic per file: temp in same dir → fsync → rename; per host: extracts & companions written BEFORE host rewrite ∴ crash leaves orphan extract (`src/graph:V7` finds it), ⊥ dangling load.
 V99: `xnl extract --relocate [--write]` moves ∀ `misplaced-extract` to its expected path & rewrites the load, same atomicity & order as V84 (new file, host, then old file removed); companion moves along.
 V101: `xnl inline` = exact inverse of extract: removes extract & companion only after host rewrite written; result passes V5 (rerun extract = no-op for trivial body).
+V270: `--relocate` & `inline` read load back: extract body (`languages/api/src/lens:V63`) → `Host::inline` in memory → site → placement (V45); re-extract of it proves move (V4, same bytes) before write; refused (exit 2): extract loaded ≠ once in whole tree; `inline` of body ⊥ trivial (V5).
 V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advisory lock `.xenolith.lock` @ repo root; a 2nd run exits 2 naming the holder's pid & start time; stale lock (holder gone) reclaimed. ⊥ 2 writers: V64's all-or-nothing is per file & assumes one rewriter.
 
 ## §T TASKS
@@ -77,8 +78,8 @@ T72|x|symlink guard on write; fixtures: symlinked dir inside root, symlink point
 T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
 T84|x|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 T85|x|atomic writes & write order; test kills between extract & host write|V84
-T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,`src/graph:V98`
-T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,`src/graph:V100`
+T101|.|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,V270,`src/graph:V98`
+T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,V270,`src/graph:V100`
 T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
 T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src/check:B12`
 T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose load stays `Judgment` is refused w/ why|V4,V5,V6,`.:C25`
