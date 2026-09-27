@@ -29,7 +29,7 @@ V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `C
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M4 | CI languages -- yaml, dockerfile, just | T17 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+| M4 | CI languages -- yaml, dockerfile | T17 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
 T17|.|host Dockerfile `RUN` + fixtures|`languages/shells/shell:V3`,`tests:V14`,`tests:V15`

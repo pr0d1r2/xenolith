@@ -54,7 +54,7 @@ V129: languages grouped by family under hubs `languages/{shells,ci,data,web}` (`
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | T57, T77, T78, T82, T120 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M2 | kinship & test hosts | T128, T130, T137 | ∀ `base` & `lookalike` edge carries its fixtures (`languages:V130`, `languages:V131`) |
-| M4 | CI languages -- yaml, dockerfile, just | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+| M4 | CI languages -- yaml, dockerfile | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
 T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
