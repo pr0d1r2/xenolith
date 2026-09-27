@@ -38,6 +38,8 @@ fn lang_id_names_every_language_in_the_federation() {
         (LangId::Rust, "rust"),
         (LangId::Shell, "shell"),
         (LangId::Sql, "sql"),
+        (LangId::Tcl, "tcl"),
+        (LangId::Xml, "xml"),
         (LangId::Yaml, "yaml"),
     ] {
         assert_eq!(id.as_str(), name);
