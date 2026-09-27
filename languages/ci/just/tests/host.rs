@@ -3,11 +3,12 @@
 //! `tests/fixtures.rs` pins which recipe is which site over files; these
 //! pin the rest of the `Host` contract: the id, what is claimed
 //! (`languages/ci/just:V58`), ordering (`languages/api:V36`), the shebang
-//! guest flag, and rewrite at the trait.
+//! guest flag, rewrite at the trait, and the host check
+//! (`languages/ci/just:T183`).
 
 use std::path::Path;
 
-use xenolith_lang_api::{DelimKind, Error, Host, LangId};
+use xenolith_lang_api::{DelimKind, Error, FileArg, Format, Host, LangId, LintCmd};
 use xenolith_lang_just::JustHost;
 
 #[test]
@@ -112,4 +113,26 @@ fn params_are_refused_rather_than_dropped() {
     };
     let got = JustHost.rewrite_bound(src, site, &invoke, Path::new("./x.sh"), "", &[param]);
     assert!(matches!(got, Err(Error::Unsupported { .. })), "{got:?}");
+}
+
+#[test]
+fn the_host_check_is_just_fmt_check_with_no_unstable_flag() {
+    // `languages/ci/just:T183`, measured on the pinned just 1.51.0: `--fmt
+    // --check` is stable and exits 1 on an unformatted file with or
+    // without `--unstable`, so the flag is dropped. `--justfile` names
+    // the file; a bare path is read as a recipe argument and refused.
+    let argv = |cmds: Vec<LintCmd>| -> Vec<Vec<String>> {
+        cmds.into_iter()
+            .map(|cmd| {
+                assert_eq!(cmd.file_arg, FileArg::Append);
+                assert_eq!(cmd.format, Format::Raw);
+                cmd.argv
+            })
+            .collect()
+    };
+    assert_eq!(
+        argv(JustHost.checks()),
+        [["just", "--fmt", "--check", "--justfile"]]
+    );
+    assert_eq!(argv(JustHost.fixers()), [["just", "--fmt", "--justfile"]]);
 }
