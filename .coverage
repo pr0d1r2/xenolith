@@ -21,4 +21,4 @@
 # `--relocate` & `inline`, nix packaging). No test stopped asserting; the
 # floor was never measured on the merged tree. Measured there: 96.75. The
 # gap is owed back by tests, not by this number (the bug-fix wave after this).
-lines 96.75
+lines 97.96
