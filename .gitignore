@@ -14,3 +14,6 @@ result-*
 # published (`scripts/guard:V23`), so it is the one file that may never be
 # tracked. The guard reads it from here.
 /.private-names
+
+# Local agent state (Claude Code worktrees, scratch): never part of the tree.
+/.claude/
