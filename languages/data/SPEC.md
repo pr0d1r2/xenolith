@@ -12,13 +12,14 @@ sql|sql grammar, guest rules|sinks holding sql (their host node)|-
 jq|jq grammar, guest rules|sinks holding jq (their host node)|-
 awk|awk grammar, guest rules|sinks holding awk (their host node)|-
 perl|perl grammar, guest rules|sinks holding perl (their host node)|-
+xml|xml parser, launchd argv sinks, `xmllint` check|shell classification (`languages/shells/shell`)|-
 
 ## §N NAV
 
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-self|languages/data|hub: data & text guests -- python, sql, jq, awk, perl
+self|languages/data|hub: data, text & markup -- python, sql, jq, awk, perl, xml
 sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types, lens law harness
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/shells|hub: shell family -- shell, bats

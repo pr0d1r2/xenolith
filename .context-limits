@@ -57,3 +57,4 @@ languages/shells/bats    5000
 src/check                5000
 src/discover             5000
 src/registry             5000
+languages/data/xml       5000

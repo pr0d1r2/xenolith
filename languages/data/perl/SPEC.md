@@ -9,12 +9,13 @@ crate `xenolith-lang-perl` (feature `lang-perl`): tree-sitter-perl; guest (bash 
 rel|path|lens
 up|.|-
 up|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, load idiom, default linter
-up|languages/data|hub: data & text guests -- python, sql, jq, awk, perl
+up|languages/data|hub: data, text & markup -- python, sql, jq, awk, perl, xml
 self|languages/data/perl|perl grammar, guest rules
 sib|languages/data/python|python grammar, guest rules
 sib|languages/data/sql|sql grammar, guest rules
 sib|languages/data/jq|jq grammar, guest rules
 sib|languages/data/awk|awk grammar, guest rules
+sib|languages/data/xml|xml parser, launchd argv sinks, `xmllint` check
 
 ## §V INVARIANTS
 

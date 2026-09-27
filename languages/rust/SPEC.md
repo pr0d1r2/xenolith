@@ -14,7 +14,7 @@ sib|languages/api|contract crate: `Host`/`Guest` traits, `LangId`, shared types,
 sib|languages/shebang|shebang parse/strip/wrap ∀ guest
 sib|languages/shells|hub: shell family -- shell, bats
 sib|languages/ci|hub: build, CI & config hosts -- nix, pkl, just, yaml, dockerfile
-sib|languages/data|hub: data & text guests -- python, sql, jq, awk, perl
+sib|languages/data|hub: data, text & markup -- python, sql, jq, awk, perl, xml
 sib|languages/web|hub: web host & its guests -- html, js, css
 sib|languages/ruby|ruby parser, ruby host sinks
 
