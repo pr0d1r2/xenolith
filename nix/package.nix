@@ -80,7 +80,12 @@ let
       "xenolith-tcl-syntax"
     ];
     doCheck = false;
-    meta.mainProgram = "xenolith-tcl-syntax";
+    meta = {
+      mainProgram = "xenolith-tcl-syntax";
+      # This workspace's own binary: the notices name its licence like any
+      # other wrapped tool's (`dev:V347`).
+      license = lib.licenses.mit;
+    };
   };
 
   # Per language, argv0 → the package that provides it (`nix/tools.nix`).
@@ -132,6 +137,15 @@ let
 
       cargoLock.lockFile = ../Cargo.lock;
 
+      # The root package ONLY (`nix:V349`). `xenolith-dev` is a workspace
+      # member that ships to nobody (`dev` §C); naming the package keeps its
+      # binary out of `bin/` and out of the closure, whatever cargo would
+      # select for an unnamed build.
+      cargoBuildFlags = [
+        "-p"
+        manifest.package.name
+      ];
+
       # Every build names its features, the default included: `default`
       # in Cargo.toml and `supported` here are then one list read twice,
       # not two lists that agree today.
@@ -158,6 +172,18 @@ let
       passthru = {
         languages = chosen;
         inherit tools;
+        # argv0 → what `docs/THIRD-PARTY-NOTICES.md` says about it: the
+        # nixpkgs package, its version and its SPDX licences, read by
+        # `xenolith-dev notices` through `nix eval` (`dev:V347`,
+        # `docs:V108`). nixpkgs meta owns these; a table typed into the doc
+        # would be a second owner.
+        toolLicenses = lib.mapAttrs (_: drv: {
+          package = lib.getName drv;
+          version = lib.getVersion drv;
+          licenses = map (l: if lib.isString l then l else l.spdxId or l.shortName) (
+            lib.toList (drv.meta.license or [ ])
+          );
+        }) tools;
       };
 
       meta = {
