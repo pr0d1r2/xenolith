@@ -8,7 +8,7 @@ use std::path::Path;
 
 use xenolith_lang_api::{Host, LoadRef};
 
-use super::{Back, again, back, loaders, trivial};
+use super::{Back, again, back, loaders};
 use crate::config::{self, Config, Tree};
 use crate::discover::{Sandbox, write as put};
 use crate::extract::toys;
@@ -92,19 +92,22 @@ fn a_load_that_cannot_be_read_back_says_why() {
 
 #[test]
 fn trivial_is_check_s_verdict_threshold_included() {
-    let sh = toys()
-        .guests
-        .first()
-        .copied()
-        .unwrap_or_else(|| panic!("no guest"));
-    let env = xenolith_lang_api::GuestEnv::default();
+    let tree = Tree::new(Config::default());
+    let verdict = |text: &str, config: &Config| {
+        let (_sandbox, root) = sandbox_with("a/build.sh", text);
+        let read = read_back(&root, &tree, "a/build.sh").unwrap_or_else(|e| panic!("{e}"));
+        read.trivial(config)
+    };
     let plain = Config::default();
-    assert!(trivial(sh, "echo hi\n", &env, &plain));
-    assert!(!trivial(sh, "a && b\n", &env, &plain));
+    assert!(verdict("#!/usr/bin/env sh\necho hi\n", &plain));
+    assert!(!verdict("#!/usr/bin/env sh\na && b\n", &plain));
     let relaxed = config("version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n");
-    assert!(trivial(sh, "a && b\n", &env, &relaxed), "src/config:V55");
     assert!(
-        !trivial(sh, "a && b | c\n", &env, &relaxed),
+        verdict("#!/usr/bin/env sh\na && b\n", &relaxed),
+        "src/config:V55"
+    );
+    assert!(
+        !verdict("#!/usr/bin/env sh\na && b | c\n", &relaxed),
         "pipeline is not allowed"
     );
 }

@@ -525,7 +525,11 @@ impl Located {
 ///
 /// Relaxing only (`src/config:V55`): a body that passes whole is final,
 /// and the host is asked for its ceiling by id, never named here.
-fn site_verdict(
+///
+/// The ONE verdict (`src/check:V152`): `src/extract` judges a body read
+/// back with it too (`src/extract:V270`, `src/graph:V100`), so `xnl
+/// inline` and `inlineable-extract` cannot disagree with `xnl check`.
+pub(crate) fn site_verdict(
     guest: &dyn Guest,
     site: &Site,
     host: LangId,

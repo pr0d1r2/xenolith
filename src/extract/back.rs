@@ -25,10 +25,10 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use xenolith_lang_api::{Error, Guest, GuestEnv, Host, LoadRef, Site, shebang};
+use xenolith_lang_api::{GuestEnv, Host, LoadRef, Site, shebang};
 
 use super::{ExtractError, HostEdit, Planned, Read, edit_file, place, plan, position, prelude};
-use crate::check::Langs;
+use crate::check::{Langs, site_verdict};
 use crate::config::{Config, Tree};
 use crate::graph;
 
@@ -64,15 +64,14 @@ impl Back<'_> {
         (self.extract != placed.path && self.extract != suffixed).then_some(placed.path.as_str())
     }
 
-    /// Whether the body may stay inline under `config`, as `xnl check`
-    /// judges a site (`src/graph:V100`).
+    /// Whether the body may stay inline under `config` where it goes
+    /// back: `xnl check`'s own verdict on that site
+    /// ([`crate::check::site_verdict`], `src/check:V152`,
+    /// `src/graph:V100`), never a copy of it (`src/extract:B2`).
     pub(crate) fn trivial(&self, config: &Config) -> bool {
-        trivial(
-            self.planned.guest,
-            &self.body,
-            &self.planned.site.env,
-            config,
-        )
+        let planned = &self.planned;
+        let host = planned.host.id();
+        site_verdict(planned.guest, &planned.site, host, &self.body, config).is_none()
     }
 }
 
@@ -224,39 +223,6 @@ fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result
         (Some(site), None) => Ok(site),
         (None, _) => Err("no site sits where the load was once its body is put back".to_owned()),
         (Some(_), Some(_)) => Err("more than one site sits where the load was".to_owned()),
-    }
-}
-
-/// Whether `body` may stay inline for `guest` under `config`: the
-/// verdict `xnl check` gives a site (`src/check:V152`, `src/config:V55`)
-/// -- dialect syntax the guest cannot judge is not trivial, a trivial
-/// body is, and past that `[threshold.<guest>]` relaxes by construct,
-/// or by size for a guest that names none. A body that does not parse
-/// is not trivial (`languages:V77`).
-pub(crate) fn trivial(guest: &dyn Guest, body: &str, env: &GuestEnv, config: &Config) -> bool {
-    if guest.unsupported(body, env).is_some() {
-        return false;
-    }
-    match guest.trivial(body) {
-        Ok(true) => return true,
-        Ok(false) => {}
-        Err(_) => return false,
-    }
-    let id = guest.id();
-    match guest.constructs(body) {
-        Ok(names) => {
-            let allow = config.construct_allow(id);
-            !names.is_empty() && names.iter().all(|n| allow.iter().any(|a| a == n))
-        }
-        Err(Error::Unsupported { .. }) => {
-            let text = body.trim();
-            let lines = u64::try_from(text.lines().count()).unwrap_or(u64::MAX);
-            let bytes = u64::try_from(text.len()).unwrap_or(u64::MAX);
-            config
-                .size_ceiling(id)
-                .is_some_and(|(max_lines, max_bytes)| lines <= max_lines && bytes <= max_bytes)
-        }
-        Err(_) => false,
     }
 }
 
