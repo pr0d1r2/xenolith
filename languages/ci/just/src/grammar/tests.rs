@@ -35,6 +35,56 @@ fn a_justfile_parses_to_recipes_without_error() {
     assert_eq!(recipe, Some("recipe"));
 }
 
+/// just 1.51 syntax the grammar at 0.2.0 rejected, one construct a file
+/// (`languages/ci/just:B3`). Each is valid to `just 1.51.0`.
+const JUST_1_51: &[&str] = &[
+    "a := f\"hello {{b}}\"\n",
+    "a := f'{{{{b}} is {{b + \"!\"}}'\n",
+    "a := f\"\"\"\n  x {{b}}\n\"\"\"\n",
+    "a := f'''\n  x {{b}}\n'''\n",
+    "a := x\"~/bin\"\n",
+    "a := x'$HOME'\n",
+    "a := x\"\"\"${HOME}\"\"\"\n",
+    "a := x'''~/x'''\n",
+    "set unstable\na := \"b\" && \"c\"\n",
+    "set unstable\na := \"\" || \"c\"\n",
+    "a := assert(\"b\" == \"b\", \"no\")\n",
+    "eager a := \"b\"\n",
+    "[private]\na := \"b\"\n",
+    "[private]\nexport a := \"b\"\n",
+    "unexport A\n",
+    "[arg(\"n\", pattern='\\d+')]\nb n:\n    echo {{n}}\n",
+    "b:\n    echo {{ f\"hi {{c}}\" }}\n",
+    "set shell := [x\"bash\", \"-cu\"]\n",
+];
+
+#[test]
+fn just_1_51_syntax_parses_without_error() {
+    for src in JUST_1_51 {
+        let tree = parse(src);
+        let root = tree.root_node();
+        assert!(!root.has_error(), "{src:?}\n{}", root.to_sexp());
+    }
+}
+
+#[test]
+fn a_format_string_holds_its_interpolations_in_one_string() {
+    let tree = parse("a := f\"x {{b}} y {{c}}\"\n");
+    let sexp = tree.root_node().to_sexp();
+    assert_eq!(sexp.matches("(string").count(), 1, "{sexp}");
+    assert_eq!(sexp.matches("(interpolation").count(), 2, "{sexp}");
+}
+
+#[test]
+fn names_like_the_new_keywords_stay_variables() {
+    // `eager` and `unexport` read as identifiers, so a variable of that
+    // name -- valid just -- still parses (`languages/ci/just:B3`).
+    for src in ["eager := \"a\"\n", "unexport := \"a\"\nb := unexport\n"] {
+        let tree = parse(src);
+        assert!(!tree.root_node().has_error(), "{src:?}");
+    }
+}
+
 #[test]
 fn broken_input_is_an_error_tree_not_a_panic() {
     let tree = parse("set shell := bash\n");

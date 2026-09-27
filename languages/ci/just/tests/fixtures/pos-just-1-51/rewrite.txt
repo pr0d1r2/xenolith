@@ -1,0 +1,3 @@
+# Holes stay a judgement (`languages/ci/just` §I), new syntax or not.
+repeat | refused | holes
+hello | refused | holes

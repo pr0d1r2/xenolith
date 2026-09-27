@@ -1,0 +1,5 @@
+# Both recipes are read once the file parses (`languages/ci/just:B3`); the
+# format string in `hello` sits inside ONE hole, the interpolation just
+# opens at the line's `{{`.
+repeat | shell | JustRecipe | sh errexit nounset | {{ count }} | "echo {{ count }}"
+hello | shell | JustRecipe | sh errexit nounset | {{ f"hi {{name}}" }} | "echo {{ f\"hi {{name}}\" }}"
