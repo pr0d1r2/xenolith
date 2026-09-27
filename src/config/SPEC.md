@@ -70,7 +70,7 @@ T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & o
 T80|x|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
 T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
-T240|.|`[threshold.just] max_lines`: parse, default row, nested merge, `Config::line_ceiling`; engine per-line verdict via `DelimKind::runs_line_by_line`; tests: 2 lines flagged by default, clean at 2, 3 flagged, negative → exit 2|V240,V55,V73,`languages/ci/just:T185`
+T240|x|`[threshold.just] max_lines`: parse, default row, nested merge, `Config::line_ceiling`; engine per-line verdict via `DelimKind::runs_line_by_line`; tests: 2 lines flagged by default, clean at 2, 3 flagged, negative → exit 2|V240,V55,V73,`languages/ci/just:T185`
 
 ## §B BUGS
 

@@ -13,7 +13,9 @@
 //!    to `[langs] missing_guest` and is never guessed about (`src/check:V42`).
 //! 5. verdict -- `Guest::trivial` over the body `Host::unescape` gives
 //!    (`languages/api/src/lens:V39`), then `[threshold]`, which only
-//!    RELAXES (`src/config:V55`): a trivial body is never flagged.
+//!    RELAXES (`src/config:V55`): a trivial body is never flagged. A body
+//!    its host runs line by line may be judged a line at a time, up to
+//!    the host's `max_lines` (`src/config:V240`).
 //! 6. allow -- `[[allow]]` by path, sink and body hash (`src/config:V10`);
 //!    an entry matching no site is `stale-allow` (`src/config:V9`).
 //! 7. report -- [`Violation`]s (`src:V1`) into a [`Report`], which keeps
@@ -35,7 +37,7 @@ use std::io::Read as _;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
-use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, Site, shebang};
+use xenolith_lang_api::{DelimKind, Error, Guest, GuestEnv, Host, LangId, Site, shebang};
 
 use crate::cli::EXIT_USAGE;
 use crate::config::tree::file_in;
@@ -414,12 +416,7 @@ fn judge_site(
     // flagged as such: judging the raw bytes instead would be a verdict
     // on text nothing executes.
     let why = match host.unescape(&site.delim, &guest_text(src, site)) {
-        // Dialect syntax the guest cannot judge is its own finding, a
-        // judgement rather than "unparseable" (`languages/shells/shell:V138`).
-        Ok(body) => guest
-            .unsupported(&body, &site.env)
-            .map(str::to_owned)
-            .or_else(|| verdict(*guest, &body, config)),
+        Ok(body) => site_verdict(*guest, site, lang, &body, config),
         Err(e) => Some(format!("unparseable {lang} string: {e}")),
     };
     let Some(why) = why else {
@@ -517,6 +514,55 @@ impl Located {
             directions,
         }
     }
+}
+
+/// Stage 5 for a site: its body judged whole ([`body_verdict`]), then,
+/// for a body its host runs line by line
+/// ([`DelimKind::runs_line_by_line`]), relaxed to one verdict per line
+/// when it holds no more lines than the host's `[threshold.<host>]
+/// max_lines` (`src/config:V240`). Each line is then the guest's whole
+/// program -- just gives each a fresh shell (`languages/ci/just:V180`).
+///
+/// Relaxing only (`src/config:V55`): a body that passes whole is final,
+/// and the host is asked for its ceiling by id, never named here.
+fn site_verdict(
+    guest: &dyn Guest,
+    site: &Site,
+    host: LangId,
+    body: &str,
+    config: &Config,
+) -> Option<String> {
+    let whole = body_verdict(guest, &site.env, body, config)?;
+    let Some(max) = config
+        .line_ceiling(host)
+        .filter(|_| site.delim.kind.runs_line_by_line())
+    else {
+        return Some(whole);
+    };
+    let lines: Vec<&str> = body.lines().filter(|l| !l.trim().is_empty()).collect();
+    let count = u64::try_from(lines.len()).unwrap_or(u64::MAX);
+    if count < 2 {
+        return Some(whole);
+    }
+    if count > max {
+        return Some(format!(
+            "{whole}; {count} lines, over threshold.{host} max_lines = {max}"
+        ));
+    }
+    lines.iter().enumerate().find_map(|(i, line)| {
+        body_verdict(guest, &site.env, line, config)
+            .map(|why| format!("body line {}: {why}", i + 1))
+    })
+}
+
+/// Stage 5 for one body: dialect syntax the guest cannot judge is its
+/// own finding, a judgement rather than "unparseable"
+/// (`languages/shells/shell:V138`); past that, [`verdict`].
+fn body_verdict(guest: &dyn Guest, env: &GuestEnv, body: &str, config: &Config) -> Option<String> {
+    guest
+        .unsupported(body, env)
+        .map(str::to_owned)
+        .or_else(|| verdict(guest, body, config))
 }
 
 /// Stage 5: `None` when the body may stay inline, else the reason it may

@@ -131,6 +131,18 @@ pub enum DelimKind {
     JustShebangRecipe,
 }
 
+impl DelimKind {
+    /// Whether the host runs each line of such a body as a program of its
+    /// own: a just recipe without a shebang hands every line to a fresh
+    /// shell (`languages/ci/just:V180`). The engine may then judge the
+    /// lines one at a time, up to the host's `[threshold.<host>]
+    /// max_lines` (`src/config:V240`). Every other kind is one program.
+    #[must_use]
+    pub const fn runs_line_by_line(&self) -> bool {
+        matches!(self, DelimKind::JustRecipe)
+    }
+}
+
 /// The interpreter dialect and options in force at a site.
 ///
 /// Derived by the HOST from its own context -- a nix `runtimeInputs` list,
