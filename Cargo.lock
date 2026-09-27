@@ -319,6 +319,7 @@ dependencies = [
  "xenolith-lang-nix",
  "xenolith-lang-pkl",
  "xenolith-lang-shell",
+ "xenolith-lang-tcl",
 ]
 
 [[package]]
@@ -360,6 +361,15 @@ version = "0.1.0"
 dependencies = [
  "tree-sitter",
  "tree-sitter-bash",
+ "xenolith-lang-api",
+]
+
+[[package]]
+name = "xenolith-lang-tcl"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter",
  "xenolith-lang-api",
 ]
 

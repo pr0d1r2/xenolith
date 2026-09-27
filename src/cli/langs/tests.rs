@@ -20,6 +20,7 @@ fn built_with(id: LangId) -> bool {
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
+        (LangId::Tcl, cfg!(feature = "lang-tcl")),
     ]
     .contains(&(id, true))
 }

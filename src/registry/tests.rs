@@ -24,6 +24,7 @@ fn built_with(id: LangId) -> bool {
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
+        (LangId::Tcl, cfg!(feature = "lang-tcl")),
     ]
     .contains(&(id, true))
 }
@@ -42,17 +43,23 @@ fn guest_ids() -> Vec<LangId> {
 
 #[test]
 fn hosts_are_exactly_the_compiled_in_hosts() {
-    // just, nix, pkl and shell are hosts; shell is a guest as well.
-    let expected: Vec<LangId> = [LangId::Just, LangId::Nix, LangId::Pkl, LangId::Shell]
-        .into_iter()
-        .filter(|id| built_with(*id))
-        .collect();
+    // just, nix, pkl, shell and tcl are hosts; shell and tcl are guests as well.
+    let expected: Vec<LangId> = [
+        LangId::Just,
+        LangId::Nix,
+        LangId::Pkl,
+        LangId::Shell,
+        LangId::Tcl,
+    ]
+    .into_iter()
+    .filter(|id| built_with(*id))
+    .collect();
     assert_eq!(host_ids(), expected);
 }
 
 #[test]
 fn guests_are_exactly_the_compiled_in_guests() {
-    let expected: Vec<LangId> = [LangId::Shell]
+    let expected: Vec<LangId> = [LangId::Shell, LangId::Tcl]
         .into_iter()
         .filter(|id| built_with(*id))
         .collect();
@@ -102,6 +109,25 @@ fn the_just_host_claims_justfiles_and_nothing_else_does() {
         assert_eq!(claiming(path), [LangId::Just], "{path}");
     }
     assert!(!claiming("justfile.bak").contains(&LangId::Just));
+}
+
+/// The tcl host claims tcl and expect files and nothing the shell host
+/// claims, so a `*.exp` login script is scanned by tcl alone
+/// (`languages/shells/tcl:V195`).
+#[cfg(feature = "lang-tcl")]
+#[test]
+fn the_tcl_host_claims_tcl_and_expect_files_alone() {
+    let claiming = |path: &str, head: &str| {
+        hosts()
+            .iter()
+            .filter(|h| h.claims(Path::new(path), head))
+            .map(|h| h.id())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(claiming("lib/a.tcl", ""), [LangId::Tcl]);
+    assert_eq!(claiming("bin/login.exp", ""), [LangId::Tcl]);
+    assert_eq!(claiming("bin/run", "#!/usr/bin/env tclsh"), [LangId::Tcl]);
+    assert!(!claiming("scripts/a.sh", "#!/usr/bin/env bash").contains(&LangId::Tcl));
 }
 
 #[test]
