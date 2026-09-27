@@ -1,4 +1,4 @@
-# `scripts/just/<recipe>` beside the justfile, the prototype T184 keeps
-# until it decides (`languages/ci/just` §I).
+# `scripts/just/<recipe>` beside the justfile, as T184 decided
+# (`languages/ci/just` §I).
 default | default | {host_dir}/scripts/just
 build | build | {host_dir}/scripts/just

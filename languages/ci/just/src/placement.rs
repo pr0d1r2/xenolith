@@ -1,8 +1,9 @@
 //! Where an extract of a recipe goes (`languages/ci/just` §I).
 //!
-//! `scripts/just/<recipe>` beside the justfile: the prototype the spec
-//! keeps until `languages/ci/just:T184` decides between it and the
-//! fleet's `scripts/<recipe>` (`languages/ci/just:R178`). Beside the
+//! `scripts/just/<recipe>` beside the justfile, as decided by
+//! `languages/ci/just:T184`: under the fleet's `scripts/`
+//! (`languages/ci/just:R178`), with `just/` keeping each host's extracts
+//! apart. Beside the
 //! justfile rather than at the repo root, because a recipe's working dir
 //! is its justfile's (`languages:V74`) and the load is written relative
 //! to it.
