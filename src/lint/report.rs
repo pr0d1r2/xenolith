@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use serde_json::{Map, Value, json};
 use xenolith_lang_api::LangId;
 
+use super::findings::Finding;
 use crate::model::{SCHEMA, Warning};
 
 #[cfg(test)]
@@ -121,6 +122,9 @@ pub struct Outcome {
     /// A fixer rather than a check (`--fix`); listed only when it did not
     /// pass.
     pub fixer: bool,
+    /// What the tool's machine-readable output said, sorted; empty when
+    /// it has none or it did not parse (`src/lint:V92`).
+    pub findings: Vec<Finding>,
 }
 
 impl Outcome {
@@ -135,7 +139,7 @@ impl Outcome {
             "source": self.source.as_str(),
             "status": self.status.as_str(),
             "exit": self.exit,
-            "findings": Vec::<Value>::new(),
+            "findings": self.findings.iter().map(finding_value).collect::<Vec<Value>>(),
             "raw_tail": self.raw_tail,
         })
     }
@@ -224,4 +228,15 @@ fn warning_value(warning: &Warning) -> Value {
         map.insert("file".to_owned(), Value::String(file.display().to_string()));
     }
     Value::Object(map)
+}
+
+/// A finding in the envelope's shape (`src/lint` §I).
+fn finding_value(finding: &Finding) -> Value {
+    json!({
+        "line": finding.line,
+        "col": finding.col,
+        "code": finding.code,
+        "severity": finding.severity,
+        "message": finding.message,
+    })
 }

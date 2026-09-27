@@ -56,6 +56,9 @@ pub struct Ran {
     /// The output's last [`TAIL_LINES`] lines, or why the tool did not
     /// run; `None` on a pass.
     pub tail: Option<String>,
+    /// Standard output alone, for the findings parsers: stderr noise
+    /// must not break a tool's JSON (`src/lint` §I findings).
+    pub stdout: String,
 }
 
 impl Ran {
@@ -64,6 +67,7 @@ impl Ran {
             status: Status::Error,
             exit: None,
             tail: Some(why),
+            stdout: String::new(),
         }
     }
 }
@@ -99,18 +103,21 @@ pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools)
         Ok(None) => return Ran::error(overran(program, limit.unwrap_or_default())),
         Err(e) => return Ran::error(format!("`{program}` could not be waited for: {e}")),
     };
-    let mut text = collect(printed);
+    let stdout = collect(printed);
+    let mut text = stdout.clone();
     text.push_str(&collect(complained));
     match status.code() {
         Some(0) => Ran {
             status: Status::Pass,
             exit: Some(0),
             tail: None,
+            stdout,
         },
         Some(code) => Ran {
             status: Status::Fail,
             exit: Some(code),
             tail: Some(tail(&text).unwrap_or_else(|| format!("exited {code}, printing nothing"))),
+            stdout,
         },
         None => Ran::error(match tail(&text) {
             Some(out) => format!("`{program}` was killed by a signal\n{out}"),

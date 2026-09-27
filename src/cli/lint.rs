@@ -88,6 +88,24 @@ pub fn render(
                     continue;
                 }
                 failed += 1;
+                if !outcome.findings.is_empty() {
+                    // One line per finding in place of the tail
+                    // (`src/lint` §I findings, `src/cli` §I human).
+                    for f in &outcome.findings {
+                        let _ = writeln!(
+                            out,
+                            "{}:{}:{} {}: {} ({}) {}",
+                            outcome.file.display(),
+                            f.line,
+                            f.col,
+                            outcome.check,
+                            f.code,
+                            f.severity,
+                            f.message
+                        );
+                    }
+                    continue;
+                }
                 let role = if outcome.fixer { "fixer " } else { "" };
                 let mut tail = outcome.raw_tail.as_deref().unwrap_or_default().lines();
                 let why = match (outcome.status, outcome.exit) {

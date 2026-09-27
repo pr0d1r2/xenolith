@@ -371,6 +371,9 @@ impl Run<'_> {
     fn one(&self, target: &Target<'_>, cmd: &Cmd, fixer: bool) -> Outcome {
         let argv = cmd.argv(target.name);
         let ran = run::run(self.root, &argv, target.limit, self.tools);
+        let (findings, raw_tail) = judged(cmd, &ran.stdout, ran.tail, || {
+            fs::read_to_string(self.root.join(target.name)).unwrap_or_default()
+        });
         Outcome {
             file: PathBuf::from(target.name),
             kind: target.kind,
@@ -381,8 +384,9 @@ impl Run<'_> {
             source: cmd.source,
             status: ran.status,
             exit: ran.exit,
-            raw_tail: ran.tail,
+            raw_tail,
             fixer,
+            findings,
         }
     }
 }
@@ -422,7 +426,30 @@ fn untrusted(report: &mut LintReport, target: &Target<'_>, cmd: &Cmd, fixer: boo
         exit: None,
         raw_tail: None,
         fixer,
+        findings: Vec::new(),
     });
+}
+
+/// A run's findings and what is left of its tail (`src/lint:V92`,
+/// `src/lint` §I findings): parsed per the command's format, with tab
+/// stops undone against `text` (read only when needed); the tail goes
+/// once a finding stands in for it, and stays when nothing parsed or a
+/// failing run parsed to no finding, so nothing is dropped.
+fn judged(
+    cmd: &Cmd,
+    stdout: &str,
+    tail: Option<String>,
+    text: impl FnOnce() -> String,
+) -> (Vec<Finding>, Option<String>) {
+    let Some(parsed) = findings::parse(&cmd.format, stdout) else {
+        return (Vec::new(), tail);
+    };
+    let mut found = parsed.findings;
+    if parsed.tab_stops && !found.is_empty() {
+        findings::detab(&mut found, &text());
+    }
+    let tail = if found.is_empty() { tail } else { None };
+    (found, tail)
 }
 
 /// `[lint] timeout` as a wall clock per command, `None` for 0: no limit

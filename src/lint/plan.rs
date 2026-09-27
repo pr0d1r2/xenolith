@@ -9,7 +9,7 @@
 //! it runs only under `--trust-config` (`src/lint:V91`); untrusted, it
 //! is listed as skipped and the defaults still run.
 
-use xenolith_lang_api::{FileArg, LintCmd};
+use xenolith_lang_api::{FileArg, Format, LintCmd};
 
 use super::report::Source;
 use crate::config::LintGuest;
@@ -30,6 +30,9 @@ pub struct Cmd {
     pub file_arg: FileArg,
     /// Default or config.
     pub source: Source,
+    /// How to read its output (`src/lint:V92`); a config command is
+    /// always [`Format::Raw`], config has no way to say otherwise.
+    pub format: Format,
 }
 
 impl Cmd {
@@ -40,6 +43,7 @@ impl Cmd {
             words: cmd.argv.clone(),
             file_arg: cmd.file_arg,
             source: Source::Default,
+            format: cmd.format.clone(),
         }
     }
 
@@ -59,6 +63,7 @@ impl Cmd {
             words,
             file_arg,
             source: Source::Config,
+            format: Format::Raw,
         }
     }
 
