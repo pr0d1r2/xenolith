@@ -58,6 +58,28 @@ fn a_missing_final_newline_is_marked() {
 }
 
 #[test]
+fn a_middle_too_big_to_align_is_every_old_line_out_then_every_new_one_in() {
+    // 4001 × 4002 cells is past the table's bound: no alignment, still
+    // a diff that applies.
+    let n = 4001;
+    let lines = |tag: char| {
+        (0..n).fold(String::new(), |mut out, i| {
+            out.push(tag);
+            out.push_str(&i.to_string());
+            out.push('\n');
+            out
+        })
+    };
+    let (old, new) = (lines('a'), lines('b'));
+    let diff = unified("a/f", "b/f", &old, &new);
+    let body: Vec<&str> = diff.lines().skip(3).collect();
+    assert_eq!(body.len(), 2 * n, "no context: nothing is shared");
+    assert!(body.iter().take(n).all(|l| l.starts_with("-a")));
+    assert!(body.iter().skip(n).all(|l| l.starts_with("+b")));
+    assert_eq!(body.get(n), Some(&"+b0"));
+}
+
+#[test]
 fn insertions_and_removals_in_the_middle_align_on_common_lines() {
     let old = "a\nb\nc\nd\n";
     let new = "a\nx\nc\nd\ny\n";

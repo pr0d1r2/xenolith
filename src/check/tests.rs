@@ -1946,3 +1946,172 @@ fn an_unclaimed_file_names_only_a_feature_that_exists() {
     .to_string();
     assert!(nix.contains("`lang-nix`"), "{nix}");
 }
+
+/// A `fmt::Write` that takes `room` bytes, then refuses.
+struct Capped {
+    room: usize,
+}
+
+impl std::fmt::Write for Capped {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.room = self.room.checked_sub(s.len()).ok_or(std::fmt::Error)?;
+        Ok(())
+    }
+}
+
+#[test]
+fn a_refused_write_stops_the_unclaimed_message_where_it_failed() {
+    use std::fmt::Write as _;
+
+    let head = "a.nix: host unsupported: no host in this build claims it";
+    for missing in [Some(LangId::Nix), Some(LangId::Python)] {
+        let e = CheckError::Unclaimed {
+            file: PathBuf::from("a.nix"),
+            missing,
+        };
+        let full = e.to_string();
+        assert!(full.starts_with(head), "{full}");
+        assert!(write!(Capped { room: 0 }, "{e}").is_err(), "{missing:?}");
+        // The head written, the part naming the build refused.
+        assert!(
+            write!(Capped { room: head.len() }, "{e}").is_err(),
+            "{missing:?}"
+        );
+        assert!(write!(Capped { room: full.len() }, "{e}").is_ok());
+    }
+}
+
+// ---------------------------------------------------------------------
+// the verdict's corners (`src/check:V152`, stage 5)
+// ---------------------------------------------------------------------
+
+/// A guest whose `trivial` and `constructs` answer as told.
+struct Told {
+    id: LangId,
+    trivial: fn() -> Result<bool>,
+    constructs: fn() -> Result<Vec<&'static str>>,
+}
+
+impl Guest for Told {
+    fn id(&self) -> LangId {
+        self.id
+    }
+    fn extension(&self, _: &GuestEnv) -> &'static str {
+        "x"
+    }
+    fn invoke(&self, path: &Path) -> Invoke {
+        Invoke {
+            argv: vec![path.display().to_string()],
+        }
+    }
+    fn trivial(&self, _: &str) -> Result<bool> {
+        (self.trivial)()
+    }
+    fn constructs(&self, _: &str) -> Result<Vec<&'static str>> {
+        (self.constructs)()
+    }
+    fn prelude(&self, _: &GuestEnv) -> Prelude {
+        Prelude {
+            shebang: None,
+            strict: None,
+        }
+    }
+    fn executable(&self) -> bool {
+        false
+    }
+    fn checks(&self, _: &GuestEnv) -> Vec<LintCmd> {
+        Vec::new()
+    }
+    fn fixers(&self, _: &GuestEnv) -> Vec<LintCmd> {
+        Vec::new()
+    }
+}
+
+#[test]
+fn a_body_past_trivial_that_names_no_construct_is_more_than_trivial() {
+    let guest = Told {
+        id: LangId::Shell,
+        trivial: || Ok(false),
+        constructs: || Ok(Vec::new()),
+    };
+    let relaxed = config("version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n");
+    for config in [Config::default(), relaxed] {
+        assert_eq!(
+            super::verdict(&guest, "x", &config).as_deref(),
+            Some("non-trivial shell: more than trivial; a script belongs in its own file"),
+            "no construct listed is nothing an allow can relax"
+        );
+    }
+}
+
+#[test]
+fn a_guest_without_constructs_or_a_size_ceiling_is_flagged_plainly() {
+    // `[threshold.shell]` has no `max_lines` / `max_bytes`
+    // (`src/config:V55`): shell names its constructs instead.
+    let guest = Told {
+        id: LangId::Shell,
+        trivial: || Ok(false),
+        constructs: || Err(Error::unsupported(LangId::Shell, "constructs")),
+    };
+    assert_eq!(
+        super::verdict(&guest, "x", &Config::default()).as_deref(),
+        Some("non-trivial shell")
+    );
+}
+
+#[test]
+fn constructs_that_fail_to_parse_make_the_body_unparseable() {
+    // `languages:V77`: a body the guest cannot read is never trivial.
+    let guest = Told {
+        id: LangId::Shell,
+        trivial: || Ok(false),
+        constructs: || Err(Error::parse(LangId::Shell, "no")),
+    };
+    let why = super::verdict(&guest, "x", &Config::default()).unwrap_or_default();
+    assert!(why.starts_with("unparseable shell: "), "{why}");
+}
+
+#[test]
+fn guest_text_skips_a_hole_inside_one_already_replaced() {
+    let src = "<<a {{x {{y}} }} b>>";
+    let site = Site {
+        sink: "s".to_owned(),
+        guest: LangId::Shell,
+        env: GuestEnv::default(),
+        delim: Delim {
+            kind: DelimKind::JustRecipe,
+            open: Span::new(0, 2),
+            body: Span::new(2, 18),
+            close: Span::new(18, 20),
+        },
+        holes: vec![Span::new(4, 16), Span::new(7, 12)],
+    };
+    assert_eq!(guest_text(src, &site), format!("a {HOLE} b"));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_candidate_is_skipped_with_discovery_s_warning() {
+    use std::os::unix::fs::symlink;
+
+    let sandbox = Sandbox::new();
+    let root = sandbox.repo("r");
+    write(&root, "a.fake", "build=shell: a && b\n");
+    symlink("a.fake", root.join("b.fake")).unwrap_or_else(|e| panic!("{e}"));
+    sandbox.run_git(&root, &["add", "."]);
+    let report = check_with(
+        &root,
+        &Config::default(),
+        &Options::default(),
+        &fakes(),
+        &|| sandbox.git(),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        rules(&report),
+        vec![("a.fake".to_owned(), 1, Rule::Xenolith)],
+        "the link is not checked a second time"
+    );
+    let codes: Vec<&str> = report.warnings().iter().map(|w| w.code.as_str()).collect();
+    assert_eq!(codes, vec![crate::discover::SYMLINK_SKIPPED]);
+}

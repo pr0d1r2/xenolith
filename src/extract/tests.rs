@@ -870,6 +870,54 @@ fn a_line_on_a_directory_or_a_missing_path_refuses_the_run() {
 }
 
 #[test]
+fn a_nested_config_that_does_not_parse_refuses_the_run_as_itself() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "d/a.toy", "one=shell: a && b\n");
+    put(&root, "d/xenolith.toml", "version = [\n");
+    let got = try_plan(&sandbox, &root, &Config::default(), &["d/a.toy"]);
+    let Err(ExtractError::Config(inner)) = &got else {
+        panic!("{got:?}")
+    };
+    let said = got
+        .as_ref()
+        .err()
+        .map(ToString::to_string)
+        .unwrap_or_default();
+    assert_eq!(said, inner.to_string());
+    assert!(said.contains("d/xenolith.toml"), "{said}");
+}
+
+#[test]
+fn every_run_refusal_reads_as_the_error_it_carries_or_names_the_path() {
+    use crate::check::CheckError;
+    use crate::graph::GraphError;
+
+    assert_eq!(
+        ExtractError::Outside(PathBuf::from("../x.toy")).to_string(),
+        "../x.toy: outside the root: xnl extracts in the tree it runs in"
+    );
+    assert_eq!(
+        ExtractError::LineOnDir(PathBuf::from("d")).to_string(),
+        "d: a line names a site in one file, and this names a directory"
+    );
+    let check = CheckError::Unclaimed {
+        file: PathBuf::from("a.txt"),
+        missing: None,
+    };
+    let from: ExtractError = check.clone().into();
+    assert_eq!(from, ExtractError::Check(check.clone()));
+    assert_eq!(from.to_string(), check.to_string());
+    let graph = GraphError::Outside {
+        path: PathBuf::from("../g.toy"),
+    };
+    assert_eq!(
+        ExtractError::Graph(graph.clone()).to_string(),
+        graph.to_string()
+    );
+}
+
+#[test]
 fn colliding_paths_take_the_sink_suffix_and_equal_ones_are_refused() {
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");

@@ -580,6 +580,85 @@ fn a_path_outside_the_root_is_refused() {
         .unwrap_or_else(|| panic!("outside the root"));
     assert!(matches!(e, GraphError::Outside { .. }), "{e:?}");
     assert_eq!(e.exit_code(), 2);
+    assert_eq!(
+        e.to_string(),
+        "../outside.fake: outside the root: xnl graphs the tree it runs in"
+    );
+}
+
+#[test]
+fn a_nested_config_that_does_not_parse_is_refused_as_itself() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[
+            ("sub/a.fake", "load x.sh\n"),
+            ("sub/xenolith.toml", "version = [\n"),
+        ],
+    );
+    let e = run(&sandbox, &root, &Config::default(), &["sub/a.fake"])
+        .err()
+        .unwrap_or_else(|| panic!("the nested config is broken"));
+    let GraphError::Config(inner) = &e else {
+        panic!("{e:?}")
+    };
+    assert_eq!(e.exit_code(), 2);
+    assert_eq!(
+        e.to_string(),
+        inner.to_string(),
+        "said as the config says it"
+    );
+    assert!(e.to_string().contains("sub/xenolith.toml"), "{e}");
+}
+
+#[test]
+fn unclaimed_warn_graphs_the_rest_and_names_the_file() {
+    let sandbox = Sandbox::new();
+    let root = tree(
+        &sandbox,
+        &[("notes.txt", "hi\n"), ("a.fake", "load x.sh\n")],
+    );
+    let warn = config("version = 1\n[langs]\nunclaimed = \"warn\"\n");
+    let graph = ok(&sandbox, &root, &warn, &["notes.txt", "a.fake"]);
+    assert_eq!(codes(&graph), vec![crate::check::UNCLAIMED]);
+    let message = graph
+        .report
+        .warnings()
+        .first()
+        .map(|w| w.message.clone())
+        .unwrap_or_default();
+    assert!(
+        message.starts_with("notes.txt: host unsupported"),
+        "{message}"
+    );
+    assert_eq!(
+        rules(&graph),
+        vec![("a.fake".to_owned(), 1, Rule::DanglingLoad)],
+        "the claimed file is still graphed"
+    );
+}
+
+#[test]
+fn a_host_file_that_is_not_utf8_is_a_parse_error_or_ignored() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    std::fs::write(root.join("bad.fake"), b"load \xff.sh\n").unwrap_or_else(|e| panic!("{e}"));
+    let graph = ok(&sandbox, &root, &Config::default(), &["bad.fake"]);
+    assert_eq!(
+        rules(&graph),
+        vec![("bad.fake".to_owned(), 1, Rule::HostParseError)]
+    );
+    let why = graph
+        .report
+        .violations()
+        .first()
+        .map(|v| v.why.clone())
+        .unwrap_or_default();
+    assert!(why.ends_with("not UTF-8"), "{why}");
+    let ignore = config("version = 1\n[parse]\nhost_errors = \"ignore\"\n");
+    let quiet = ok(&sandbox, &root, &ignore, &["bad.fake"]);
+    assert!(rules(&quiet).is_empty(), "{:?}", rules(&quiet));
+    assert!(codes(&quiet).is_empty(), "{:?}", codes(&quiet));
 }
 
 #[cfg(unix)]

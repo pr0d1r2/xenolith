@@ -90,3 +90,38 @@ fn a_load_through_a_symlink_is_dangling() {
     let why = Dangling::Symlink("b.sh".to_owned()).to_string();
     assert!(why.contains("symlink"), "{why}");
 }
+
+#[test]
+fn a_load_naming_the_root_itself_is_not_a_file() {
+    // `.` from a host at the root names no component at all: the root
+    // is a directory, never an extract.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["a.sh"]);
+    let got = resolve(&root, "h.pkl", Path::new("."));
+    assert_eq!(got, Err(Dangling::NotAFile(".".to_owned())));
+    let why = got.err().map(|d| d.to_string()).unwrap_or_default();
+    assert_eq!(why, ". is not a regular file");
+}
+
+#[test]
+fn a_host_dir_keeps_only_its_named_components() {
+    // A `./` in the host's own path is no directory to resolve from.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["sub/x.sh"]);
+    assert_eq!(
+        resolve(&root, "./sub/h.pkl", Path::new("x.sh")),
+        Ok("sub/x.sh".to_owned())
+    );
+}
+
+#[test]
+fn each_dangling_reason_reads_as_the_report_says_it() {
+    assert_eq!(
+        Dangling::Outside.to_string(),
+        "it points outside the repository root"
+    );
+    assert_eq!(
+        Dangling::NotAFile("scripts".to_owned()).to_string(),
+        "scripts is not a regular file"
+    );
+}

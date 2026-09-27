@@ -198,3 +198,56 @@ fn two_extracts_of_one_host_go_back_together_back_to_front() {
     let gone: Vec<&str> = host.removes.iter().map(|g| g.path.as_str()).collect();
     assert_eq!(gone, ["a/build.sh", "a/test.sh"]);
 }
+
+#[test]
+fn one_refused_extract_leaves_its_host_s_others_where_they_are() {
+    // `src/extract:V64`: a host is inlined whole or not at all; the
+    // trivial one is refused too, saying why.
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\ntest< sh ./a/test.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nmake\n"),
+            ("a/test.sh", "#!/usr/bin/env sh\nmake && make test\n"),
+        ],
+    );
+    let edit = inline(
+        &sandbox,
+        &root,
+        &Config::default(),
+        &["a/build.sh", "a/test.sh"],
+    );
+    assert!(edit.hosts.is_empty(), "{:?}", edit.hosts);
+    let said = refusals(&edit);
+    assert!(said.contains("a/test.sh: loaded by a.toy:2:"), "{said}");
+    assert!(said.contains("is not trivial"), "{said}");
+    assert!(
+        said.contains("a.toy: left untouched with its 1 other extract(s)"),
+        "{said}"
+    );
+    assert_eq!(edit.exit_code(), 2);
+}
+
+#[test]
+fn an_extract_whose_host_is_excluded_is_refused_naming_the_exclude() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nmake\n"),
+        ],
+    );
+    let excluded = config::parse(
+        "version = 1\n[extract]\nexclude = [{ glob = \"a.toy\", reason = \"generated\" }]\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let edit = inline(&sandbox, &root, &excluded, &["a/build.sh"]);
+    assert!(edit.hosts.is_empty(), "{:?}", edit.hosts);
+    let said = refusals(&edit);
+    assert!(
+        said.contains("a/build.sh: its host a.toy is skipped: excluded by `a.toy` (generated)"),
+        "{said}"
+    );
+}

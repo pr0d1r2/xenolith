@@ -231,6 +231,27 @@ fn each_layout_places_under_its_own_shape() {
 }
 
 #[test]
+fn mirror_places_a_root_host_under_its_stem_and_names_its_layer() {
+    let mut a = ask("flake.nix", "a");
+    a.layout = Layout::Mirror;
+    let p = placed(&a, &[]);
+    assert_eq!(p.path, "scripts/flake/build.sh");
+    let path = layer(&p, Field::Path);
+    assert_eq!(path, Layer::Layout);
+    // Named by its config key's leaf (`src/config:V73`: never spelled).
+    assert_eq!(format!("extract.{path}"), "extract.layout");
+}
+
+#[test]
+fn a_suffix_goes_before_the_extension_even_at_the_root() {
+    assert_eq!(super::suffixed("build.sh", "prestart"), "build-prestart.sh");
+    assert_eq!(
+        super::suffixed("a/b/build.sh", "script"),
+        "a/b/build-script.sh"
+    );
+}
+
+#[test]
 fn a_rule_path_beats_the_layout_and_names_itself() {
     let rule = ExtractRule {
         host: Some(LangId::Nix),

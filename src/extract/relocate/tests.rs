@@ -226,6 +226,80 @@ fn a_line_names_one_load_and_a_line_with_none_is_refused() {
 }
 
 #[test]
+fn one_refused_move_leaves_its_host_s_other_moves_undone() {
+    // `src/extract:V64`: the dash shebang would be rewritten, so its move
+    // is refused, and the host keeps the other load where it was too.
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./x/build.sh\ntest< sh ./x/test.sh\n"),
+            ("x/build.sh", SCRIPT),
+            ("x/test.sh", "#!/bin/dash\nmake && make test\n"),
+        ],
+    );
+    let edit = relocate(&sandbox, &root, &Config::default(), &["a.toy"]);
+    assert!(edit.hosts.is_empty(), "{:?}", edit.hosts);
+    let said = refusals(&edit);
+    assert!(said.contains("a.toy:2: "), "{said}");
+    assert!(
+        said.contains("a.toy: left untouched with its 1 other move(s)"),
+        "{said}"
+    );
+}
+
+#[test]
+fn what_is_not_moved_says_why_under_verbose() {
+    // An excluded host, a load that does not resolve and one that does
+    // not read back are each named in `explain`, never guessed at.
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./gone.sh\n"),
+            ("b.sticky", "x\nbuild< sh ./old/build.sh\n"),
+            ("old/build.sh", SCRIPT),
+            ("c.toy", "build< sh ./old/build.sh\n"),
+        ],
+    );
+    let excluded = config::parse(
+        "version = 1\n[extract]\nexclude = [{ glob = \"c.toy\", reason = \"kept\" }]\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let edit = relocate(&sandbox, &root, &excluded, &["a.toy", "b.sticky", "c.toy"]);
+    assert!(edit.hosts.is_empty(), "{:?}", edit.hosts);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let explain = edit.explain.join("\n");
+    assert!(
+        explain.contains("a.toy:1: skipped: the load does not resolve (src/graph:V7)"),
+        "{explain}"
+    );
+    assert!(
+        explain.contains("b.sticky:2: old/build.sh: not judged: "),
+        "{explain}"
+    );
+    assert!(
+        explain.contains("c.toy: skipped: excluded by `c.toy` (kept)"),
+        "{explain}"
+    );
+}
+
+#[test]
+fn a_host_whose_loads_cannot_be_read_is_refused() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[("a.noloads", "build< sh ./x.sh\n"), ("x.sh", SCRIPT)],
+    );
+    let edit = relocate(&sandbox, &root, &Config::default(), &["a.noloads"]);
+    let said = refusals(&edit);
+    assert!(
+        said.contains("a.noloads: its loads cannot be read, so none can be relocated: "),
+        "{said}"
+    );
+}
+
+#[test]
 fn two_moves_to_one_path_are_refused() {
     let sandbox = Sandbox::new();
     let root = repo(
