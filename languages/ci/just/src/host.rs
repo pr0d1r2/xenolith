@@ -354,11 +354,12 @@ impl Host for JustHost {
         lines::escape(delim, body)
     }
 
-    /// `just --fmt --check --unstable --justfile <file>`: the check the
-    /// api names for just hosts (`languages/api` §I).
+    /// `just --fmt --check --justfile <file>`. No `--unstable`: measured
+    /// on the pinned just 1.51.0, `--fmt --check` is stable and answers
+    /// the same with or without it (`languages/ci/just:T183`).
     fn checks(&self) -> Vec<LintCmd> {
         vec![LintCmd {
-            argv: ["just", "--fmt", "--check", "--unstable", "--justfile"]
+            argv: ["just", "--fmt", "--check", "--justfile"]
                 .map(str::to_owned)
                 .to_vec(),
             file_arg: FileArg::Append,
@@ -366,12 +367,10 @@ impl Host for JustHost {
         }]
     }
 
-    /// `just --fmt --unstable --justfile <file>`, the check's fixer.
+    /// `just --fmt --justfile <file>`, the check's fixer.
     fn fixers(&self) -> Vec<LintCmd> {
         vec![LintCmd {
-            argv: ["just", "--fmt", "--unstable", "--justfile"]
-                .map(str::to_owned)
-                .to_vec(),
+            argv: ["just", "--fmt", "--justfile"].map(str::to_owned).to_vec(),
             file_arg: FileArg::Append,
             format: Format::Raw,
         }]

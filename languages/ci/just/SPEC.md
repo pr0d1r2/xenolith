@@ -23,7 +23,7 @@ sib|languages/ci/dockerfile|Dockerfile parser, `RUN` sinks, placement
 - dialect ⊥ readable (V179) also: `import` w/o own `set shell`, argv[0] ∉ sh\|bash\|zsh, unknown flag, escaped string.
 - grammar: crate 0.2.0 pins tree-sitter ~0.25, `links` clash w/ 0.27 ∴ its C VENDORED per `languages:V121` (`vendor/tree-sitter-just/UPSTREAM`).
 - placement ? (T184): `scripts/<recipe>.<ext>` (fleet shape, R178) vs prototype `scripts/just/<recipe>.<ext>`.
-- host checks: `just --fmt --check --unstable` (`languages/api` §I; `--unstable` still needed on the pinned just ?, T183).
+- host checks: `just --fmt --check --justfile <file>`, fixer `just --fmt --justfile <file>` (`languages/api` §I); ⊥ `--unstable`: pinned just 1.51.0 gives the same verdict w/ & w/o it (T183).
 
 ## §R RESEARCH
 
@@ -45,7 +45,7 @@ V181: fleet allowlist (R178) is STRICTER than V180 — any single simple command
 
 id|status|task|cites
 T16|x|host just (`tree-sitter-just` crates.io 0.2.0, casey, MIT; `languages:V121`): recipe sinks + fixtures: 1-line simple ⊥ flagged, 2 lines flagged, `-`/`@` prefixes, shebang recipe → python guest, `set shell := ["bash", "-uc"]` → bash, `{{param}}` hole, `cd` then cmd → `Judgment`|V58,V179,V180,`languages/shells/shell:V3`,`tests:V14`,`tests:V15`
-T183|.|host checks: measure `just --fmt --check` w/ & w/o `--unstable` on the pinned just; record & drop the `?`|`languages/api` §I,`src/lint:V8`
+T183|x|host checks: measure `just --fmt --check` w/ & w/o `--unstable` on the pinned just; record & drop the `?`|`languages/api` §I,`src/lint:V8`
 T184|.|DECIDE by 2026-10-15 (before M3 cut): placement dir — count fleet `bash scripts/…` load paths (R178, counts only) → promote winner to a V; else keep prototype|`languages:T86`,R178
 T185|.|DECIDE by 2026-10-15: `[threshold.just] commands` allowlist (fleet parity) or document V180 as the replacement; fixture per choice|V181,R178,`src/config:V55`
 
