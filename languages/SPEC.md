@@ -25,7 +25,8 @@ sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines ext
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`
 sib|tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`
 sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
-sib|docs|public project docs & notices
+sib|docs|public project docs & notices, README & root doc files in the fleet's shape
+sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, third-party notices
 
 ## §C CONSTRAINTS
 

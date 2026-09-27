@@ -11,7 +11,8 @@ src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract
 scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`|product rules (`src`), bats (`tests`)|-
 tests|fixture format & runner, integration fixtures, bats mirroring `scripts/` & `.github/scripts/`|implementation (`src`, `scripts`)|-
 nix|flake inputs, packaging, devShell, cachix, subset override, closure|CLI & engines (`src`), guardrails (`scripts`)|-
-docs|public project docs & notices|README (root task), config reference (`src/config`)|-
+docs|public project docs & notices, README & root doc files in the fleet's shape|generated blocks & notices (`dev`), config reference (`src/config`), release config (`nix`)|-
+dev|repo-maintaining tooling, `publish = false`: README generated blocks, third-party notices|anything a consumer installs (`src`, `languages`, `nix`)|-
 
 ## §N NAV
 

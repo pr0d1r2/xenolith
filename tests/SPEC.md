@@ -13,7 +13,8 @@ sib|languages|1 crate + node per language behind `lang-<lang>`: parser, sinks, l
 sib|src|root crate: lib + `xnl` bin, core model, CLI, cross-language engines extract/graph/lint/config
 sib|scripts|∀ shell in repo: dev shell hook, guardrail scripts; gate config `hk.pkl`, vendored hk schema `pkl/Config.pkl`, `.github/workflows/`, `.github/zizmor.yml`
 sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
-sib|docs|public project docs & notices
+sib|docs|public project docs & notices, README & root doc files in the fleet's shape
+sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, third-party notices
 
 ## §V INVARIANTS
 

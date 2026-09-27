@@ -59,3 +59,4 @@ src/discover             5000
 src/registry             5000
 languages/data/xml       5000
 languages/shells/tcl     5000
+dev                      5000
