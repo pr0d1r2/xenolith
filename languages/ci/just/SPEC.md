@@ -29,14 +29,14 @@ sib|languages/ci/dockerfile|Dockerfile parser, `RUN` sinks, placement
 
 id|topic|finding|src
 R178|fleet 2026-09-27|34 repos / 188 justfiles; 19 w/ shebang recipes; 1 w/ `set shell`. fleet hook (xnl replaces it): files named exactly `justfile`, EVERY body line ! match an allowlist — `just --list`, `bash scripts/…`, `bats tests/…`, `expect tests/…`, `ssh -t u@h …` ∴ fleet extracts already load as `bash scripts/<path>`|read-only fleet survey, counts only (`scripts/guard` C17)
-R207|V181 delta 2026-09-27|xnl vs the fleet hook, measured w/ `xnl check`: LOOSER — 1 simple command off the allowlist passes (`cargo build`, `rm -rf dist`), so does `#!` + 1 command (shebang ⊥ allowlisted there); STRICTER — ≥2 lines, even ALL allowlisted (`bash scripts/lint.sh` + `bats tests/unit`) flagged `sequence`, hook passes; WIDER — claims `Justfile`, `.justfile`, `*.just` (V58), hook `justfile` only. T185 keeps the delta, ⊥ parity; `[threshold.shell] allow` relaxes every shell site alike|fixture `pos-fleet-delta` (sites, rewrite), e2e `xnl check`
+R207|V181 delta 2026-09-27|xnl vs the fleet hook, measured w/ `xnl check`: LOOSER — 1 simple command off the allowlist passes (`cargo build`, `rm -rf dist`), so does `#!` + 1 command (shebang ⊥ allowlisted there); STRICTER — ≥2 lines, even ALL allowlisted (`bash scripts/lint.sh` + `bats tests/unit`) flagged `sequence`, hook passes; WIDER — claims `Justfile`, `.justfile`, `*.just` (V58), hook `justfile` only. T185 keeps it as the DEFAULT, ⊥ parity: `[threshold.just] max_lines = 2` passes `check` (each line 1 simple command), 3 lines still flagged; `[threshold.shell] allow` relaxes every shell site alike|fixture `pos-fleet-delta` (sites, rewrite), e2e `xnl check`
 
 ## §V INVARIANTS
 
 V58: `claims`: filename `justfile` (case-insensitive), `.justfile`, extension `.just`.
 V179: dialect: `set shell := [...]` STATICALLY readable (string list literal) → argv[0] basename = dialect & its flags = `env.options` (`languages/shells/shell:V82`); absent → just's default `sh -cu`; ⊥ readable (expr, `set windows-shell` only) → `Judgment`.
-V180: recipe w/o shebang runs LINE BY LINE, each line a fresh shell ∴ body trivial iff 1 line & that line single simple command (`languages/shells/shell:V3`); ≥2 lines = violation, even ∀ line on the fleet allowlist (T185: justfiles = one-liners, the load after extract). extract ⊥ merges lines blindly: `-` line → `… \|\| true`, prelude `set -eu` (just stops at 1st failing line, `-u` from `sh -cu`); line changing shell state a later line reads (`cd`, `export`, assignment, `set`) → `Judgment` ⊥ `Mechanical`.
-V181: V180 alone replaces the fleet allowlist (R178): ⊥ `[threshold.just]`, ⊥ command allowlist (T185). delta (R207): STRICTER on ≥2 lines, LOOSER on 1 simple command off the allowlist; ⊥ silent: `xnl` docs name it.
+V180: recipe w/o shebang runs LINE BY LINE, each line a fresh shell ∴ body inline iff ≤ `[threshold.just] max_lines` lines (default 1, T185) & EACH line alone a single simple command (`languages/shells/shell:V3`); over it = violation, even ∀ line on the fleet allowlist; `cd` inside the ceiling passes (its state ⊥ reaches the next line: just's semantics, ⊥ a size rule). extract ⊥ merges lines blindly: `-` line → `… \|\| true`, prelude `set -eu` (just stops at 1st failing line, `-u` from `sh -cu`); line changing shell state a later line reads (`cd`, `export`, assignment, `set`) → `Judgment` ⊥ `Mechanical`.
+V181: V180 alone replaces the fleet allowlist (R178): 1 knob, `[threshold.just] max_lines` (`src/config:V240`), just-specific, per repo \| subtree; ⊥ command allowlist (T185). delta (R207) at the default: STRICTER on ≥2 lines, LOOSER on 1 simple command off the allowlist; ⊥ silent: `xnl` docs name it.
 
 ## §T TASKS
 
@@ -48,7 +48,7 @@ id|status|task|cites
 T16|x|host just (`tree-sitter-just` crates.io 0.2.0, casey, MIT; `languages:V121`): recipe sinks + fixtures: 1-line simple ⊥ flagged, 2 lines flagged, `-`/`@` prefixes, shebang recipe → python guest, `set shell := ["bash", "-uc"]` → bash, `{{param}}` hole, `cd` then cmd → `Judgment`|V58,V179,V180,`languages/shells/shell:V3`,`tests:V14`,`tests:V15`
 T183|x|host checks: measure `just --fmt --check` w/ & w/o `--unstable` on the pinned just; record & drop the `?`|`languages/api` §I,`src/lint:V8`
 T184|x|DECIDED 2026-09-27: placement dir = prototype `scripts/just/<recipe>.<ext>` (§I); ⊥ conflict w/ fleet `bash scripts/…` loads (R178)|`languages:T86`,R178
-T185|x|DECIDED 2026-09-27: ⊥ `[threshold.just]` allowlist; V180 is the replacement, ≥2 lines always a violation (V181); fixture `pos-fleet-delta`|V181,R178,`src/config:V55`
+T185|.|REDECIDED 2026-09-27 (user: one-liner = adjustable default): `[threshold.just] max_lines` (default 1) keeps recipes of ≤N lines inline, each line judged alone (V180); ⊥ allowlist; fixture `pos-fleet-delta` = the default|V180,V181,R178,`src/config:V240`,`src/config:V55`
 
 ## §B BUGS
 

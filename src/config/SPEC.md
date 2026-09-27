@@ -24,10 +24,10 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 
 ## §I INTERFACES
 
-- `[threshold.shell]`: `allow` ⊆ {`and-or`, `case`, `command-substitution`, `for`, `function-definition`, `heredoc`, `if`, `pipeline`, `redirect`, `sequence`, `subshell`, `while`} (= `languages/shells/shell` `Construct` names, ONE vocabulary) (default `[]`) — constructs tolerated inline, relaxes `languages/shells/shell:V3`. `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
+- `[threshold.shell]`: `allow` ⊆ {`and-or`, `case`, `command-substitution`, `for`, `function-definition`, `heredoc`, `if`, `pipeline`, `redirect`, `sequence`, `subshell`, `while`} (= `languages/shells/shell` `Construct` names, ONE vocabulary) (default `[]`) — constructs tolerated inline, relaxes `languages/shells/shell:V3`. `[threshold.just]`: `max_lines` (default 1) only — lines a just recipe may run & stay inline, each judged alone (V240). `[threshold.<guest>]` ∀ other guest: `max_lines` (default 1), `max_bytes` (default 80) — inline ceiling applied on top of guest's own `trivial` rule.
 - `[threshold.exec]`: `max_args` (default 8), `max_len` (default 120) — systemd `ExecStart*` line kept inline when within.
 - top-level `version = 1`: required config schema version.
-- defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; `[langs] unclaimed = "ignore"`; `[threshold.load] max_params = 6`; `[parse] host_errors = "error"`; `[extract.shell] strict = "preserve"`; `[lint.<guest>] extend = true`; `[langs] missing_guest = "error"`; `[lint] hosts = true`; `[threshold.load] param_prefix = ""`; rule `base` = host's `runtime_base`.
+- defaults table (single source; ∀ entry overridable in `xenolith.toml`): `[extract] layout = "host"`, `root = "scripts"`, `depth = 5`, `inactive_rules = "warn"`; `[threshold.shell] allow = []`; `[threshold.just] max_lines = 1`; `[threshold.<guest>] max_lines = 1`, `max_bytes = 80`; `[threshold.exec] max_args = 8`, `max_len = 120`; `[langs] unclaimed = "ignore"`; `[threshold.load] max_params = 6`; `[parse] host_errors = "error"`; `[extract.shell] strict = "preserve"`; `[lint.<guest>] extend = true`; `[langs] missing_guest = "error"`; `[lint] hosts = true`; `[threshold.load] param_prefix = ""`; rule `base` = host's `runtime_base`.
 - `[langs] unclaimed` ∈ `ignore` (default) \| `warn` \| `error`: file no host claims.
 - `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api/src/holes:V40`).
 - `[parse] host_errors` ∈ `error` (default) \| `warn` \| `ignore`: claimed host file ⊥ parsed (`ERROR` nodes, BOM, ⊥ UTF-8) ∴ ⊥ checked; default ⊥ silent pass.
@@ -51,13 +51,14 @@ V79: ∀ exclude entry (`[[exclude]]` & per-verb) ! carry non-empty `reason`; gl
 V85: config reference `docs/config.md` generated from defaults table & §I schema by a test (`UPDATE=1` rewrites); gate: generated ≡ committed, ⊥ hand-edited.
 V88: independently buildable: ∀ crate \| sherd node dir checkable standalone (`xnl check` inside it w/o ancestors, e.g. from crates.io package) → own `xenolith.toml` + defaults; ⊥ correctness depends on ancestor config.
 V89: convention over configuration: key whose value ≡ inherited effective value → warning `redundant-config` ∴ configs hold only deviations.
+V240: `[threshold.just] max_lines` = N: site whose `DelimKind::runs_line_by_line()` (`languages/ci/just:V180`), flagged whole, 2 ≤ lines ≤ N → re-judged per line (guest `unsupported`, `trivial`, `[threshold.<guest>]`): inline iff ∀ line passes, else why names the line; > N → why names line count & key. engine host-generic: `Config::line_ceiling(host)`, ⊥ `LangId::Just` in `src/check`; only RELAXES (V55).
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | T10, T25, T49, T56, T70, T73, T80, T143 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T89 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T89, T240 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T10|x|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
@@ -69,6 +70,7 @@ T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & o
 T80|x|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
 T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
+T240|.|`[threshold.just] max_lines`: parse, default row, nested merge, `Config::line_ceiling`; engine per-line verdict via `DelimKind::runs_line_by_line`; tests: 2 lines flagged by default, clean at 2, 3 flagged, negative → exit 2|V240,V55,V73,`languages/ci/just:T185`
 
 ## §B BUGS
 

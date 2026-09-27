@@ -3,8 +3,8 @@
 # body only when EVERY line matches its allowlist (`just --list`,
 # `bash scripts/…`, `bats tests/…`, `expect tests/…`, `ssh -t u@h …`);
 # `xnl` passes one simple command, whatever it is (`languages/ci/just:V180`).
-# T185 decided the delta stays: justfiles become one-liners, and there is
-# no `[threshold.just]` allowlist to bring the hook's rule back.
+# T185 keeps the delta as the default: `[threshold.just] max_lines`
+# (default 1) is the one knob, and it is never a command allowlist.
 
 # LOOSER here: one command off the allowlist -- the hook flags it, `xnl`
 # keeps it inline.
@@ -12,7 +12,7 @@ build:
     cargo build --release
 
 # STRICTER here: every line on the allowlist -- the hook passes it, `xnl`
-# flags two commands as a script, always.
+# flags two commands as a script at the default ceiling of one line.
 check:
     bash scripts/lint.sh
     bats tests/unit
