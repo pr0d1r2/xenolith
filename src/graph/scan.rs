@@ -135,6 +135,7 @@ impl<'a> Scan<'a> {
                 });
                 self.edges.push(Edge {
                     host: PathBuf::from(name),
+                    // Named once the load is read back (`super::judge`).
                     sink: String::new(),
                     line,
                     col,
@@ -225,6 +226,17 @@ impl<'a> Scan<'a> {
             Policy::Error => Err(GraphError::Unclaimed {
                 file: PathBuf::from(name),
             }),
+        }
+    }
+
+    /// The [`super::judge`] verdicts: its warnings, and each edge's sink
+    /// -- one per load in [`Scan::loads`], whose order the edges share.
+    pub(crate) fn judged(&mut self, judged: super::judge::Judged) {
+        for warning in judged.warnings {
+            self.report.warn(warning);
+        }
+        for (edge, sink) in self.edges.iter_mut().zip(judged.sinks) {
+            edge.sink = sink;
         }
     }
 

@@ -64,7 +64,8 @@ pub struct Options {
 pub struct Edge {
     /// The host file, repo-root relative.
     pub host: PathBuf,
-    /// The sink holding the load; empty until `LoadRef` names it.
+    /// The sink holding the load: the site its body goes back into
+    /// (`src/extract:V270`); empty when no single site holds it.
     pub sink: String,
     /// 1-based line of the load.
     pub line: usize,
@@ -236,9 +237,8 @@ pub(crate) fn graph_with(
         }
         scan.file(file, name, config, options.strict_hosts)?;
     }
-    for warning in judge::warnings(root, &tree, langs, &scan.loads) {
-        scan.report.warn(warning);
-    }
+    let judged = judge::judge(root, &tree, langs, &scan.loads);
+    scan.judged(judged);
     Ok(scan.finish(options.paths.is_empty()))
 }
 

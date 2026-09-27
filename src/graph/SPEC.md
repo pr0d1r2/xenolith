@@ -26,7 +26,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - extract (V7) = candidate under a root that a compiled-in guest reads (shebang, else extension: `src/lint` §I targets), ⊥ excluded; other files under roots (SPEC.md, `xenolith.toml`) ⊥ orphan. unclaimed = ⊥ host claims ∧ ⊥ guest reads (`src/check:V13`).
 - orphan (V7) judged only on whole-tree run ∧ ∀ claimed host's loads known: named paths = partial view (∼ `src/config:V9` staleness); `loads` `Unsupported` → warning `loads-unsupported` ∀ host lang, ⊥ parse → `[parse] host_errors`; either → orphan ⊥ judged.
 - load resolves from host file dir (`languages/api/src/lens:V66` default); `runtime_base` & rule `base` ⊥ applied (`LoadRef` ∌ sink ∴ rule ⊥ matchable); outside root \| through symlink (V72) \| ⊥ regular file → `dangling-load`.
-- fields: edge `sink` `""`, `params` `[]` until `LoadRef` carries them; `dangling-load` @ load span, guest = load's; `orphan-extract` @ `1:1`, host = guest = reader; `sink` `""`, `site` `argv-string` (`src:V1` unsited stand-in, as `src/check:V152` engine).
+- fields: edge `sink` = sink of the 1 site the load reads back to (`src/extract:V270`; ⊥ read back → extract bytes put back as is), ⊥ such site → `""`; `params` `[]` until `LoadRef` carries them; `dangling-load` @ load span, guest = load's; `orphan-extract` @ `1:1`, host = guest = reader; `sink` `""`, `site` `argv-string` (`src:V1` unsited stand-in, as `src/check:V152` engine).
 - misplaced \| inlineable (V98, V100): judged per edge by `src/extract:V270` read-back; expected = placed path \| its `src/extract:V47` suffix form; read-back ⊥ → ⊥ warned; body judged as `src/check:V152` (trivial, `[threshold]`); `inlineable-extract` only if run sees 1 load of it; warning @ extract, names its load & `xnl extract --relocate` \| `xnl inline`.
 
 ## §V INVARIANTS
@@ -51,3 +51,4 @@ T52|x|extract roots from rules, layout & host dirs; orphan scan over roots only|
 
 id|date|cause|fix
 B1|2026-09-26|shell host registered (`src/registry:B11`), `loads` ⊥ ∴ `loads-unsupported` warned on named-path runs & rootless trees, where no orphan scan runs|warn only when a scan would run: whole-tree ∧ ≥1 root
+B2|2026-09-27|edge `sink` always `""` (§I json example names it): `LoadRef` ∌ sink & edge ⊥ read back|sink from judge's read-back (V98) site; ⊥ read back → body put back as is

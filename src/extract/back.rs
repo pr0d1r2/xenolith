@@ -64,6 +64,11 @@ impl Back<'_> {
         (self.extract != placed.path && self.extract != suffixed).then_some(placed.path.as_str())
     }
 
+    /// The sink of the site the load read back to (`src/graph` §I json).
+    pub(crate) fn sink(&self) -> &str {
+        &self.planned.site.sink
+    }
+
     /// Whether the body may stay inline under `config` where it goes
     /// back: `xnl check`'s own verdict on that site
     /// ([`crate::check::site_verdict`], `src/check:V152`,
@@ -191,6 +196,17 @@ impl<'a> PutBack<'_, 'a> {
             .ok_or_else(|| format!("its guest, {guest}, is not in this build (src/check:V42)"))?;
         Ok((inlined, planned))
     }
+}
+
+/// The sink of the one site `load` in `src` sits in once `body` is put
+/// back ([`Host::inline`], [`site_at`]): what a load says of its sink
+/// when the extract cannot be read back whole (`src/graph` §I json).
+/// `None` when the host cannot put it back or no single site holds it.
+pub(crate) fn sink_at(host: &dyn Host, src: &str, load: &LoadRef, body: &str) -> Option<String> {
+    let inlined = host.inline(src, load, body).ok()?;
+    site_at(host, src, &inlined, load)
+        .ok()
+        .map(|site| site.sink)
 }
 
 /// The one site of `after` -- `before` with the load inlined -- that

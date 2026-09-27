@@ -159,6 +159,7 @@ fn a_just_load_reads_back_to_its_recipe() {
     )
     .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(read.inlined, "build:\n    make && make test\n");
+    assert_eq!(read.sink(), "build");
 }
 
 /// `src/extract:B2`: a body read back is trivial exactly when `xnl
@@ -252,6 +253,7 @@ fn a_parenthesised_nix_load_reads_back_to_its_builder() {
     };
     let read = back(&root, &tree, &langs, "shell.nix", nix, src, load, "hook.sh")
         .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(read.sink(), "shellHook.writeShellScript");
     assert_eq!(read.body, "make\nmake test\n");
 }
 
