@@ -10,11 +10,13 @@
 
 use std::path::Path;
 
+use xenolith_lang_api::holes::{Bound, Param};
 use xenolith_lang_api::{
-    FileArg, Format, Guest, GuestEnv, Invoke, LangId, LintCmd, Prelude, Result, Shebang,
+    FileArg, Format, Guest, GuestEnv, Invoke, LangId, LintCmd, Prelude, Result, Shebang, Span,
 };
 
 use crate::classify::{ZSH_UNSUPPORTED, classify, classify_in};
+use crate::params;
 
 #[cfg(test)]
 mod tests;
@@ -196,6 +198,20 @@ impl Guest for ShellGuest {
             // rather than pretending it fixed something.
             Family::Zsh => Vec::new(),
         }
+    }
+
+    /// Holes as params (`languages/api/src/holes:V40`), all three parts
+    /// from the one AST reading in `params`.
+    fn vars(&self, body: &str) -> Result<Vec<String>> {
+        params::vars(body)
+    }
+
+    fn params(&self, body: &str, params: &[Param]) -> Result<Bound> {
+        params::params(body, params)
+    }
+
+    fn param_refs(&self, body: &str, names: &[String]) -> Result<Vec<(Span, String)>> {
+        params::param_refs(body, names)
     }
 }
 

@@ -32,7 +32,7 @@ V40: holes → named env params: each distinct hole (same bytes + attached `/`-l
 | M1 | nix + pkl + shell end-to-end | T76 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T76|.|holes → params rewrite; fixtures: `${pkgs.foo}` ×2 → one param, hole in single quotes → `Judgment`, 7 holes → `Judgment`|V40
+T76|x|holes → params rewrite; fixtures: `${pkgs.foo}` ×2 → one param, hole in single quotes → `Judgment`, 7 holes → `Judgment`|V40
 
 ## §B BUGS
 
