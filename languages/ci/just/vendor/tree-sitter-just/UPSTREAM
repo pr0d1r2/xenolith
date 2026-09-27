@@ -1,0 +1,24 @@
+Vendored grammar record (languages:V121).
+
+crate:    tree-sitter-just 0.2.0 (crates.io)
+sha256:   bd46794f2c270f43d73b2f2c8c256992471f3493c903604da0886df984771920
+repo:     https://github.com/casey/tree-sitter-just
+rev:      5685543a6e64f66335e25518c9ae8ffa1dae3d01 (the crate's .cargo_vcs_info.json)
+license:  MIT per the crate manifest and package.json; the repo's LICENSE
+          file at the rev above is Apache-2.0 text, kept verbatim beside
+          this file as LICENSE.txt. Both are allowed by deny.toml.
+abi:      tree-sitter LANGUAGE_VERSION 15
+
+Files, copied verbatim from the crate above and never edited here:
+
+  src/parser.c
+  src/scanner.c
+  src/tree_sitter/alloc.h
+  src/tree_sitter/array.h
+  src/tree_sitter/parser.h
+
+Why vendored although the crate is published: tree-sitter-just 0.2.0
+depends on tree-sitter ~0.25.5, the workspace runs tree-sitter 0.27, and
+both declare `links = "tree-sitter"`, so cargo cannot resolve the two in
+one build. The generated C is ABI 15, which tree-sitter 0.27 loads. A
+refresh is its own commit naming the new crate version and rev.
