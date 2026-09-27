@@ -69,6 +69,13 @@
     # bats runs the mirrored tests (`scripts:C13`).
     pkgs.bats
 
+    # The guards that read JSON do it in jq, from their own `.jq` files
+    # (`scripts/guard:T47`, `scripts:T114`): `cargo metadata` and `gh api`
+    # both answer in JSON, and a hand-rolled parser in shell is a second
+    # place for the verdict to be wrong. Pinned here, so the gate never runs
+    # whatever jq the machine happens to carry.
+    pkgs.jq
+
     # Every language is a cargo feature (`nix:C8`), so the feature powerset
     # is a real build surface: `cargo hack --each-feature` is what keeps a
     # subset build from breaking in a consumer's tree and nowhere else.
