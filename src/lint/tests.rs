@@ -422,6 +422,159 @@ fn the_whole_tree_is_the_tracked_files_in_order() {
 }
 
 // ---------------------------------------------------------------------
+// B1: a host file that is also an extract of the host's own language
+// ---------------------------------------------------------------------
+
+/// A host of the guest's own language, like shell's and tcl's: claims
+/// `*.sh` and a shell shebang, its first check the very argv the guest
+/// runs on a shebang-less `.sh`, and sites it cannot read.
+struct SameLangHost;
+
+impl Host for SameLangHost {
+    fn id(&self) -> LangId {
+        LangId::Shell
+    }
+
+    fn claims(&self, path: &Path, head: &str) -> bool {
+        path.extension().is_some_and(|e| e == "sh")
+            || xenolith_lang_api::shebang::parse(head)
+                .is_some_and(|line| xenolith_lang_api::shebang::resolves_to(&line, LangId::Shell))
+    }
+
+    fn sites(&self, _src: &str) -> Result<Vec<Site>> {
+        Err(Error::parse(LangId::Shell, "this fake reads no sites"))
+    }
+
+    fn loads(&self, _src: &str) -> Result<Vec<LoadRef>> {
+        Err(Error::unsupported(LangId::Shell, "loads"))
+    }
+
+    fn rewrite(&self, _: &str, _: &Site, _: &Invoke, _: &Path) -> Result<String> {
+        Err(Error::unsupported(LangId::Shell, "rewrite"))
+    }
+
+    fn inline(&self, _: &str, _: &LoadRef, _: &str) -> Result<String> {
+        Err(Error::unsupported(LangId::Shell, "inline"))
+    }
+
+    fn unescape(&self, _: &Delim, raw: &str) -> Result<String> {
+        Ok(raw.to_owned())
+    }
+
+    fn checks(&self) -> Vec<LintCmd> {
+        vec![cmd(&["alpha", "--dialect=none"]), cmd(&["hostcheck"])]
+    }
+
+    fn fixers(&self) -> Vec<LintCmd> {
+        vec![cmd(&["hostfix"])]
+    }
+}
+
+/// Both hosts: the guest's own language's, and another's.
+fn same_lang() -> Langs<'static> {
+    Langs {
+        hosts: &[&FakeHost, &SameLangHost],
+        guests: &[&FakeGuest],
+    }
+}
+
+impl Fixture {
+    fn same_lang(&self, options: &Options) -> LintReport {
+        lint_with(
+            &self.root,
+            &Config::default(),
+            options,
+            &same_lang(),
+            &|| self.sandbox.git(),
+            &Tools::on_path(&self.bin),
+        )
+        .unwrap_or_else(|e| panic!("lint refused: {e}"))
+    }
+}
+
+fn kinds(report: &LintReport) -> Vec<(String, Kind)> {
+    report
+        .outcomes()
+        .iter()
+        .map(|o| (o.check.clone(), o.kind))
+        .collect()
+}
+
+fn kinded(check: &str, kind: Kind) -> (String, Kind) {
+    (check.to_owned(), kind)
+}
+
+#[test]
+fn a_file_its_own_language_hosts_is_linted_once_as_the_extract() {
+    // `src/lint` §I targets, `src/lint:B1`: `xenolith-tcl-syntax` ran
+    // twice on every `.tcl`, shellcheck twice on every `.sh`.
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    let report = fx.same_lang(&named(&["a.sh"]));
+    assert_eq!(
+        kinds(&report),
+        [
+            kinded("alpha", Kind::Extract),
+            kinded("beta", Kind::Extract)
+        ]
+    );
+    assert_eq!(nth(&report, 0).argv, ["alpha", "--dialect=none", "a.sh"]);
+}
+
+#[test]
+fn a_shebang_extract_its_host_claims_runs_the_dialect_checks_alone() {
+    // A zsh script: the host's dialect-blind checks (shellcheck, which
+    // cannot read zsh) must not run beside the guest's `zsh -n`.
+    let fx = Fixture::all_pass();
+    fx.file("bin/tool", "#!/usr/bin/env zsh\necho hi\n");
+    let report = fx.same_lang(&named(&["bin/tool"]));
+    assert_eq!(
+        kinds(&report),
+        [
+            kinded("alpha", Kind::Extract),
+            kinded("beta", Kind::Extract)
+        ]
+    );
+    assert_eq!(nth(&report, 0).dialect.as_deref(), Some("zsh"));
+}
+
+#[test]
+fn a_host_of_another_language_still_runs_beside_the_extract() {
+    let fx = Fixture::all_pass();
+    fx.file("x.nx", "#!/usr/bin/env bash\necho hi\n");
+    let report = fx.same_lang(&named(&["x.nx"]));
+    assert_eq!(
+        kinds(&report),
+        [
+            kinded("hostcheck", Kind::Host),
+            kinded("alpha", Kind::Extract),
+            kinded("beta", Kind::Extract),
+        ]
+    );
+}
+
+#[test]
+fn the_same_language_host_still_has_its_sites_linted() {
+    // Only `Host::checks` gives way; `--sites` still reads the host.
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    let options = Options {
+        sites: true,
+        ..named(&["a.sh"])
+    };
+    let report = fx.same_lang(&options);
+    assert_eq!(
+        kinds(&report),
+        [
+            kinded("alpha", Kind::Extract),
+            kinded("beta", Kind::Extract)
+        ]
+    );
+    let codes: Vec<&str> = report.warnings().iter().map(|w| w.code.as_str()).collect();
+    assert_eq!(codes, ["site-unlinted"]);
+}
+
+// ---------------------------------------------------------------------
 // T87: every check reported, `--fix`
 // ---------------------------------------------------------------------
 
