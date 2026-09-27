@@ -20,7 +20,7 @@ sib|languages/data/perl|perl grammar, guest rules
 ## §I INTERFACES
 
 - sinks: launchd plist `ProgramArguments` `<array>` of `<string>` (V189) → guest shell; CDATA \| element text known to hold a script ? (T191) — ⊥ named until a fixture shows one.
-- body as the guest reads it = `<string>` text w/ entities decoded (`&lt;` `&gt;` `&amp;` `&quot;` `&apos;` `&#N;` `&#xN;`), CDATA verbatim (`languages/api/src/lens:V39`); rewrite escapes `&` `<` `>`.
+- body as the guest reads it = `<string>` text w/ entities decoded (`&lt;` `&gt;` `&amp;` `&quot;` `&apos;` `&#N;` `&#xN;`), CDATA verbatim (`languages/api/src/lens:V39`), literal CR/CRLF → LF; escape: `&` `<` `>` → entities, CR → `&#13;`; other entity ⊥ decoded → `unparseable`.
 - load after extract ? (T190): launchd runs jobs w/ cwd `/` unless `WorkingDirectory` ∴ ⊥ repo-relative path is right by default → extract direction `Judgment` until decided.
 - host checks: `xmllint --noout` (libxml2) ∀ claimed file — the fleet hook's command (R186); `plutil -lint` ⊥ (macOS only, `.:C3`).
 
@@ -44,7 +44,7 @@ V189: launchd sink: top `<plist><dict>` w/ `<key>ProgramArguments</key>` → `<a
 id|status|task|cites
 T190|.|DECIDE by 2026-10-15: xml load after extract — `WorkingDirectory`-relative, absolute install path, or stay `Judgment`; fixture per shape|V189,`languages:V74`,`languages/api:V35`
 T191|.|DECIDE by 2026-10-15: CDATA sinks — measure the fleet's 3 CDATA files' element names (counts & shapes only); name an element here only w/ that evidence, else drop|R186,`languages:V81`
-T192|.|scaffold `languages/data/xml` crate (`tree-sitter-xml`, `LangId` variant 1st per `languages/api:V33`): `claims` + launchd sink + `xmllint` check; fixtures: text plist `sh -c` flagged, `bash -c` single command ⊥ flagged, binary plist ⊥ claimed, `Program` key ⊥ site, entity-escaped body decoded, `.xml` w/o sink clean|V188,V189,R187,`tests:V14`,`tests:V15`
+T192|x|scaffold `languages/data/xml` crate (`tree-sitter-xml`, `LangId` variant 1st per `languages/api:V33`): `claims` + launchd sink + `xmllint` check; fixtures: text plist `sh -c` flagged, `bash -c` single command ⊥ flagged, binary plist ⊥ claimed, `Program` key ⊥ site, entity-escaped body decoded, `.xml` w/o sink clean|V188,V189,R187,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 
