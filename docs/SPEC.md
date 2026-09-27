@@ -20,6 +20,8 @@ sib|nix|flake inputs, packaging, devShell, cachix, subset override, closure
 V106: public doc set present & non-empty: `LICENSE` (MIT, `src` C1), `AGENTS.md`, `docs/CODE_OF_CONDUCT.md`, `docs/CONTRIBUTING.md`, `docs/SECURITY.md`, `docs/LLM-DISCLAIMER.md`, `docs/THIRD-PARTY-NOTICES.md`; guard checks presence (`scripts/guard`).
 V107: `docs/SECURITY.md` names every trust boundary — `--trust-config` (`src/lint:V91`), symlink-safe writes & reads (`src/extract:V71`, `src/graph:V72`), path charset (`src/extract:V83`), fixtures synthetic (C17) — & a private reporting channel.
 V108: `docs/THIRD-PARTY-NOTICES.md` GENERATED, ⊥ hand-written: ∀ crate in the dependency tree (esp. every tree-sitter grammar) w/ its license from `cargo metadata`, & ∀ tool the nix package wraps (`nix:V96`, e.g. shellcheck GPL-3 — aggregation, ⊥ linking) w/ its license from nixpkgs meta; drift = gate failure.
+V280: docs claim only the tree: ∀ `xnl` verb, flag, `xenolith.toml` key, flake output & file a doc names exists at the doc's commit (read from code \| run, ⊥ from spec); planned = marked planned w/ its task id. prose ⊥ RED (⊥ checker) ∴ verified by e2e of each shown command at write time + `lychee --offline`.
+V281: consumer migration doc (`.:T31`) = `docs/MIGRATION.md`: legacy `.<lang>-embedded-shell-allowlist` → `xenolith.toml` via `xnl migrate`; fleet hooks `xnl` replaces (justfile allowlist `languages/ci/just:R178`, `xmllint` `languages/data/xml:R186`, tcl `languages/shells/tcl:R193`); just delta named (`languages/ci/just:V181`, `languages/ci/just:R207`).
 
 ## §T TASKS
 
