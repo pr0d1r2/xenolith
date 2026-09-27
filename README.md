@@ -9,7 +9,7 @@
 [![languages 6 built, 12 planned](https://img.shields.io/badge/languages-6_built,_12_planned-6E4AFF)](languages/SPEC.md)
 
 [![gate hk](https://img.shields.io/badge/gate-hk-6E4AFF)](hk.pkl)
-[![gate steps 41](https://img.shields.io/badge/gate_steps-41-6E4AFF)](hk.pkl)
+[![gate steps 43](https://img.shields.io/badge/gate_steps-43-6E4AFF)](hk.pkl)
 [![coverage floor 97.9%](https://img.shields.io/badge/coverage_floor-%E2%89%A597.9%25-brightgreen)](.coverage)
 [![lint debt 0.0/KLoC](https://img.shields.io/badge/lint_debt-%E2%89%A40.0%2FKLoC-orange)](.lint-debt)
 [![federated nodes 46](https://img.shields.io/badge/federated_nodes-46-6E4AFF)](SPEC.md)
@@ -399,7 +399,7 @@ a language can be added without touching the engines
 - **Numbers here are generated.** The badges, the Languages table and
   [the third-party notices](docs/THIRD-PARTY-NOTICES.md) are rendered from
   the files that own each fact by `xenolith-dev`, this repository's own
-  unpublished tooling.
+  unpublished tooling, and the gate fails when they drift.
 
 ## Status
 
