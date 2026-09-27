@@ -101,6 +101,50 @@ fn an_empty_command_is_an_error_not_a_pass() {
 }
 
 #[test]
+fn a_tool_killed_by_a_signal_is_an_error_keeping_what_it_printed() {
+    // `src/lint` §I status: a signal is `error`, why in `raw_tail`.
+    let sandbox = Sandbox::new();
+    let bin = sandbox.plain("bin");
+    stub(&bin, "dies", "echo going\nkill -KILL $$");
+    stub(&bin, "vanishes", "kill -KILL $$");
+    let tools = Tools::on_path(&bin);
+    let ran = run(sandbox.path(), &argv(&["dies", "f"]), None, &tools);
+    assert_eq!(ran.status, Status::Error);
+    assert_eq!(ran.exit, None);
+    assert_eq!(
+        ran.tail.as_deref(),
+        Some("`dies` was killed by a signal\ngoing")
+    );
+    let ran = run(sandbox.path(), &argv(&["vanishes"]), None, &tools);
+    assert_eq!(ran.status, Status::Error);
+    assert_eq!(
+        ran.tail.as_deref(),
+        Some("`vanishes` was killed by a signal")
+    );
+}
+
+#[test]
+fn a_tool_on_path_that_cannot_be_executed_is_an_error_saying_why() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let sandbox = Sandbox::new();
+    let bin = sandbox.plain("bin");
+    stub(&bin, "stuck", "exit 0");
+    let path = bin.join("stuck");
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))
+        .unwrap_or_else(|e| panic!("chmod {}: {e}", path.display()));
+    let ran = run(
+        sandbox.path(),
+        &argv(&["stuck"]),
+        None,
+        &Tools::on_path(&bin),
+    );
+    assert_eq!(ran.status, Status::Error);
+    assert_eq!(ran.exit, None);
+    let why = ran.tail.unwrap_or_default();
+    assert!(why.starts_with("`stuck` could not be run: "), "{why}");
+}
+
+#[test]
 fn the_tool_runs_in_the_root() {
     let sandbox = Sandbox::new();
     let bin = sandbox.plain("bin");

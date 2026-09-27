@@ -832,3 +832,89 @@ fn a_check_past_the_timeout_is_an_error_and_the_rest_still_run() {
     assert!(why.contains("`alpha`") && why.contains("1s"), "{why}");
     assert_eq!(report.exit_code(), 2);
 }
+
+// ---------------------------------------------------------------------
+// refusals and what discovery passes on
+// ---------------------------------------------------------------------
+
+#[test]
+fn a_refusal_from_discovery_is_passed_on_in_its_own_words() {
+    let fx = Fixture::all_pass();
+    let refused = fx.lint(&Config::default(), &named(&["nope.sh"]));
+    let Err(LintError::Discover(inner)) = &refused else {
+        panic!("{refused:?}");
+    };
+    let said = refused.as_ref().err().map(ToString::to_string);
+    assert_eq!(said, Some(inner.to_string()));
+    assert!(inner.to_string().contains("nope.sh"), "{inner}");
+    assert!(refused.is_err_and(|e| e.exit_code() == 2));
+}
+
+#[test]
+fn a_nested_config_that_does_not_parse_is_refused_in_its_own_words() {
+    // `src/config` §I discovery: the file's own layer, not the root's.
+    let fx = Fixture::all_pass();
+    fx.file("sub/xenolith.toml", "version = 1\n[lint]\nbogus = 1\n");
+    fx.file("sub/a.sh", "echo hi\n");
+    let refused = fx.lint(&Config::default(), &named(&["sub/a.sh"]));
+    let Err(LintError::Config(inner)) = &refused else {
+        panic!("{refused:?}");
+    };
+    let said = refused.as_ref().err().map(ToString::to_string);
+    assert_eq!(said, Some(inner.to_string()));
+    assert!(inner.to_string().contains("bogus"), "{inner}");
+    assert!(refused.is_err_and(|e| e.exit_code() == 2));
+}
+
+#[test]
+fn a_path_outside_the_root_says_so() {
+    let refused = LintError::Outside {
+        path: PathBuf::from("../elsewhere/a.sh"),
+    };
+    assert_eq!(
+        refused.to_string(),
+        "../elsewhere/a.sh: outside the root: xnl lints the tree it runs in"
+    );
+    assert_eq!(refused.exit_code(), 2);
+}
+
+#[test]
+fn a_skipped_symlink_is_warned_about_and_its_target_linted_once() {
+    // `src/discover:V128`: the link is not scanned, and says so.
+    let fx = Fixture::all_pass();
+    fx.file("a.sh", "echo hi\n");
+    std::os::unix::fs::symlink("a.sh", fx.root.join("link.sh"))
+        .unwrap_or_else(|e| panic!("symlink: {e}"));
+    fx.sandbox.run_git(&fx.root, &["init", "-q"]);
+    fx.sandbox.run_git(&fx.root, &["add", "a.sh", "link.sh"]);
+    let report = fx
+        .lint(&Config::default(), &Options::default())
+        .unwrap_or_else(|e| panic!("{e}"));
+    let files: Vec<String> = report
+        .outcomes()
+        .iter()
+        .map(|o| o.file.display().to_string())
+        .collect();
+    assert_eq!(files, ["a.sh", "a.sh"]);
+    let warned: Vec<(&str, Option<&Path>)> = report
+        .warnings()
+        .iter()
+        .map(|w| (w.code.as_str(), w.file.as_deref()))
+        .collect();
+    assert_eq!(warned, [("symlink-skipped", Some(Path::new("link.sh")))]);
+}
+
+#[test]
+fn a_file_with_no_shebang_and_no_extension_is_unclaimed() {
+    let fx = Fixture::all_pass();
+    fx.file("NOTES", "hi\n");
+    let warn = parsed("version = 1\n[langs]\nunclaimed = \"warn\"\n");
+    let report = fx.report(&warn, &["NOTES"]);
+    assert!(report.outcomes().is_empty(), "{:?}", report.outcomes());
+    let warned: Vec<(&str, Option<&Path>)> = report
+        .warnings()
+        .iter()
+        .map(|w| (w.code.as_str(), w.file.as_deref()))
+        .collect();
+    assert_eq!(warned, [("host-unsupported", Some(Path::new("NOTES")))]);
+}

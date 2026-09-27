@@ -143,6 +143,20 @@ fn raw_an_unknown_tool_and_garbage_are_not_parsed() {
 }
 
 #[test]
+fn shellcheck_json_that_is_neither_a_list_nor_json1_is_not_parsed() {
+    assert_eq!(parse(&Format::Json("shellcheck"), "42"), None);
+    assert_eq!(parse(&Format::Json("shellcheck"), r#""SC2086""#), None);
+}
+
+#[test]
+fn a_sarif_run_with_no_results_is_passed_over() {
+    let stdout = r#"{"runs":[{"tool":{}},{"results":[{"ruleId":"R1",
+      "message":{"text":"one"}}]}]}"#;
+    let got = parsed(&Format::Sarif, stdout);
+    assert_eq!(got.findings, [finding(0, 1, "R1", "warning", "one")]);
+}
+
+#[test]
 fn a_finding_missing_its_line_is_unparseable_rather_than_dropped() {
     let stdout = r#"[{"level":"info","code":1,"message":"m"}]"#;
     assert_eq!(parse(&Format::Json("shellcheck"), stdout), None);

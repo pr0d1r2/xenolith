@@ -168,6 +168,28 @@ fn a_named_path_that_does_not_exist_is_refused_by_discovery() {
 }
 
 #[test]
+fn a_run_the_engine_completes_is_rendered_with_its_exit_code() {
+    // A file nothing lints, under the default `unclaimed = "ignore"`:
+    // no result, nothing printed, exit 0 (`src/check:V13`).
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    crate::discover::write(&root, "NOTES", "x\n");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = run(
+        &root,
+        &scan(&["NOTES"]),
+        Flags::default(),
+        &mut out,
+        &mut err,
+    );
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, 0, "{err}");
+    assert!(out.is_empty(), "{:?}", String::from_utf8_lossy(&out));
+    assert!(err.is_empty(), "{err:?}");
+}
+
+#[test]
 fn a_config_that_does_not_parse_is_refused() {
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");

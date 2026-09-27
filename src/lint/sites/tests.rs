@@ -13,7 +13,7 @@ use xenolith_lang_api::{
     LoadRef, Prelude, Result, Shebang, Site, Span,
 };
 
-use super::{align, guest_text, materialise, position};
+use super::{Pieces, align, guest_text, materialise, position};
 use crate::check::Langs;
 use crate::config::{self, Config};
 use crate::discover::{Sandbox, write};
@@ -91,6 +91,13 @@ fn a_character_unmatched_on_its_line_stays_put() {
     assert_eq!(offsets.get(4), Some(&3));
 }
 
+#[test]
+fn a_leading_line_with_text_is_never_stepped_over_as_dropped() {
+    // One line fewer after unescape, but the first raw line is not
+    // blank: it was joined, not dropped, so `a` still maps to byte 0.
+    assert_eq!(align("ab\ncd", "abcd"), [0, 1, 2, 2, 2]);
+}
+
 // ---------------------------------------------------------------------
 // the body a site's checks read
 // ---------------------------------------------------------------------
@@ -133,6 +140,27 @@ fn holes_become_markers_and_map_back_to_their_start() {
     assert_eq!(pieces.host(at + 3), hole);
     let echo = src.find("echo").unwrap_or_default();
     assert_eq!(pieces.host(1), echo + 1);
+}
+
+#[test]
+fn a_hole_inside_one_already_marked_adds_no_second_marker() {
+    let src = "x = [echo {a} b]\n";
+    let mut site = site_in(src);
+    let outer = site
+        .holes
+        .first()
+        .copied()
+        .unwrap_or_else(|| panic!("no hole in {src:?}"));
+    site.holes.push(Span::new(outer.start + 1, outer.end));
+    let (text, pieces) = guest_text(src, &site);
+    assert_eq!(text, "echo XNL_HOLE_0_ b");
+    let b = text.rfind('b').unwrap_or_default();
+    assert_eq!(pieces.host(b), src.rfind('b').unwrap_or_default());
+}
+
+#[test]
+fn an_offset_before_every_piece_is_the_body_end() {
+    assert_eq!(Pieces::default().host(3), 0);
 }
 
 #[test]
@@ -484,6 +512,32 @@ fn untrusted_config_on_a_site_is_skipped_under_the_virtual_name() {
     assert_eq!(own.kind, Kind::Site);
     assert_eq!(own.file, PathBuf::from("a.hx"));
     assert_eq!(own.argv, ["own", "a.hx:1:6"]);
+}
+
+#[test]
+fn a_site_whose_trusted_config_leaves_no_check_is_left_alone() {
+    // `[lint.<guest>] extend = false` and no checks: nothing to run, so
+    // no temp file, no result and nothing to warn about.
+    let fx = Fixture::new();
+    write(&fx.root, "a.hx", "x = [echo]\n");
+    let config = config::parse("version = 1\n[lint.shell]\nextend = false\n")
+        .unwrap_or_else(|e| panic!("config: {e}"));
+    let options = Options {
+        paths: vec![PathBuf::from("a.hx")],
+        trust_config: true,
+        ..sites()
+    };
+    let report = lint_with(
+        &fx.root,
+        &config,
+        &options,
+        &FAKES,
+        &|| fx.sandbox.git(),
+        &Tools::on_path(&fx.bin),
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    assert!(report.outcomes().is_empty(), "{:?}", report.outcomes());
+    assert!(report.warnings().is_empty(), "{:?}", report.warnings());
 }
 
 // ---------------------------------------------------------------------

@@ -87,6 +87,36 @@ fn json_carries_the_envelope_and_every_result_field() {
 }
 
 #[test]
+fn every_status_and_source_renders_its_documented_name() {
+    // `src/lint` §I json: `status` ∈ pass | fail | error | skipped.
+    let mut report = LintReport::new();
+    for status in [Status::Pass, Status::Fail, Status::Error, Status::Skipped] {
+        report.push(Outcome {
+            source: Source::Config,
+            ..outcome(status)
+        });
+    }
+    let json = parsed(&report);
+    for (n, want) in ["pass", "fail", "error", "skipped"].iter().enumerate() {
+        assert_eq!(at(&json, &format!("/results/{n}/status")), *want, "{n}");
+        assert_eq!(at(&json, &format!("/results/{n}/source")), "config", "{n}");
+    }
+}
+
+#[test]
+fn a_warning_about_a_file_names_it() {
+    let mut report = LintReport::new();
+    report.warn(Warning {
+        code: "untrusted-command".to_owned(),
+        file: Some(PathBuf::from("scripts/a.sh")),
+        message: "m".to_owned(),
+    });
+    let json = parsed(&report);
+    assert_eq!(at(&json, "/warnings/0/file"), "scripts/a.sh");
+    assert_eq!(at(&json, "/warnings/0/code"), "untrusted-command");
+}
+
+#[test]
 fn a_host_result_has_no_guest_and_no_dialect() {
     let mut report = LintReport::new();
     report.push(Outcome {
