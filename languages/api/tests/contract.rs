@@ -52,7 +52,7 @@ fn lang_id_all_is_complete_and_sorted() {
     // The registry iterates in `LangId` order (`src/registry:V41`), so the order
     // has to be a property of this type rather than of each caller.
     let all = LangId::ALL;
-    assert_eq!(all.len(), 16, "a language was added without a variant");
+    assert_eq!(all.len(), 18, "a language was added without a variant");
     let mut sorted = all.to_vec();
     sorted.sort_unstable();
     assert_eq!(sorted.as_slice(), all, "LangId::ALL must be sorted");

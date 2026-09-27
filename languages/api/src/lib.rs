@@ -83,6 +83,10 @@ pub enum LangId {
     Shell,
     /// SQL, a guest only.
     Sql,
+    /// Tcl, and expect as its dialect (`languages/shells/tcl:V195`).
+    Tcl,
+    /// XML, including text property lists (`languages/data/xml:V188`).
+    Xml,
     /// YAML, a host of GitHub Actions `run:` blocks.
     Yaml,
 }
@@ -105,6 +109,8 @@ impl LangId {
         LangId::Rust,
         LangId::Shell,
         LangId::Sql,
+        LangId::Tcl,
+        LangId::Xml,
         LangId::Yaml,
     ];
 
@@ -132,6 +138,8 @@ impl LangId {
             LangId::Rust => "rust",
             LangId::Shell => "shell",
             LangId::Sql => "sql",
+            LangId::Tcl => "tcl",
+            LangId::Xml => "xml",
             LangId::Yaml => "yaml",
         }
     }
