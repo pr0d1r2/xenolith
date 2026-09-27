@@ -341,6 +341,7 @@ fn override_scalar(out: &mut Config, child: &Config, key: &str) {
         }
         "threshold.exec.max_args" => out.threshold.exec_max_args = child.threshold.exec_max_args,
         "threshold.exec.max_len" => out.threshold.exec_max_len = child.threshold.exec_max_len,
+        "threshold.just.max_lines" => out.threshold.just_max_lines = child.threshold.just_max_lines,
         "threshold.load.max_params" => {
             out.threshold.load_max_params = child.threshold.load_max_params;
         }

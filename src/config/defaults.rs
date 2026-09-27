@@ -52,6 +52,9 @@ pub const THRESHOLD_GUEST_MAX_LINES: u64 = 1;
 pub const THRESHOLD_EXEC_MAX_ARGS: u64 = 8;
 /// `[threshold.exec] max_len` (`src/config` §I).
 pub const THRESHOLD_EXEC_MAX_LEN: u64 = 120;
+/// `[threshold.just] max_lines` (`src/config:V240`, `languages/ci/just:V180`):
+/// a recipe is one line until a config raises it.
+pub const THRESHOLD_JUST_MAX_LINES: u64 = 1;
 /// `[threshold.load] max_params` (`languages/api/src/holes:V40`).
 pub const THRESHOLD_LOAD_MAX_PARAMS: u64 = 6;
 /// `[threshold.load] param_prefix` (`src/config` §I).
@@ -163,6 +166,10 @@ pub const TABLE: &[Entry] = &[
     row(
         "threshold.exec.max_len",
         Setting::Int(THRESHOLD_EXEC_MAX_LEN),
+    ),
+    row(
+        "threshold.just.max_lines",
+        Setting::Int(THRESHOLD_JUST_MAX_LINES),
     ),
     row(
         "threshold.load.max_params",

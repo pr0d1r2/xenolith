@@ -323,6 +323,9 @@ pub struct Threshold {
     pub exec_max_args: u64,
     /// `[threshold.exec] max_len`.
     pub exec_max_len: u64,
+    /// `[threshold.just] max_lines`: lines a just recipe may run and
+    /// stay inline, each judged alone (`src/config:V240`).
+    pub just_max_lines: u64,
     /// `[threshold.load] max_params`.
     pub load_max_params: u64,
     /// `[threshold.load] param_prefix`.
@@ -394,6 +397,7 @@ impl Default for Config {
                     .collect(),
                 exec_max_args: d::THRESHOLD_EXEC_MAX_ARGS,
                 exec_max_len: d::THRESHOLD_EXEC_MAX_LEN,
+                just_max_lines: d::THRESHOLD_JUST_MAX_LINES,
                 load_max_params: d::THRESHOLD_LOAD_MAX_PARAMS,
                 load_param_prefix: d::THRESHOLD_LOAD_PARAM_PREFIX.to_owned(),
                 guests: BTreeMap::new(),
@@ -454,6 +458,9 @@ impl Config {
             }
             ["threshold", "exec", "max_args"] => Some(Effective::Int(self.threshold.exec_max_args)),
             ["threshold", "exec", "max_len"] => Some(Effective::Int(self.threshold.exec_max_len)),
+            ["threshold", "just", "max_lines"] => {
+                Some(Effective::Int(self.threshold.just_max_lines))
+            }
             ["threshold", "load", "max_params"] => {
                 Some(Effective::Int(self.threshold.load_max_params))
             }
@@ -502,6 +509,16 @@ impl Config {
         ))
     }
 
+    /// `[threshold.<host>] max_lines` for a host whose sites run line by
+    /// line (`src/config:V240`): how many lines such a body may hold and
+    /// still be judged one line at a time. `None` for a host without the
+    /// key, which the engine then never relaxes that way. Only just has
+    /// one today.
+    #[must_use]
+    pub fn line_ceiling(&self, host: LangId) -> Option<u64> {
+        (host == LangId::Just).then_some(self.threshold.just_max_lines)
+    }
+
     /// Whether `key` came from the file or the table; `None` for a key
     /// the table does not hold.
     #[must_use]
@@ -517,10 +534,10 @@ impl Config {
     }
 }
 
-/// A guest id usable in `[threshold.<guest>]`: any language but shell,
-/// whose table has its own shape (`src/config` §I).
+/// A guest id usable in `[threshold.<guest>]`: any language but shell
+/// and just, whose tables have their own shapes (`src/config` §I).
 fn guest_threshold_lang(name: &str) -> Option<LangId> {
-    LangId::from_name(name).filter(|id| *id != LangId::Shell)
+    LangId::from_name(name).filter(|id| !matches!(id, LangId::Shell | LangId::Just))
 }
 
 // ---------------------------------------------------------------------
@@ -959,9 +976,10 @@ fn parse_threshold(config: &mut Config, t: &Table) -> Result<(), ConfigError> {
                 ("shell", "allow") => th.shell_allow = constructs(&key, value)?,
                 ("exec", "max_args") => th.exec_max_args = count(&key, value)?,
                 ("exec", "max_len") => th.exec_max_len = count(&key, value)?,
+                ("just", "max_lines") => th.just_max_lines = count(&key, value)?,
                 ("load", "max_params") => th.load_max_params = count(&key, value)?,
                 ("load", "param_prefix") => th.load_param_prefix = string(&key, value)?,
-                ("shell" | "exec" | "load", _) => return Err(ConfigError::unknown(&key)),
+                ("shell" | "exec" | "just" | "load", _) => return Err(ConfigError::unknown(&key)),
                 (name, field @ ("max_lines" | "max_bytes")) => {
                     let guest =
                         guest_threshold_lang(name).ok_or_else(|| unknown_lang(&at, name))?;
