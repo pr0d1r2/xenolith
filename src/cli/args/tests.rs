@@ -186,9 +186,11 @@ fn verbose_and_strict_hosts_are_accepted_by_every_verb() {
         assert!(got.verbose, "{verb}");
         assert!(got.strict_hosts, "{verb}");
     }
-    let got = ok(&["extract", "--verbose", "--strict-hosts", "x.nix"]);
-    assert!(got.verbose);
-    assert!(got.strict_hosts);
+    for verb in ["extract", "inline"] {
+        let got = ok(&[verb, "--verbose", "--strict-hosts", "x.nix"]);
+        assert!(got.verbose, "{verb}");
+        assert!(got.strict_hosts, "{verb}");
+    }
 }
 
 #[test]
@@ -331,6 +333,42 @@ fn extract_takes_write_and_relocate() {
             targets: vec![target("a.nix", None)],
         }
     );
+}
+
+#[test]
+fn inline_takes_extracts_and_write() {
+    // `src/cli` §I: `xnl inline [--write] <extract>…`; an operand is a
+    // file, never `<path>:<line>` -- an extract has one load to go back to.
+    assert_eq!(
+        ok(&["inline", "a/x.sh", "b:1"]).verb,
+        Verb::Inline {
+            write: false,
+            extracts: vec![PathBuf::from("a/x.sh"), PathBuf::from("b:1")],
+        }
+    );
+    let invocation = ok(&["inline", "--write", "--verbose", "--strict-hosts", "a/x.sh"]);
+    assert_eq!(
+        invocation.verb,
+        Verb::Inline {
+            write: true,
+            extracts: vec![PathBuf::from("a/x.sh")],
+        }
+    );
+    assert!(invocation.verbose && invocation.strict_hosts);
+    assert_eq!(invocation.verb.name(), "inline");
+}
+
+#[test]
+fn inline_needs_an_extract_and_takes_no_other_verb_s_flag() {
+    let message = usage(&["inline"]);
+    assert!(
+        message.contains("inline") && message.contains("extract"),
+        "{message}"
+    );
+    for flag in ["--relocate", "--format", "--fix"] {
+        let message = usage(&["inline", flag, "a/x.sh"]);
+        assert!(message.contains(flag), "{flag}: {message}");
+    }
 }
 
 #[test]

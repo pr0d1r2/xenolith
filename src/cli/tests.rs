@@ -118,6 +118,7 @@ fn no_arguments_prints_the_usage_on_stderr() {
         "check",
         "extract",
         "graph",
+        "inline",
         "lint",
         "langs",
         "migrate",
@@ -161,14 +162,14 @@ fn flags_are_parsed_before_a_verb_is_refused() {
 }
 
 // ---------------------------------------------------------------------
-// relocate reaches its engine
+// relocate and inline reach their engines
 // ---------------------------------------------------------------------
 
 #[test]
-fn relocate_is_routed_to_its_engine_not_refused() {
-    // `src/extract:T101`: the arm runs its engine. A named path that does
-    // not exist is the engine's refusal (`src/discover:V57`), naming the
-    // verb and the path.
+fn relocate_and_inline_are_routed_to_their_engines_not_refused() {
+    // `src/extract:T101`, `src/extract:T102`: each arm runs its engine. A
+    // named path that does not exist is the engine's refusal
+    // (`src/discover:V57`), naming the verb and the path.
     let sandbox = crate::discover::Sandbox::new();
     let root = sandbox.plain("r");
     for (args, verb) in [
@@ -180,6 +181,8 @@ fn relocate_is_routed_to_its_engine_not_refused() {
             &["extract", "--relocate", "--write", "nope.nix"][..],
             "extract --relocate",
         ),
+        (&["inline", "nope.sh"][..], "inline"),
+        (&["inline", "--write", "nope.sh"][..], "inline"),
     ] {
         let mut out = Vec::new();
         let mut err = Vec::new();

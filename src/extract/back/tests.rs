@@ -2,13 +2,13 @@
 //! `src/extract/tests.rs`: `<sink>< <argv…>` is a load of its last
 //! word, `<sink>=<guest>: <body>` a site, placed at
 //! `<host dir>/<host stem>/<sink>.sh`; the `sh` guest's prelude is
-//! `#!/usr/bin/env sh` alone.
+//! `#!/usr/bin/env sh` alone and `&&` makes a body non-trivial.
 
 use std::path::Path;
 
 use xenolith_lang_api::{Host, LoadRef};
 
-use super::{Back, again, back, loaders};
+use super::{Back, again, back, loaders, trivial};
 use crate::config::{self, Config, Tree};
 use crate::discover::{Sandbox, write as put};
 use crate::extract::toys;
@@ -53,13 +53,12 @@ fn a_load_reads_back_to_its_body_its_site_and_its_placement() {
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/usr/bin/env sh\nmake && make test\n");
     let tree = Tree::new(Config::default());
     let read = read_back(&root, &tree, "a/build.sh").unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        read.inlined, "build=shell: make && make test\n",
-        "the prelude is not body"
-    );
+    assert_eq!(read.body, "make && make test\n", "the prelude is not body");
+    assert_eq!(read.inlined, "build=shell: make && make test\n");
     assert_eq!(read.planned.site.sink, "build");
     assert_eq!(read.planned.placed.path, "a/build.sh");
     assert_eq!(read.misplaced(), None, "it is where the config puts it");
+    assert!(!read.trivial(&Config::default()));
 }
 
 #[test]
@@ -92,6 +91,25 @@ fn a_load_that_cannot_be_read_back_says_why() {
 }
 
 #[test]
+fn trivial_is_check_s_verdict_threshold_included() {
+    let sh = toys()
+        .guests
+        .first()
+        .copied()
+        .unwrap_or_else(|| panic!("no guest"));
+    let env = xenolith_lang_api::GuestEnv::default();
+    let plain = Config::default();
+    assert!(trivial(sh, "echo hi\n", &env, &plain));
+    assert!(!trivial(sh, "a && b\n", &env, &plain));
+    let relaxed = config("version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n");
+    assert!(trivial(sh, "a && b\n", &env, &relaxed), "src/config:V55");
+    assert!(
+        !trivial(sh, "a && b | c\n", &env, &relaxed),
+        "pipeline is not allowed"
+    );
+}
+
+#[test]
 fn again_proves_the_bytes_and_refuses_a_file_it_would_rewrite() {
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/usr/bin/env sh\nmake && make test\n");
     let tree = Tree::new(Config::default());
@@ -107,7 +125,7 @@ fn again_proves_the_bytes_and_refuses_a_file_it_would_rewrite() {
         "the load follows the path"
     );
     // A shebang the prelude does not write: extracting again would
-    // rewrite it, so the move is not exact.
+    // rewrite it, so neither a move nor an inline is exact.
     let (_sandbox, root) = sandbox_with("a/build.sh", "#!/bin/dash\nmake && make test\n");
     let mut read = read_back(&root, &tree, "a/build.sh").unwrap_or_else(|e| panic!("{e}"));
     let err = again(&root, "a.toy", &mut read, "b/build.sh")

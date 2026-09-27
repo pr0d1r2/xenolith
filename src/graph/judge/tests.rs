@@ -1,10 +1,12 @@
-//! `misplaced-extract` (`src/graph:V98`) through [`graph_with`], over
-//! the toy host of `src/extract/tests.rs`: `<sink>< sh ./<path>` loads
-//! an extract whose site the config places at `<host stem>/<sink>.sh`.
+//! `misplaced-extract` and `inlineable-extract` (`src/graph:V98`,
+//! `src/graph:V100`) through [`graph_with`], over the toy host of
+//! `src/extract/tests.rs`: `<sink>< sh ./<path>` loads an extract whose
+//! site the config places at `<host stem>/<sink>.sh`; `&&` makes a
+//! body non-trivial for the `sh` guest.
 
 use std::path::{Path, PathBuf};
 
-use super::MISPLACED;
+use super::{INLINEABLE, MISPLACED};
 use crate::config::{self, Config};
 use crate::discover::{Sandbox, write as put};
 use crate::extract::toys;
@@ -19,7 +21,7 @@ fn repo(sandbox: &Sandbox, files: &[(&str, &str)]) -> PathBuf {
     root
 }
 
-/// `(code, file, message)` of each warning of the code, in order.
+/// `(code, file, message)` of each warning of the two codes, in order.
 fn judged(
     sandbox: &Sandbox,
     root: &Path,
@@ -38,7 +40,7 @@ fn judged(
         .report
         .warnings()
         .iter()
-        .filter(|w| w.code == MISPLACED)
+        .filter(|w| w.code == MISPLACED || w.code == INLINEABLE)
         .map(|w| {
             let file = w
                 .file
@@ -93,6 +95,51 @@ fn a_layout_change_warns_misplaced_naming_the_path_and_the_relocate() {
     );
     // A named-path run judges the loads it reads, too.
     assert_eq!(judged(&sandbox, &root, &central, &["a.toy"]).len(), 1);
+}
+
+#[test]
+fn a_trivial_body_warns_inlineable_and_a_shared_one_does_not() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nmake\n"),
+        ],
+    );
+    let found = judged(&sandbox, &root, &Config::default(), &[]);
+    let [(code, file, message)] = found.as_slice() else {
+        panic!("{found:?}")
+    };
+    assert_eq!(code, "inlineable-extract");
+    assert_eq!(file, "a/build.sh");
+    assert!(message.contains("`xnl inline a/build.sh`"), "{message}");
+    put(&root, "b.toy", "build< sh ./a/build.sh\n");
+    sandbox.run_git(&root, &["add", "."]);
+    let shared = judged(&sandbox, &root, &Config::default(), &[]);
+    assert!(
+        shared
+            .iter()
+            .all(|(code, _, _)| code != "inlineable-extract"),
+        "inline refuses a shared extract: {shared:?}"
+    );
+}
+
+#[test]
+fn a_threshold_that_relaxes_the_body_makes_it_inlineable() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", SCRIPT),
+        ],
+    );
+    assert!(judged(&sandbox, &root, &Config::default(), &[]).is_empty());
+    let relaxed = config::parse("version = 1\n[threshold.shell]\nallow = [\"and-or\"]\n")
+        .unwrap_or_else(|e| panic!("{e}"));
+    let found = judged(&sandbox, &root, &relaxed, &[]);
+    assert_eq!(found.len(), 1, "{found:?}");
 }
 
 #[test]
