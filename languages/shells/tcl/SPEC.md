@@ -19,8 +19,8 @@ sib|languages/shells/bats|bats grammar (based-on shell), `@test` sinks, test-hos
 - host sinks (V196): `exec sh|bash|zsh|dash -c <word>` → shell; `exec <interp> << <word>` (Tcl's stdin-from-value redirection) → guest per interp; expect `spawn sh|bash -c <word>` → shell. `spawn` + `send` (interactive) ⊥ site; `open "\|sh -c …"` ?.
 - body: braced `{…}` word verbatim; `"…"` word w/ `$var` \| `[cmd]` → holes (`languages/api/src/holes:V40`) ?, until fixture.
 - guest: per V197; shell side = `languages/shells/shell:V139`, added by T200 ⊥ here.
-- host checks ? (V198). `loads`/`rewrite`/`inline` = `Unsupported` (⊥ load idiom here).
-- walk: script = top level, `[cmd]`, builtin bodies (`proc` `if` `while` `foreach` `catch` `try`), `namespace eval`; braced ARG of any other cmd = opaque data, ⊥ searched. grammar parses ∀ braces as script ∴ ERROR inside opaque braces ⊥ fails file, else `languages:V78`. measured 2026-09-27: grammar rejects valid `"$ "`, `a; b`, `set x [expr {…}]` → host-parse-error.
+- checks & fixers: V198; `LintCmd` = `[xenolith-tcl-syntax]`, file appended, `Format::Raw`. `loads`/`rewrite`/`inline` = `Unsupported` (⊥ load idiom here).
+- walk: script = top level, `[cmd]`, builtin bodies (`proc` `if` `while` `foreach` `catch` `try`), `namespace eval`; braced ARG of any other cmd = opaque data, ⊥ searched. grammar parses ∀ braces as script ∴ ERROR inside opaque braces ⊥ fails file, else `languages:V78`. vendored grammar carries a local patch (B1).
 - shebang claim read in-crate: `api` shebang table ⊥ tcl (widening it moves other hosts' guests).
 
 ## §R RESEARCH
@@ -28,13 +28,14 @@ sib|languages/shells/bats|bats grammar (based-on shell), `@test` sinks, test-hos
 id|topic|finding|src
 R193|fleet 2026-09-27|5 repos / 23 files (14 `.tcl`, 9 `.exp`); 13 use `exec`, 5 run `sh\|bash -c`, 8 use expect `spawn`. fleet hook (`*.tcl`, `*.exp`): `tclsh` reads the file, `info complete` (unclosed braces, brackets, quotes) + lint "`#` inside `set x { }` = literal, ⊥ comment" — itself a Tcl program fed to `tclsh` by a shell heredoc, i.e. a V197 site|read-only fleet survey, counts only (`scripts/guard` C17)
 R194|grammar 2026-09-27|`tree-sitter-tcl` (tree-sitter-grammars, MIT) ⊥ on crates.io (404) ∴ VENDOR per `languages:V121`|crates.io API, upstream repo
+R208|Rust tcl checker 2026-09-27|crates.io: `molt` 0.3.1 (BSD-3, last release 2020-05-11): `Interp::complete` = its parser, tclsh's messages but ⊥ position, pulls `indexmap` 1; `molt-ng` 0.3.2 (2022 fork, same); `tcl` 0.1.9 = bindings to C libtcl (external tool by another name); `rtcl` `tcl-parser` 404 ∴ own word parser, ⊥ dep. differential fuzz vs `tclsh` 8.5.9 (random texts over `{}[]"$\;#()` & friends): `info complete` verdict 0 mismatches / 140k; extra-chars vs eval in a command-less interp 0 mismatches / 50k `$`-free texts, but 3 where `{*}` hit a runtime list error first (static check still right)|crates.io API, molt 0.3.1 source, fuzz in scratch
 
 ## §V INVARIANTS
 
 V195: `claims`: `*.tcl`, `*.tk`, `*.exp`, shebang resolving to `tclsh` \| `wish` \| `expect`. expect = DIALECT of tcl (same grammar, extra commands `spawn` `expect` `send` `interact`; `languages/shells:V132`) ∴ ⊥ own `LangId`, `env.dialect = expect` iff `.exp` \| expect shebang.
 V196: host site ⇐ plain interp name as `exec`/`spawn` arg 1 (⊥ `$var`, ⊥ `[cmd]`); `-c` word → shell, dialect = interp, env from ITS argv (argv form of `languages/shells/shell:V139`); `<<` word → guest per interp; ⊥ other shape = site.
 V197: guest tcl ⇐ shell heredoc to `tclsh` \| `wish` \| `expect` & `expect -c '…'` (`tclsh` has ⊥ `-c`). defaults: `invoke` = `tclsh {path}` \| `expect {path}`; ext `tcl` \| `exp`; prelude shebang `#!/usr/bin/env tclsh` \| `expect`, strict ⊥; `trivial` ? (default `max_lines`/`max_bytes`, `languages/api:V37`).
-V198: checks ? (unconfirmed until measured, as `languages/shells/bats:V136`): fleet check (R193) vs `tclint` vs `nagelfar` — decide by MEASURING on the fleet's 23 shapes (counts only). fleet check needs a Tcl checker FILE shipped w/ `xnl` (an extract itself, dogfood `.:V19`). fixers ?.
+V198: checks (host & guest, both dialects) = bin `xenolith-tcl-syntax` of this crate: Tcl WORD syntax in Rust (R208), ⊥ external tool. ∀ command of the top-level script & of each `[…]` in it (Tcl parses both before running): unclosed `{` `"` `[` `${` `$a(` \| text ending in `\`-newline (≡ `info complete`, R193) \| extra chars after close-brace \| close-quote → `file:line:col: <tclsh's words>`, 1st error only (Tcl stops there), exit 1; clean 0; usage \| unreadable 2. braced word = matched, ⊥ entered (data, or script parsed later); ⊥ semantics. fixers ⊥.
 
 ## §T TASKS
 
@@ -45,9 +46,10 @@ V198: checks ? (unconfirmed until measured, as `languages/shells/bats:V136`): fl
 id|status|task|cites
 T199|x|scaffold `languages/shells/tcl` crate (vendored `tree-sitter-tcl`, `LangId` variant 1st per `languages/api:V33`): `claims` + V196 sinks; fixtures: `exec sh -c {a \| b}` flagged, `exec bash -c {ls}` ⊥ flagged, `exec python3 << $src` → python, `spawn sh -c` flagged, `spawn ssh` + `send` ⊥ site, `.exp` → dialect expect|V195,V196,R194,`tests:V14`,`tests:V15`
 T200|.|shell side of V197: `tclsh`/`wish`/`expect` heredoc & `expect -c` as shell sinks → guest tcl; fixture = R193's shape (`tclsh /dev/stdin "$f" <<'TCL'`)|V197,`languages/shells/shell:V139`,`languages:V81`
-T201|.|MEASURE the 3 check candidates (V198), record counts & shapes, promote the winner & drop the `?`|V198,`src/lint:V8`
-T202|.|lookalike tcl~shell ? (`puts hi`, `set x 1` read as bash commands): measure; if confirmed add kinship edge + fixture pair|`languages:V131`,`languages/api:V33`
+T201|x|2026-09-27 user: checker in Rust, fast ∴ own (R208), ⊥ `tclint`/`nagelfar`; `checks()` returns it|V198,R208,`src/lint:V8`
+T202|x|2026-09-27 user: tcl = extension language, ⊥ shell lookalike ∴ ⊥ kinship edge, ⊥ fixture pair|`languages:V131`
 
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-27|vendored grammar (upstream `main` \| `fixes` \| `update` alike) rejects valid `"$ "` (lone `$`), `a; b` (scanner concats `;`), `expr {1+2}` (`number` eats `+2`, fn name eats `1+2`), `set x $y(z)` (scanner concats `(`), `"a]"`, `if … then`, `catch` options var, `try … on ok \| trap`, `max(1,2)` → `host-parse-error`|`vendor/tree-sitter-tcl/xenolith.patch` (grammar.js & scanner.c), parser.c regenerated w/ upstream's tree-sitter-cli 0.25.3 (reproduces upstream byte for byte unpatched), upstream corpus 24/24, recorded in `UPSTREAM` (`languages:V121`); fixture `pos-grammar-gaps`, grammar tests. open: `set x a(b)`, `regexp {a(b)} …`, `[f]($x)`, `expr {0x1F}`
