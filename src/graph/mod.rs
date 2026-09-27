@@ -10,6 +10,8 @@
 //!   symlink (`src/graph:V72`).
 //! * [`scan`] -- one run over the candidates: edges, dangling loads,
 //!   and the orphan judgement at the end.
+//! * [`judge`] -- each edge's extract read back to its site:
+//!   `misplaced-extract` (`src/graph:V98`).
 //!
 //! Here: the types a caller sees, and the stages joined. Candidates come
 //! from [`crate::discover`] (`src/discover:V57`, `src/discover:V128`), minus what
@@ -32,6 +34,7 @@ use crate::discover::{DiscoverError, discover_with};
 use crate::model::{Report, SCHEMA};
 use crate::registry;
 
+pub mod judge;
 pub mod resolve;
 pub mod roots;
 pub mod scan;
@@ -231,6 +234,9 @@ pub(crate) fn graph_with(
             continue;
         }
         scan.file(file, name, config, options.strict_hosts)?;
+    }
+    for warning in judge::warnings(root, &tree, langs, &scan.loads) {
+        scan.report.warn(warning);
     }
     Ok(scan.finish(options.paths.is_empty()))
 }

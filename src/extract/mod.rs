@@ -33,6 +33,8 @@
 //! * [`diff`] -- unified diffs of whole files.
 //! * [`write`] -- `--write`.
 //! * [`lock`] -- one writer at a time (`src/extract:V127`).
+//! * [`back`] -- a load read back to its site (`src/extract:V270`).
+//! * [`relocate`] -- `--relocate` (`src/extract:V99`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -47,18 +49,28 @@ use crate::check::{self, CheckError, Langs, repo_name};
 use crate::cli::EXIT_USAGE;
 use crate::config::{Base, Config, SiteKey, Strict, Tree, TreeError, Verb};
 use crate::discover::{DiscoverError, discover_with};
+use crate::graph::GraphError;
 use crate::model::{Rule, Warning};
 use crate::registry;
 
 use self::place::{Ask, Field, Placed, Vars};
 
+pub(crate) mod back;
 pub mod diff;
 pub mod lock;
 pub mod place;
+pub mod relocate;
 pub mod write;
+
+pub use self::relocate::relocate;
 
 #[cfg(test)]
 mod tests;
+
+/// The toy hosts and guest the extract tests run on, shared with the
+/// tests of every engine that reads a load back (`tests:V150`).
+#[cfg(test)]
+pub(crate) use self::tests::toys;
 
 /// One `xnl extract` operand: a host file (or a directory of them), and
 /// optionally the one line whose site to extract.
@@ -104,6 +116,20 @@ pub struct HostEdit {
     pub after: String,
     /// The extracts, sorted by path.
     pub extracts: Vec<NewFile>,
+    /// Extracts removed once the host is written: moved away
+    /// (`src/extract:V99`) or put back in it (`src/extract:V101`).
+    pub removes: Vec<Gone>,
+}
+
+/// An extract file the edit removes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Gone {
+    /// Repo-root relative.
+    pub path: String,
+    /// Its bytes as read: `--write` removes it only while they still are.
+    pub text: String,
+    /// Where it moved to (`--relocate`), or `None` when it was inlined.
+    pub to: Option<String>,
 }
 
 /// Something the run will not do, and why. Exit 2 (`src/cli:V24`).
@@ -143,15 +169,36 @@ pub struct Edit {
 
 impl Edit {
     /// The unified diff of every change, extracts before their host
-    /// (the order `--write` uses, `src/extract:V84`), each extract
-    /// announced as `removing xenolith → <path>` (`src/cli` §I).
+    /// and removed files after it (the order `--write` uses,
+    /// `src/extract:V84`, `src/extract:V99`), each extract announced as
+    /// `removing xenolith → <path>` (`src/cli` §I), a moved one as
+    /// `moving extract <old> → <new>`, an inlined one as
+    /// `inlining <extract> → <host>`.
     #[must_use]
     pub fn diff(&self) -> String {
         let mut out = String::new();
         for host in &self.hosts {
             for extract in &host.extracts {
-                out.push_str("removing xenolith → ");
+                let from = host
+                    .removes
+                    .iter()
+                    .find(|gone| gone.to.as_deref() == Some(extract.path.as_str()));
+                match from {
+                    Some(gone) => {
+                        out.push_str("moving extract ");
+                        out.push_str(&gone.path);
+                        out.push_str(" → ");
+                    }
+                    None => out.push_str("removing xenolith → "),
+                }
                 out.push_str(&extract.path);
+                out.push('\n');
+            }
+            for gone in host.removes.iter().filter(|gone| gone.to.is_none()) {
+                out.push_str("inlining ");
+                out.push_str(&gone.path);
+                out.push_str(" → ");
+                out.push_str(&host.path);
                 out.push('\n');
             }
             for extract in host.extracts.iter().filter(|e| !e.present) {
@@ -168,6 +215,14 @@ impl Edit {
                 &host.before,
                 &host.after,
             ));
+            for gone in &host.removes {
+                out.push_str(&diff::unified(
+                    &format!("a/{}", gone.path),
+                    "/dev/null",
+                    &gone.text,
+                    "",
+                ));
+            }
         }
         out
     }
@@ -197,6 +252,9 @@ pub enum ExtractError {
     Outside(PathBuf),
     /// `<dir>:<line>`: a line names a site in one file.
     LineOnDir(PathBuf),
+    /// The whole-tree graph `--relocate` counts loads with was refused
+    /// (`src/extract:V270`).
+    Graph(GraphError),
 }
 
 impl fmt::Display for ExtractError {
@@ -205,6 +263,7 @@ impl fmt::Display for ExtractError {
             ExtractError::Discover(e) => e.fmt(f),
             ExtractError::Config(e) => e.fmt(f),
             ExtractError::Check(e) => e.fmt(f),
+            ExtractError::Graph(e) => e.fmt(f),
             ExtractError::Outside(path) => write!(
                 f,
                 "{}: outside the root: xnl extracts in the tree it runs in",
@@ -255,7 +314,7 @@ pub fn extract(root: &Path, config: &Config, options: &Options) -> Result<Edit, 
 }
 
 /// A site check flagged, with everything needed to move it.
-struct Planned<'a> {
+pub(crate) struct Planned<'a> {
     file: String,
     host: &'a dyn Host,
     guest: &'a dyn Guest,
@@ -754,6 +813,7 @@ fn edit_file(
         before: file.text.clone(),
         after,
         extracts,
+        removes: Vec::new(),
     })
 }
 

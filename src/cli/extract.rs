@@ -22,11 +22,16 @@ use crate::extract::{self, Edit, Options};
 #[cfg(test)]
 mod tests;
 
-/// The flags `xnl extract` runs under.
+/// The flags `xnl extract` runs under: four switches, each a flag the
+/// user typed; an enum would only rename them.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Flags {
     /// `--write`: apply rather than print (`src/extract:C15`).
     pub write: bool,
+    /// `--relocate`: move misplaced extracts rather than extract
+    /// (`src/extract:V99`).
+    pub relocate: bool,
     /// `--verbose`: explain every placement and skip.
     pub verbose: bool,
     /// `--strict-hosts` (`src/check:V13`).
@@ -56,8 +61,14 @@ pub fn run(
             .collect(),
         strict_hosts: flags.strict_hosts,
     };
-    let edit = match extract::extract(root, &config, &options) {
+    let planned = if flags.relocate {
+        extract::relocate(root, &config, &options)
+    } else {
+        extract::extract(root, &config, &options)
+    };
+    let edit = match planned {
         Ok(edit) => edit,
+        Err(e) if flags.relocate => return refuse(err, &format!("xnl: extract --relocate: {e}")),
         Err(e) => return refuse(err, &format!("xnl: {e}")),
     };
     if flags.write {
@@ -84,7 +95,12 @@ pub fn write(root: &Path, edit: &Edit, verbose: bool, err: &mut impl Write) -> u
         Ok(written) => {
             if verbose {
                 for path in written {
-                    let _ = writeln!(err, "wrote {path}");
+                    let removed = edit
+                        .hosts
+                        .iter()
+                        .any(|host| host.removes.iter().any(|gone| gone.path == path));
+                    let verb = if removed { "removed" } else { "wrote" };
+                    let _ = writeln!(err, "{verb} {path}");
                 }
             }
             if edit.refusals.is_empty() {
@@ -93,7 +109,7 @@ pub fn write(root: &Path, edit: &Edit, verbose: bool, err: &mut impl Write) -> u
                 EXIT_USAGE
             }
         }
-        Err(e) => refuse(err, &format!("xnl: extract --write: {e}")),
+        Err(e) => refuse(err, &format!("xnl: --write: {e}")),
     }
 }
 

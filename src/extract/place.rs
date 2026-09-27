@@ -565,7 +565,8 @@ pub fn suffix(sink: &str) -> String {
 }
 
 /// `path` with `-<suffix>` before its extension.
-fn suffixed(path: &str, suffix: &str) -> String {
+#[must_use]
+pub fn suffixed(path: &str, suffix: &str) -> String {
     let (dir, file) = match path.rsplit_once('/') {
         Some((dir, file)) => (format!("{dir}/"), file),
         None => (String::new(), path),

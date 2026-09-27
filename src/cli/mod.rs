@@ -16,7 +16,8 @@
 //!   (`src/check:V152`: the engine decides, `src/cli` renders and maps exit
 //!   codes).
 //! * [`extract`] -- `xnl extract`: config in, the extract engine's edit
-//!   out as a diff, or written under `--write` (`src/extract:T22`).
+//!   out as a diff, or written under `--write` (`src/extract:T22`);
+//!   `--relocate` asks the relocate engine instead (`src/extract:V99`).
 //! * [`graph`] -- `xnl graph`: config in, the graph engine's edges and
 //!   findings out (`src/graph:V7`).
 //! * [`lint`] -- `xnl lint`: config in, the lint engine's results out
@@ -25,13 +26,11 @@
 //!   into per-site `[[allow]]` entries by running that same engine
 //!   (`src/cli:T97`).
 //!
-//! A verb whose engine has not landed (`extract --relocate`) parses
-//! every flag and path and then REFUSES with exit 2, naming the task
-//! that brings its engine. Refusing matters more than it looks: a binary that accepts
-//! `xnl extract` and exits 0 having done nothing is indistinguishable,
-//! in a gate, from one that scanned the tree and found it clean. Wiring
-//! an engine in is replacing its arm's [`not_yet`] with one call and a
-//! render, as `check`'s arm did.
+//! A format whose writer has not landed (`--format sarif`) parses every
+//! flag and path and then REFUSES with exit 2, naming the task that
+//! brings it. Refusing matters more than it looks: a binary that accepts
+//! a request and exits 0 having done nothing is indistinguishable, in a
+//! gate, from one that scanned the tree and found it clean.
 
 use std::ffi::{OsStr, OsString};
 use std::io::Write;
@@ -175,12 +174,14 @@ fn dispatch(
             };
             lint::run(root, scan, flags, out, err)
         }),
-        Verb::Extract { relocate: true, .. } => {
-            not_yet(err, "extract --relocate", "src/extract:T101")
-        }
-        Verb::Extract { write, targets, .. } => {
+        Verb::Extract {
+            write,
+            relocate,
+            targets,
+        } => {
             let flags = extract::Flags {
                 write: *write,
+                relocate: *relocate,
                 verbose: invocation.verbose,
                 strict_hosts: invocation.strict_hosts,
             };
@@ -210,17 +211,6 @@ fn sarif(err: &mut impl Write, verb: &str, scan: &Scan) -> Option<u8> {
             ),
         )
     })
-}
-
-/// Refuse `verb`, naming the task that brings it.
-fn not_yet(err: &mut impl Write, verb: &str, task: &str) -> u8 {
-    refuse(
-        err,
-        &format!(
-            "xnl: `{verb}` is not implemented yet: it arrives with {task}. \
-             This build refuses rather than exit 0 having done nothing."
-        ),
-    )
 }
 
 /// Write a refusal to `err` and return the usage exit code.

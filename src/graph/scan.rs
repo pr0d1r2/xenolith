@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 
 use xenolith_lang_api::{DelimKind, Error, Guest, Host, LangId, LoadRef, shebang};
 
+use super::judge::Loaded;
 use super::roots::Roots;
 use super::{Edge, Graph, GraphError, LOADS_UNSUPPORTED, resolve};
 use crate::check::{HOST_PARSE_ERROR, Langs, UNCLAIMED};
@@ -32,6 +33,8 @@ pub(crate) struct Scan<'a> {
     /// Where extracts live (`src/graph:V50`).
     pub(crate) roots: Roots,
     edges: Vec<Edge>,
+    /// Every load behind an edge, for [`super::judge`].
+    pub(crate) loads: Vec<Loaded<'a>>,
     /// Every extract an edge reaches.
     loaded: BTreeSet<String>,
     /// Files a compiled-in guest reads, with that guest.
@@ -50,6 +53,7 @@ impl<'a> Scan<'a> {
             report: Report::new(),
             roots: Roots::default(),
             edges: Vec::new(),
+            loads: Vec::new(),
             loaded: BTreeSet::new(),
             extracts: Vec::new(),
             unknown: BTreeMap::new(),
@@ -66,7 +70,7 @@ impl<'a> Scan<'a> {
         strict_hosts: bool,
     ) -> Result<(), GraphError> {
         let head = head(&self.root.join(file));
-        let hosts: Vec<&dyn Host> = self
+        let hosts: Vec<&'a dyn Host> = self
             .langs
             .hosts
             .iter()
@@ -96,11 +100,11 @@ impl<'a> Scan<'a> {
     }
 
     /// A host file's loads and placements.
-    fn host(&mut self, host: &dyn Host, name: &str, src: &str, config: &Config) {
+    fn host(&mut self, host: &'a dyn Host, name: &str, src: &str, config: &Config) {
         match host.loads(src) {
             Ok(loads) => {
                 for load in &loads {
-                    self.load(host.id(), name, src, load);
+                    self.load(host, name, src, load);
                 }
             }
             Err(Error::Unsupported { .. }) => {
@@ -117,11 +121,18 @@ impl<'a> Scan<'a> {
     }
 
     /// One load: an edge, or a `dangling-load` at the load.
-    fn load(&mut self, host: LangId, name: &str, src: &str, load: &LoadRef) {
+    fn load(&mut self, host: &'a dyn Host, name: &str, src: &str, load: &LoadRef) {
         let (line, col) = position(src, load.span.start);
         match resolve::resolve(self.root, name, &load.path) {
             Ok(extract) => {
                 self.loaded.insert(extract.clone());
+                self.loads.push(Loaded {
+                    name: name.to_owned(),
+                    host,
+                    load: load.clone(),
+                    line,
+                    extract: extract.clone(),
+                });
                 self.edges.push(Edge {
                     host: PathBuf::from(name),
                     sink: String::new(),
@@ -137,7 +148,7 @@ impl<'a> Scan<'a> {
                 file: PathBuf::from(name),
                 line,
                 col,
-                host,
+                host: host.id(),
                 guest: load.guest,
                 sink: String::new(),
                 site: DelimKind::ArgvString,

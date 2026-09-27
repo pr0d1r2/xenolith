@@ -18,7 +18,7 @@ use super::lock::Lock;
 mod tests;
 
 /// Write every change in `edit` under `root`; returns the paths
-/// written, in order.
+/// written or removed, in order.
 ///
 /// # Errors
 ///
@@ -40,14 +40,19 @@ pub(crate) fn apply_with(
     // One writer (`src/extract:V127`), and the plan still true under the
     // lock: a host another hand changed since would lose that change.
     let _lock = Lock::take(root)?;
-    let changed: Vec<&str> = edit
-        .hosts
-        .iter()
-        .filter(|host| {
-            fs::read(root.join(&host.path)).ok().as_deref() != Some(host.before.as_bytes())
-        })
-        .map(|host| host.path.as_str())
-        .collect();
+    let differs =
+        |path: &str, text: &str| fs::read(root.join(path)).ok().as_deref() != Some(text.as_bytes());
+    let mut changed: Vec<&str> = Vec::new();
+    for host in &edit.hosts {
+        if differs(&host.path, &host.before) {
+            changed.push(&host.path);
+        }
+        // A removed extract edited since would lose that edit
+        // (`src/extract:V99`, `src/extract:V101`).
+        for gone in host.removes.iter().filter(|g| differs(&g.path, &g.text)) {
+            changed.push(&gone.path);
+        }
+    }
     if !changed.is_empty() {
         return Err(format!(
             "{} changed since the plan was made; nothing was written, run xnl extract again",
@@ -76,6 +81,18 @@ pub(crate) fn apply_with(
         let kept = fs::metadata(&path).map(|m| m.permissions()).ok();
         atomic(&path, &host.after, kept).map_err(fail)?;
         written.push(host.path.clone());
+        // Last, once the host no longer loads it: a run stopped before
+        // this leaves an orphan, never a dangling load
+        // (`src/extract:V99`, `src/extract:V101`).
+        for gone in &host.removes {
+            let fail = |e: io::Error| format!("{}: {e}", gone.path);
+            guard(root, &gone.path)?;
+            before(&gone.path).map_err(fail)?;
+            let path = root.join(&gone.path);
+            fs::remove_file(&path).map_err(fail)?;
+            sync_dir(path.parent().unwrap_or(root)).map_err(fail)?;
+            written.push(gone.path.clone());
+        }
     }
     Ok(written)
 }
