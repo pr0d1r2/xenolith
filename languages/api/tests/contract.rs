@@ -9,6 +9,8 @@
 
 use std::path::Path;
 
+use xenolith_lang_api::holes;
+use xenolith_lang_api::lens::Rewrite;
 use xenolith_lang_api::shebang::Shebang;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Guest, GuestEnv, Host, Invoke, LangId, LintCmd,
@@ -373,5 +375,48 @@ fn a_guest_without_params_says_so_for_each_part() {
     assert_eq!(
         guest.param_refs("\"$X\"", &["X".to_owned()]),
         Err(unsupported("param_refs"))
+    );
+}
+
+fn bash(path: &str) -> Invoke {
+    Invoke {
+        argv: vec!["bash".into(), path.into()],
+    }
+}
+
+#[test]
+fn a_host_rewrites_a_hole_free_site_through_rewrite_bound_by_default() {
+    // `languages/api/src/lens` §I: with no params, `rewrite_bound` is
+    // `rewrite`, and the extract holds the body it was handed. Every
+    // host gets this for free, so the engine asks one method of all.
+    let host: &dyn Host = &FakeHost;
+    let path = Path::new("x.sh");
+    assert_eq!(
+        host.rewrite_bound("{ a = 1; }", &fake_site(), &bash("x.sh"), path, "a\n", &[]),
+        Ok(Rewrite {
+            src: "{ a = 1; }".into(),
+            body: "a\n".into(),
+        })
+    );
+}
+
+#[test]
+fn a_host_that_never_learned_holes_refuses_params_by_name() {
+    // `languages/api:V37`: a host whose load cannot pass a hole must say
+    // so. Rewriting as if there were none would leave `${…}` behind in
+    // the extract -- the one thing `languages/api/src/holes:V40` forbids.
+    let host: &dyn Host = &FakeHost;
+    let param = holes::Param {
+        name: "FOO_BIN".into(),
+        hole: "${pkgs.foo}/bin/foo".into(),
+        marker: holes::marker(0),
+    };
+    let path = Path::new("x.sh");
+    assert_eq!(
+        host.rewrite_bound("src", &fake_site(), &bash("x.sh"), path, "b", &[param]),
+        Err(Error::Unsupported {
+            lang: LangId::Nix,
+            operation: "rewrite_bound",
+        })
     );
 }
