@@ -58,7 +58,7 @@ T38|x|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T41|x|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset rides `.:T30` (README owner)|V31,V251,C8
 T99|x|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96,V250,V251
-T108|.|`release.toml` for the workspace (lockstep; cargo-release publishes in dependency order shebang → api → languages → root; `xenolith-dev` never) + runbook section in `docs/INTEGRATION.md`|V109,V349
+T108|x|`release.toml` for the workspace (lockstep; cargo-release publishes in dependency order shebang → api → languages → root; `xenolith-dev` never) + runbook section in `docs/INTEGRATION.md`|V109,V349
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
 T111|.|crate metadata ∀ crate + check script + docs.rs `[package.metadata.docs.rs]`|V112

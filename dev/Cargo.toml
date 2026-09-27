@@ -41,3 +41,9 @@ serde_json = "1"
 
 [lints]
 workspace = true
+
+# `cargo-release` never tags, bumps or publishes this crate on its own
+# account (`release.toml`, `nix:V349`); `publish = false` alone keeps it off
+# crates.io but not out of the release's crate list.
+[package.metadata.release]
+release = false

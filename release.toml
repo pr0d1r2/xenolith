@@ -1,0 +1,71 @@
+# The release, configured rather than scripted (`nix:V109`).
+#
+# The runner is `cargo-release`, as in every published sibling (sherd,
+# microlith, itok): it already does the whole list -- clean tree, allowed
+# branch, tag scheme, dry-run first, verify, publish in dependency order,
+# push. A release script here would be a second implementation of one rule
+# set, and it would not stop being one because we wrote it.
+#
+# HOW IT IS RUN. Dry-run is `cargo-release`'s DEFAULT, and it reports every
+# problem in one pass rather than the first one it hits:
+#
+#     cargo release minor                 # verify everything, change nothing
+#
+# THE BUMP DOES NOT HAPPEN HERE. cargo-release's default flow bumps the
+# version, COMMITS it and pushes that commit to the release branch; `main`
+# takes changes through pull requests only. So the version is bumped in a PR
+# like any other change, and only the TAIL runs from `main` once it merges:
+#
+#     cargo release hook                  # the gate; dry-run is enough
+#     cargo release tag --execute
+#     cargo release publish --execute
+#     cargo release push --execute
+#
+# `hook` IS FIRST ON PURPOSE, and it is the one thing here that must not be
+# assumed: `tag`, `publish` and `push` do NOT run `pre-release-hook` -- only
+# the full flow does, and `cargo release hook` on its own. On a repo that
+# bumps in a PR, a sequence starting at `tag` publishes whatever the tree
+# happens to hold. Running it dry is enough: the hook executes, and a
+# non-zero return aborts.
+#
+# `docs/INTEGRATION.md` carries this runbook too, beside the gate it calls.
+
+# The branch a release may happen from. The `.crate` records the commit it
+# was built from (`.cargo_vcs_info.json`), and a squash merge ORPHANS the
+# branch sha -- so publishing off a PR branch leaves the artifact naming a
+# commit that is on no branch.
+allow-branch = ["main"]
+
+# THE GATE, called rather than re-checked. A non-zero return ABORTS the
+# release, which makes the gate a PRECONDITION of publishing rather than
+# something the releaser is trusted to have run. `--check` because the fix
+# commands would rewrite a tree cargo-release has just asserted is clean;
+# `--no-fail-fast` because a release is the one moment where a complete list
+# beats an early one.
+pre-release-hook = ["hk", "check", "--all", "--check", "--no-fail-fast"]
+
+# LOCKSTEP (`src:C1`): every crate of the workspace carries the one
+# `[workspace.package] version`, so a bump moves them together and one commit
+# records it. cargo-release publishes in DEPENDENCY order, read from the
+# graph rather than listed here: `xenolith-shebang`, then `xenolith-lang-api`,
+# then the language crates, then `xenolith` -- a crate reaches crates.io only
+# after everything it depends on already has.
+shared-version = true
+consolidate-commits = true
+
+# `v<x.y.z>`, one tag for the lockstep version: the `semver` gate step the
+# siblings run (`nix:T110` here) diffs the pub API against the last `v*` tag,
+# and a per-crate tag scheme would leave it no baseline to find.
+tag-name = "v{{version}}"
+
+# `verify` builds each packaged tarball before upload. It is the default; it
+# is written down because it is the check that catches a `.crate` which
+# cannot compile from what it actually ships, and a default nobody wrote down
+# is a default somebody eventually turns off. It only COMPILES the tarball:
+# running each crate's own suite from its `.crate` is `nix:T112`.
+publish = true
+verify = true
+
+# `xenolith-dev` is never released: `publish = false` in its manifest keeps it
+# off crates.io, and `[package.metadata.release] release = false` there keeps
+# cargo-release from tagging or bumping it as a crate of its own (`nix:V349`).
