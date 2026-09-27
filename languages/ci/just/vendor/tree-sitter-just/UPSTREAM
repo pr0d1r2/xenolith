@@ -4,21 +4,56 @@ crate:    tree-sitter-just 0.2.0 (crates.io)
 sha256:   bd46794f2c270f43d73b2f2c8c256992471f3493c903604da0886df984771920
 repo:     https://github.com/casey/tree-sitter-just
 rev:      5685543a6e64f66335e25518c9ae8ffa1dae3d01 (the crate's .cargo_vcs_info.json)
+          Still upstream `main` on 2026-09-27: no newer rev or tag exists,
+          and the grammar at it rejects just 1.51 syntax
+          (languages/ci/just:B3).
 license:  MIT per the crate manifest and package.json; the repo's LICENSE
           file at the rev above is Apache-2.0 text, kept verbatim beside
           this file as LICENSE.txt. Both are allowed by deny.toml.
 abi:      tree-sitter LANGUAGE_VERSION 15
 
-Files, copied verbatim from the crate above and never edited here:
+LOCAL PATCH -- this is NOT upstream's generated parser.
 
-  src/parser.c
-  src/scanner.c
-  src/tree_sitter/alloc.h
-  src/tree_sitter/array.h
-  src/tree_sitter/parser.h
+  grammar.js.patch, beside this file, is applied to upstream's grammar.js
+  at the rev above (sha256 09e8576d391543ae97934181ee6a5d07064c276e497abb7005129bc1ee9cd0ac).
+  It adds the just 1.51 syntax upstream lacks, every hunk marked
+  `LOCAL PATCH (xenolith)`:
+
+    - `f"…"`, `f'…'`, `f"""…"""`, `f'''…'''` format strings, their
+      `{{…}}` interpolation nodes inside the one `string` node;
+    - `x"…"`, `x'…'`, `x"""…"""`, `x'''…'''` shell-expanded strings;
+    - `&&` and `||` in expressions;
+    - `assert(CONDITION, EXPRESSION)`;
+    - `eager NAME := …` and attributes on an assignment (`[private]`),
+      plain or exported;
+    - `unexport NAME`.
+
+  `eager` and `unexport` parse as identifiers, not keywords, so a
+  variable of either name still parses. `[arg("n", pattern='\d+')]`
+  already parsed at the rev above; `pattern="\d+"` is rejected by just
+  1.51 itself (`\d` is no escape), so it stays a parse error.
+
+  generated: tree-sitter CLI 0.26.8 (the flake's pinned nixpkgs),
+             `tree-sitter generate` in a copy of upstream's tree at the rev
+             above with the patch applied; output ABI 15, which the
+             workspace's tree-sitter 0.27 runtime loads.
+  parser.c sha256: 0dc3a30d27b73bf8a27839555c9d496a840ebd11cdb1e573260e79cb96859063
+
+Files:
+
+  src/parser.c                generated from the patched grammar.js
+  src/tree_sitter/alloc.h     emitted by the same `tree-sitter generate`
+  src/tree_sitter/array.h     emitted by the same `tree-sitter generate`
+  src/tree_sitter/parser.h    emitted by the same `tree-sitter generate`
+  src/scanner.c               upstream's, verbatim from the crate above
+  grammar.js.patch            the local patch
+  LICENSE.txt                 upstream's, verbatim
+
+None of these is edited by hand. To refresh: apply the patch to the new
+upstream rev (dropping hunks upstream has taken), regenerate, and update
+this record in its own commit naming the new rev.
 
 Why vendored although the crate is published: tree-sitter-just 0.2.0
 depends on tree-sitter ~0.25.5, the workspace runs tree-sitter 0.27, and
 both declare `links = "tree-sitter"`, so cargo cannot resolve the two in
-one build. The generated C is ABI 15, which tree-sitter 0.27 loads. A
-refresh is its own commit naming the new crate version and rev.
+one build.

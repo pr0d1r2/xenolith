@@ -1,9 +1,10 @@
 //! Builds the vendored `tree-sitter-just` grammar (`languages:V121`).
 //!
-//! The C is the published crate's generated output, copied verbatim at
-//! the version and rev named in `vendor/tree-sitter-just/UPSTREAM`.
-//! Nothing here generates it: a build that needed the tree-sitter CLI and
-//! node would need a network, and the build is offline (`.:C3`).
+//! The C is generated from upstream's grammar at the rev named in
+//! `vendor/tree-sitter-just/UPSTREAM` plus the local patch recorded there
+//! (`languages/ci/just:B3`). Nothing here generates it: a build that
+//! needed the tree-sitter CLI would need a network, and the build is
+//! offline (`.:C3`).
 
 fn main() {
     let src = std::path::Path::new("vendor/tree-sitter-just/src");
