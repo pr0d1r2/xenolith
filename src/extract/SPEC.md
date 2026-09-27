@@ -87,3 +87,4 @@ T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose lo
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-09-27|V270 site sought inside put-back span; just site opens @ recipe header ∴ just load ⊥ read back|⊥ such site → site whose body holds span

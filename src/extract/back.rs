@@ -195,8 +195,11 @@ impl<'a> PutBack<'_, 'a> {
 }
 
 /// The one site of `after` -- `before` with the load inlined -- that
-/// sits where the load was: the bytes before the load untouched, the
-/// site inside the span the inline wrote.
+/// sits where the load was: the bytes before the load untouched, and
+/// the site inside the span the inline wrote (a nix string in place of
+/// a `readFile`) -- or, when none is, the site whose BODY holds that
+/// span (a just recipe, whose site opens at its header, before the load
+/// line; `src/extract:B1`).
 fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result<Site, String> {
     let start = load.span.start;
     if before.get(..start) != after.get(..start) {
@@ -209,9 +212,14 @@ fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result
     let sites = host
         .sites(after)
         .map_err(|e| format!("the host does not parse with the body put back: {e}"))?;
-    let mut inside = sites
-        .into_iter()
-        .filter(|s| s.delim.open.start >= start && s.delim.close.end <= end);
+    let within = |s: &Site| s.delim.open.start >= start && s.delim.close.end <= end;
+    let holding = |s: &Site| s.delim.body.start <= start && end <= s.delim.body.end;
+    let found: Vec<Site> = if sites.iter().any(within) {
+        sites.into_iter().filter(within).collect()
+    } else {
+        sites.into_iter().filter(holding).collect()
+    };
+    let mut inside = found.into_iter();
     match (inside.next(), inside.next()) {
         (Some(site), None) => Ok(site),
         (None, _) => Err("no site sits where the load was once its body is put back".to_owned()),
