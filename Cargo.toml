@@ -8,7 +8,13 @@
 # rather than a glob: a glob makes a half-written crate a member the moment
 # its directory appears, and `cargo test` then fails for a reason that has
 # nothing to do with the change being made.
+#
+# `dev` is the one member that is never published (`publish = false`): the
+# tooling that regenerates this repository's README blocks and notices
+# (`dev` §G). The nix package builds `-p xenolith`, so it ships nowhere
+# (`nix:V349`).
 members = [
+  "dev",
   "languages/api",
   "languages/ci/just",
   "languages/ci/nix",

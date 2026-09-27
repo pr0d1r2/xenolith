@@ -334,6 +334,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "xenolith-dev"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "xenolith-lang-api",
+]
+
+[[package]]
 name = "xenolith-lang-api"
 version = "0.1.0"
 dependencies = [

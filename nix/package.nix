@@ -25,6 +25,10 @@ let
   # changes nothing cargo compiles, so it must not change the source hash
   # either -- otherwise every spec commit is a cache miss for every
   # consumer. `tests/unit/` is bats (`tests` §G), not a cargo test.
+  #
+  # `dev/` is a workspace MEMBER, so cargo cannot load the workspace
+  # without its manifest; it is carried for that and for `checks.test`,
+  # and never built into a package (`nix:V349`).
   src = fs.toSource {
     root = ../.;
     fileset =
@@ -33,6 +37,9 @@ let
           ../Cargo.toml
           ../Cargo.lock
           ../clippy.toml
+          ../dev/Cargo.toml
+          ../dev/src
+          ../dev/tests
           ../rustfmt.toml
           ../src
           ../languages
