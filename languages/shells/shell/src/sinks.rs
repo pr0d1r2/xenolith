@@ -8,7 +8,8 @@
 //!
 //! Each interpreter spells this differently -- bash bundles `-ec`, perl
 //! `-ne`, node says `--eval`, psql reads SQL from stdin even with a
-//! database argument -- so each gets its own reading, and anything a
+//! database argument, expect takes `-c` and tclsh takes none -- so each
+//! gets its own reading, and anything a
 //! reading does not recognise ends it with "no program here". A wrong
 //! "yes" is a finding about text nothing runs; a wrong "no" is a site
 //! missed, which a later task can widen deliberately.
@@ -39,7 +40,18 @@ pub(crate) enum Kind {
     Node,
     /// psql: no program argument this host reads; stdin is SQL.
     Psql,
+    /// tclsh, wish: no program argument at all -- tclsh has no `-c`.
+    Tcl,
+    /// expect: `-c`, exactly; tcl in the expect dialect.
+    Expect,
 }
+
+/// The dialect expect gives its tcl (`languages/shells/tcl:V197`).
+const EXPECT: &str = "expect";
+
+/// Script operands tcl reads its program from stdin for
+/// (`languages/shells/shell:V139`).
+const TCL_STDIN: &[&str] = &["-", "/dev/stdin"];
 
 /// Interpreters by name, version suffix stripped (`python3.12` is
 /// `python`), and the guest each runs.
@@ -47,6 +59,7 @@ const INTERPRETERS: &[(&str, Kind, LangId)] = &[
     ("ash", Kind::Shell, LangId::Shell),
     ("bash", Kind::Shell, LangId::Shell),
     ("dash", Kind::Shell, LangId::Shell),
+    ("expect", Kind::Expect, LangId::Tcl),
     ("ksh", Kind::Shell, LangId::Shell),
     ("node", Kind::Node, LangId::Js),
     ("nodejs", Kind::Node, LangId::Js),
@@ -55,6 +68,8 @@ const INTERPRETERS: &[(&str, Kind, LangId)] = &[
     ("python", Kind::Python, LangId::Python),
     ("ruby", Kind::Ruby, LangId::Ruby),
     ("sh", Kind::Shell, LangId::Shell),
+    ("tclsh", Kind::Tcl, LangId::Tcl),
+    ("wish", Kind::Tcl, LangId::Tcl),
     ("zsh", Kind::Shell, LangId::Shell),
 ];
 
@@ -266,11 +281,11 @@ fn is_eval_flag(kind: Kind, word: &str) -> bool {
             && letters.all(|letter| switches.contains(letter))
     };
     match kind {
-        Kind::Python => word == "-c",
+        Kind::Python | Kind::Expect => word == "-c",
         Kind::Node => word == "-e" || word == "--eval",
         Kind::Ruby => bundle(RUBY_BUNDLE, &['e']),
         Kind::Perl => bundle(PERL_BUNDLE, &['e', 'E']),
-        Kind::Shell | Kind::Psql => false,
+        Kind::Shell | Kind::Psql | Kind::Tcl => false,
     }
 }
 
@@ -325,6 +340,14 @@ pub(crate) fn stdin_is_program(interpreter: &Interpreter<'_>, args: &[Option<&st
                     && word.starts_with('-')
                     && word.contains(['c', 'f', 'l']))
         }),
+        // No argument, or a script operand that IS stdin. A flag first
+        // (`expect -c`, `-f`, `tclsh -encoding`) or any other operand
+        // ends the reading with "not stdin".
+        Kind::Tcl | Kind::Expect => match args.first() {
+            None => true,
+            Some(Some(word)) => TCL_STDIN.contains(word),
+            Some(None) => false,
+        },
         kind => {
             for arg in args {
                 match *arg {
@@ -350,11 +373,19 @@ pub(crate) fn stdin_is_program(interpreter: &Interpreter<'_>, args: &[Option<&st
 /// enclosing script's `set`, which a child process never sees
 /// (`languages/shells/shell:V139`) -- `set -e; bash -c '…'` runs the child
 /// WITHOUT errexit, and an extract given it would stop where the inline
-/// body carried on. Any other interpreter states no env here; its guest
-/// applies its own defaults.
+/// body carried on. expect states its dialect and nothing else
+/// (`languages/shells/tcl:V197`); any other interpreter states no env
+/// here, and its guest applies its own defaults.
 pub(crate) fn env(interpreter: &Interpreter<'_>, args: &[Option<&str>]) -> GuestEnv {
-    if interpreter.kind != Kind::Shell {
-        return GuestEnv::default();
+    match interpreter.kind {
+        Kind::Shell => {}
+        Kind::Expect => {
+            return GuestEnv {
+                dialect: Some(EXPECT.to_owned()),
+                options: Vec::new(),
+            };
+        }
+        _ => return GuestEnv::default(),
     }
     GuestEnv {
         dialect: Some(interpreter.dialect.to_owned()),
