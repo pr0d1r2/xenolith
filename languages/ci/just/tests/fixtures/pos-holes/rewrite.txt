@@ -1,0 +1,2 @@
+test | refused | holes
+braces | ok | sh ./scripts/just/braces.sh | "echo x{{y}}\necho z"

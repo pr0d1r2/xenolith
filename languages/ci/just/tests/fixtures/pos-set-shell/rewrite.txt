@@ -1,0 +1,3 @@
+# The engine's invoke names the prelude's interpreter (`bash` here); the
+# fixture runner always passes `sh`, so this pins the load shape only.
+lint | ok | sh ./scripts/just/lint.sh | "shellcheck scripts/*.sh\nshfmt --diff scripts"

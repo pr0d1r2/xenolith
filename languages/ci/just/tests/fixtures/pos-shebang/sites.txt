@@ -1,0 +1,3 @@
+# Blank lines stay in a script body; `{{{{` is a literal `{{`.
+report | python | JustShebangRecipe | - | - | "#!/usr/bin/env python3\nimport sys\n\nprint(sys.argv)"
+setup | shell | JustShebangRecipe | bash | - | "#!/usr/bin/env bash\nset -euo pipefail\necho {{ literal }}"

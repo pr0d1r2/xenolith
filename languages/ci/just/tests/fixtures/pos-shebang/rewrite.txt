@@ -1,0 +1,4 @@
+# One load line cannot carry the shebang back, so the lens would not
+# close: a judgement until a load form for scripts is decided.
+report | refused | shebang recipe
+setup | refused | shebang recipe

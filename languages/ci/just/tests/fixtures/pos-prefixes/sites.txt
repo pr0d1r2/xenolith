@@ -1,0 +1,3 @@
+clean | shell | JustRecipe | sh errexit nounset | - | "rm -rf dist\nrm -rf target\nmkdir dist"
+quiet | shell | JustRecipe | sh errexit nounset | - | "echo building\ncargo build"
+mixed | shell | JustRecipe | sh errexit nounset | - | "echo one\necho two"

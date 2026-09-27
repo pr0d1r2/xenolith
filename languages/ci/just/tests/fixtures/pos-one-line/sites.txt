@@ -1,0 +1,4 @@
+# A one-line body is still a site: the guest, not the host, says it may
+# stay inline (`languages/ci/just:V180`).
+default | shell | JustRecipe | sh errexit nounset | - | "just --list"
+build | shell | JustRecipe | sh errexit nounset | - | "cargo build --release"
