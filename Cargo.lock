@@ -315,6 +315,7 @@ dependencies = [
  "serde_json",
  "toml",
  "xenolith-lang-api",
+ "xenolith-lang-just",
  "xenolith-lang-nix",
  "xenolith-lang-pkl",
  "xenolith-lang-shell",
@@ -325,6 +326,15 @@ name = "xenolith-lang-api"
 version = "0.1.0"
 dependencies = [
  "xenolith-shebang",
+]
+
+[[package]]
+name = "xenolith-lang-just"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "tree-sitter",
+ "xenolith-lang-api",
 ]
 
 [[package]]

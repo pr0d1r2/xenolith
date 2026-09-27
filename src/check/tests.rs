@@ -1693,6 +1693,56 @@ fn a_pkl_hk_step_holding_a_script_is_flagged() {
     assert_eq!(first, Some((Fix::Mechanical, "run `xnl extract hk.pkl:7`")));
 }
 
+/// A justfile end to end (`languages/ci/just:T16`): one line stays inline,
+/// two lines are a script with a mechanical direction, and a `cd` a later
+/// line reads is flagged with a judgement (`languages/ci/just:V180`).
+#[cfg(all(feature = "lang-just", feature = "lang-shell"))]
+#[test]
+fn a_just_recipe_of_two_lines_is_flagged_and_one_line_is_not() {
+    let justfile = [
+        "default:",
+        "    just --list",
+        "",
+        "build:",
+        "    cargo build",
+        "    cargo test",
+        "",
+        "docs:",
+        "    cd docs",
+        "    mdbook build",
+        "",
+    ]
+    .join("\n");
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("justfile", justfile.as_str())]);
+    let options = Options {
+        paths: vec!["justfile".into()],
+        ..Options::default()
+    };
+    let report =
+        super::check(&root, &Config::default(), &options).unwrap_or_else(|e| panic!("{e}"));
+    let found: Vec<(&str, usize, Fix)> = report
+        .violations()
+        .iter()
+        .map(|v| {
+            assert_eq!((v.host, v.guest), (LangId::Just, LangId::Shell));
+            assert!(v.why.contains("sequence"), "{}", v.why);
+            let first = v.directions.first().map_or(Fix::Mechanical, |d| d.kind);
+            (v.sink.as_str(), v.line, first)
+        })
+        .collect();
+    assert_eq!(
+        found,
+        [("build", 4, Fix::Mechanical), ("docs", 8, Fix::Judgment)]
+    );
+    let docs = report
+        .violations()
+        .get(1)
+        .and_then(|v| v.directions.first());
+    let action = docs.map_or("", |d| d.action.as_str());
+    assert!(action.contains("changes shell state"), "{action}");
+}
+
 /// `src/registry:T46`'s nix-only build, end to end: a nix site holding shell,
 /// with no shell guest, is exit 2 naming `lang-shell` (`src/check:V42`).
 #[cfg(all(feature = "lang-nix", not(feature = "lang-shell")))]

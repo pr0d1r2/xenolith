@@ -44,6 +44,10 @@ pkgs.mkShell {
     # (`src/lint` §I, `languages/shells/shell` guest), and a missing tool is exit 2,
     # not a pass: the dogfood lint needs it the day a `#!/bin/sh` file lands.
     pkgs.checkbashisms
+    # The just host's own check, `just --fmt --check` (`languages/ci/just`
+    # §I): `xnl lint` runs it on every claimed justfile, and a missing tool
+    # is exit 2, not a pass.
+    pkgs.just
 
     # Nix gates this very file. The flake decides what every other step runs
     # with, so drift here is drift everywhere. statix and deadnix catch what

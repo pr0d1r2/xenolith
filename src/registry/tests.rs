@@ -20,6 +20,7 @@ use super::{
 /// What the build says, stated independently of the code under test.
 fn built_with(id: LangId) -> bool {
     [
+        (LangId::Just, cfg!(feature = "lang-just")),
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
@@ -41,8 +42,8 @@ fn guest_ids() -> Vec<LangId> {
 
 #[test]
 fn hosts_are_exactly_the_compiled_in_hosts() {
-    // nix, pkl and shell are hosts; shell is a guest as well.
-    let expected: Vec<LangId> = [LangId::Nix, LangId::Pkl, LangId::Shell]
+    // just, nix, pkl and shell are hosts; shell is a guest as well.
+    let expected: Vec<LangId> = [LangId::Just, LangId::Nix, LangId::Pkl, LangId::Shell]
         .into_iter()
         .filter(|id| built_with(*id))
         .collect();
@@ -82,6 +83,25 @@ fn the_shell_host_claims_scripts_and_not_bats_files() {
     );
     assert_eq!(claiming("bin/run", "#!/bin/sh"), [LangId::Shell]);
     assert!(!claiming("tests/a.bats", "#!/usr/bin/env bats").contains(&LangId::Shell));
+}
+
+/// The just HOST is the one handed out for a justfile, whatever its
+/// case, and for a `.just` module (`languages/ci/just:V58`); no other
+/// host claims them, so a recipe body is scanned exactly once.
+#[cfg(feature = "lang-just")]
+#[test]
+fn the_just_host_claims_justfiles_and_nothing_else_does() {
+    let claiming = |path: &str| {
+        hosts()
+            .iter()
+            .filter(|h| h.claims(Path::new(path), ""))
+            .map(|h| h.id())
+            .collect::<Vec<_>>()
+    };
+    for path in ["justfile", "Justfile", "sub/.justfile", "ci/release.just"] {
+        assert_eq!(claiming(path), [LangId::Just], "{path}");
+    }
+    assert!(!claiming("justfile.bak").contains(&LangId::Just));
 }
 
 #[test]

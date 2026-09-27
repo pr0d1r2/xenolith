@@ -16,6 +16,7 @@ use crate::registry::feature;
 /// What the build says, stated independently of the code under test.
 fn built_with(id: LangId) -> bool {
     [
+        (LangId::Just, cfg!(feature = "lang-just")),
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
         (LangId::Shell, cfg!(feature = "lang-shell")),

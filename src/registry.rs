@@ -34,6 +34,8 @@ pub const MISSING_GUEST: &str = "missing-guest";
 
 /// Every compiled-in host, sorted by [`LangId`].
 const HOSTS: &[&dyn Host] = &[
+    #[cfg(feature = "lang-just")]
+    &xenolith_lang_just::JustHost,
     #[cfg(feature = "lang-nix")]
     &xenolith_lang_nix::NixHost,
     #[cfg(feature = "lang-pkl")]
@@ -92,7 +94,7 @@ pub fn feature(id: LangId) -> String {
 /// which features EXIST, kept equal to `Cargo.toml`'s `[features]` by a
 /// test, so a message never sends anyone after a feature no crate
 /// provides (`src/check:V42`, `src/check:B8`).
-const FEATURED: &[LangId] = &[LangId::Nix, LangId::Pkl, LangId::Shell];
+const FEATURED: &[LangId] = &[LangId::Just, LangId::Nix, LangId::Pkl, LangId::Shell];
 
 /// [`feature`] for `id` when that feature exists, else `None`: no crate
 /// provides the language yet, and no build can have it.

@@ -10,6 +10,7 @@
 # nothing to do with the change being made.
 members = [
   "languages/api",
+  "languages/ci/just",
   "languages/ci/nix",
   "languages/ci/pkl",
   "languages/shebang",
@@ -96,6 +97,7 @@ toml = { version = "1", default-features = false, features = ["std", "parse", "s
 # (`src:C1`, `nix:C8`), so a consumer can compile a binary carrying only
 # the grammars they use -- a tree-sitter grammar is the largest thing in
 # this closure, and `xnl` with two languages should not ship eighteen.
+xenolith-lang-just = { path = "languages/ci/just", version = "0.1.0", optional = true }
 xenolith-lang-nix = { path = "languages/ci/nix", version = "0.1.0", optional = true }
 xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.1.0", optional = true }
 xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", optional = true }
@@ -111,7 +113,8 @@ xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", opti
 # (`src:V30`), because a module that reaches across a feature gate
 # compiles fine in the default build and breaks only in a consumer's.
 [features]
-default = ["lang-nix", "lang-pkl", "lang-shell"]
+default = ["lang-just", "lang-nix", "lang-pkl", "lang-shell"]
+lang-just = ["dep:xenolith-lang-just"]
 lang-nix = ["dep:xenolith-lang-nix"]
 lang-pkl = ["dep:xenolith-lang-pkl"]
 lang-shell = ["dep:xenolith-lang-shell"]
