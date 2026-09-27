@@ -13,7 +13,7 @@
 
 use std::path::{Path, PathBuf};
 
-use xenolith_lang_api::{DelimKind, Host, Invoke, LangId, LoadRef, Site};
+use xenolith_lang_api::{DelimKind, GuestEnv, Host, Invoke, LangId, LoadRef, Site};
 use xenolith_lang_pkl::{PklHost, unescape};
 
 fn fixture(case: &str) -> String {
@@ -422,5 +422,52 @@ fn a_site_that_is_not_in_the_source_is_refused() {
         PklHost
             .rewrite(&fixture("inert-strings"), site, &invoke, Path::new("x.sh"))
             .is_err()
+    );
+}
+
+// --- the shell hk runs a step under (`languages/pkl:V172`) ------------
+
+fn env(dialect: &str, options: &[&str]) -> GuestEnv {
+    GuestEnv {
+        dialect: Some(dialect.to_owned()),
+        options: options.iter().map(|&option| option.to_owned()).collect(),
+    }
+}
+
+fn envs(case: &str) -> Vec<(String, GuestEnv)> {
+    sites(&fixture(case))
+        .into_iter()
+        .map(|site| (site.sink, site.env))
+        .collect()
+}
+
+#[test]
+fn a_step_without_a_shell_runs_under_hks_default() {
+    // hk runs a step's command as `sh -o errexit -c` (`pkl/Config.pkl`,
+    // `Step.shell`): errexit, and nothing the guest's own default would
+    // add. `nounset` and `pipefail` in the extract would make it a
+    // program the inline step never was (`languages/pkl:B3`).
+    let found = envs("hk-step-script");
+    assert_eq!(found.len(), 3);
+    for (sink, env_found) in found {
+        assert_eq!(env_found, env("sh", &["errexit"]), "{sink}");
+    }
+}
+
+#[test]
+fn a_steps_own_shell_or_its_groups_is_the_env() {
+    let row =
+        |sink: &str, dialect: &str, options: &[&str]| (sink.to_owned(), env(dialect, options));
+    assert_eq!(
+        envs("hk-step-shell"),
+        [
+            row("plain.check", "sh", &["errexit"]),
+            row("strict.check", "bash", &["errexit", "pipefail"]),
+            row("letters.fix", "bash", &["errexit", "nounset"]),
+            // A per-OS `Script` is no one shell: hk's default stands.
+            row("os.check", "sh", &["errexit"]),
+            row("inherits.check", "zsh", &[]),
+            row("overrides.check", "sh", &[]),
+        ]
     );
 }

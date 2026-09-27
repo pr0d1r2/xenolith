@@ -1,0 +1,56 @@
+amends "pkl/Config.pkl"
+
+// The shell hk runs each step under (`languages/pkl:V172`): its own
+// `shell`, else its group's, else hk's `sh -o errexit -c`.
+hooks {
+  ["pre-commit"] {
+    steps {
+      ["plain"] {
+        check = """
+          echo "$1"
+          false
+          """
+      }
+      ["strict"] {
+        shell = "bash -o errexit -o pipefail -c"
+        check = """
+          grep -c x "$@" | sort
+          """
+      }
+      ["letters"] {
+        shell = "/bin/bash -eu -c"
+        fix = """
+          for f in "$@"; do touch "$f"; done
+          """
+      }
+      ["os"] {
+        shell = new Script {
+          linux = "bash -c"
+          other = "zsh -c"
+        }
+        check = """
+          echo one
+          echo two
+          """
+      }
+      ["zsh-group"] = new Group {
+        shell = "zsh -c"
+        steps {
+          ["inherits"] {
+            check = """
+              print one
+              print two
+              """
+          }
+          ["overrides"] {
+            shell = "sh -c"
+            check = """
+              echo one
+              echo two
+              """
+          }
+        }
+      }
+    }
+  }
+}

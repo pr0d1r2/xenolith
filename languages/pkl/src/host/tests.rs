@@ -370,7 +370,12 @@ fn a_multi_line_sink_value_is_a_shell_site() {
     let found = only_site(&src);
     assert_eq!(found.sink, "lint.check");
     assert_eq!(found.guest, LangId::Shell);
-    assert_eq!(found.env, GuestEnv::default());
+    // No `shell` anywhere: hk's own `sh -o errexit -c` (`languages/pkl:V172`).
+    let hk_default = GuestEnv {
+        dialect: Some("sh".to_owned()),
+        options: vec!["errexit".to_owned()],
+    };
+    assert_eq!(found.env, hk_default);
     assert_eq!(found.delim.kind, DelimKind::PklMultiline { pounds: 0 });
     assert_eq!(found.delim.open.of(&src), Some("\"\"\""));
     assert_eq!(found.delim.close.of(&src), Some("\"\"\""));
