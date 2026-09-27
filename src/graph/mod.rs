@@ -11,7 +11,8 @@
 //! * [`scan`] -- one run over the candidates: edges, dangling loads,
 //!   and the orphan judgement at the end.
 //! * [`judge`] -- each edge's extract read back to its site:
-//!   `misplaced-extract` (`src/graph:V98`).
+//!   `misplaced-extract` and `inlineable-extract` (`src/graph:V98`,
+//!   `src/graph:V100`).
 //!
 //! Here: the types a caller sees, and the stages joined. Candidates come
 //! from [`crate::discover`] (`src/discover:V57`, `src/discover:V128`), minus what

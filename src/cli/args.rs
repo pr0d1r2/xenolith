@@ -106,6 +106,14 @@ pub enum Verb {
     },
     /// `xnl graph`: host to extract load edges.
     Graph(Scan),
+    /// `xnl inline`: extracts put back into their hosts
+    /// (`src/extract:V101`).
+    Inline {
+        /// `--write`: apply rather than print the diff.
+        write: bool,
+        /// The extract files; at least one, the parser refuses none.
+        extracts: Vec<PathBuf>,
+    },
     /// `xnl lint`: run each extract's own linter.
     Lint {
         /// `--fix`: run fixers, then re-check.
@@ -143,6 +151,7 @@ impl Verb {
             Verb::Check(_) => "check",
             Verb::Extract { .. } => "extract",
             Verb::Graph(_) => "graph",
+            Verb::Inline { .. } => "inline",
             Verb::Lint { .. } => "lint",
             Verb::Langs { .. } => "langs",
             Verb::Migrate { .. } => "migrate",
@@ -200,6 +209,7 @@ enum Kind {
     Check,
     Extract,
     Graph,
+    Inline,
     Lint,
     Langs,
     Migrate,
@@ -240,6 +250,12 @@ const GRAMMARS: &[Grammar] = &[
         verb: "graph",
         flags: &[Flag::Verbose, Flag::StrictHosts, Flag::Format],
         formats: SCANNING,
+    },
+    Grammar {
+        kind: Kind::Inline,
+        verb: "inline",
+        flags: &[Flag::Verbose, Flag::StrictHosts, Flag::Write],
+        formats: &[],
     },
     Grammar {
         kind: Kind::Lint,
@@ -339,6 +355,19 @@ pub fn parse<A: AsRef<OsStr>>(args: &[A]) -> Result<Invocation, Usage> {
                     .iter()
                     .map(|op| target(op))
                     .collect::<Result<_, _>>()?,
+            }
+        }
+        Kind::Inline => {
+            if seen.operands.is_empty() {
+                return Err(Usage(
+                    "`inline` needs at least one <extract>: putting every extract \
+                     back is too big a rewrite to happen by leaving out an argument"
+                        .to_owned(),
+                ));
+            }
+            Verb::Inline {
+                write: seen.has(Flag::Write),
+                extracts: seen.operands.iter().map(PathBuf::from).collect(),
             }
         }
         Kind::Langs => {

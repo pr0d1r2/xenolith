@@ -79,7 +79,7 @@ T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--wr
 T84|x|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
 T85|x|atomic writes & write order; test kills between extract & host write|V84
 T101|x|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,V270,`src/graph:V98`
-T102|.|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,V270,`src/graph:V100`
+T102|x|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,V270,`src/graph:V100`
 T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
 T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src/check:B12`
 T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose load stays `Judgment` is refused w/ why|V4,V5,V6,`.:C25`

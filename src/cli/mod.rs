@@ -9,7 +9,8 @@
 //! Three layers, one file each (`src/cli:T9`):
 //!
 //! * [`args`] -- what was ASKED: the verbs `check`, `extract`, `graph`,
-//!   `lint`, `langs`, `migrate` and their flags, parsed in full.
+//!   `inline`, `lint`, `langs`, `migrate` and their flags, parsed in
+//!   full.
 //! * this module -- what to DO about it: one match arm per verb.
 //! * [`langs`] -- the one verb with nothing to scan, answered here.
 //! * [`check`] -- `xnl check`: config in, the engine's report out
@@ -18,6 +19,8 @@
 //! * [`extract`] -- `xnl extract`: config in, the extract engine's edit
 //!   out as a diff, or written under `--write` (`src/extract:T22`);
 //!   `--relocate` asks the relocate engine instead (`src/extract:V99`).
+//! * [`inline`] -- `xnl inline`: the inline engine's edit, rendered and
+//!   written as an extraction's (`src/extract:V101`).
 //! * [`graph`] -- `xnl graph`: config in, the graph engine's edges and
 //!   findings out (`src/graph:V7`).
 //! * [`lint`] -- `xnl lint`: config in, the lint engine's results out
@@ -43,6 +46,7 @@ pub mod args;
 pub mod check;
 pub mod extract;
 pub mod graph;
+pub mod inline;
 pub mod langs;
 pub mod lint;
 pub mod migrate;
@@ -65,6 +69,7 @@ usage: xnl <verb> [flags] [paths...]
   xnl check   [--format human|json|sarif] [paths...]
   xnl extract [--write] [--relocate] <path>[:line]...
   xnl graph   [--format human|json|sarif] [paths...]
+  xnl inline  [--write] <extract>...
   xnl lint    [--fix] [--trust-config] [--sites] [--format human|json|sarif] [paths...]
   xnl langs   [--format human|json]
   xnl migrate [--write]
@@ -186,6 +191,14 @@ fn dispatch(
                 strict_hosts: invocation.strict_hosts,
             };
             extract::run(root, targets, flags, out, err)
+        }
+        Verb::Inline { write, extracts } => {
+            let flags = inline::Flags {
+                write: *write,
+                verbose: invocation.verbose,
+                strict_hosts: invocation.strict_hosts,
+            };
+            inline::run(root, extracts, flags, out, err)
         }
         Verb::Migrate { write } => migrate::run(
             root,

@@ -2,10 +2,10 @@
 //! its body back (`src/extract:V270`).
 //!
 //! An extract on disk says nothing of where it came from; its host's
-//! load says only which file. What `--relocate` needs, and what `xnl
-//! graph` judges (`src/graph:V98`), is the SITE: its sink, its guest
-//! env, the placement today's config gives it. The lens answers
-//! without a second opinion: the body --
+//! load says only which file. What `--relocate` and `xnl inline` need,
+//! and what `xnl graph` judges (`src/graph:V98`, `src/graph:V100`), is
+//! the SITE: its sink, its guest env, the placement today's config
+//! gives it. The lens answers without a second opinion: the body --
 //! the file minus the prelude its site gives it
 //! (`languages/api/src/lens:V63`) -- goes back through
 //! [`Host::inline`], in memory, and the host's own [`Host::sites`]
@@ -17,14 +17,15 @@
 //! with that one.
 //!
 //! [`again`] is the proof: the site extracted a second time must give
-//! the same bytes, so a move never rewrites content (`src/extract:V99`).
+//! the same bytes, so a move never rewrites content and an inline is an
+//! exact inverse (`src/extract:V99`, `src/extract:V101`).
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-use xenolith_lang_api::{GuestEnv, Host, LoadRef, Site, shebang};
+use xenolith_lang_api::{Error, Guest, GuestEnv, Host, LoadRef, Site, shebang};
 
 use super::{ExtractError, HostEdit, Planned, Read, edit_file, place, plan, position, prelude};
 use crate::check::Langs;
@@ -40,6 +41,8 @@ pub(crate) struct Back<'a> {
     pub(crate) extract: String,
     /// Its bytes on disk.
     pub(crate) text: String,
+    /// Its body: `text` without the prelude its site gives it.
+    pub(crate) body: String,
     /// The host with the body put back where the load was.
     pub(crate) inlined: String,
     /// The site that put back, placed under today's config.
@@ -59,6 +62,17 @@ impl Back<'_> {
         }
         let suffixed = place::suffixed(&placed.path, &place::suffix(&self.planned.site.sink));
         (self.extract != placed.path && self.extract != suffixed).then_some(placed.path.as_str())
+    }
+
+    /// Whether the body may stay inline under `config`, as `xnl check`
+    /// judges a site (`src/graph:V100`).
+    pub(crate) fn trivial(&self, config: &Config) -> bool {
+        trivial(
+            self.planned.guest,
+            &self.body,
+            &self.planned.site.env,
+            config,
+        )
     }
 }
 
@@ -148,6 +162,7 @@ pub(crate) fn back<'a>(
     Ok(Back {
         extract: extract.to_owned(),
         text,
+        body,
         inlined,
         planned,
     })
@@ -204,11 +219,44 @@ fn site_at(host: &dyn Host, before: &str, after: &str, load: &LoadRef) -> Result
     }
 }
 
+/// Whether `body` may stay inline for `guest` under `config`: the
+/// verdict `xnl check` gives a site (`src/check:V152`, `src/config:V55`)
+/// -- dialect syntax the guest cannot judge is not trivial, a trivial
+/// body is, and past that `[threshold.<guest>]` relaxes by construct,
+/// or by size for a guest that names none. A body that does not parse
+/// is not trivial (`languages:V77`).
+pub(crate) fn trivial(guest: &dyn Guest, body: &str, env: &GuestEnv, config: &Config) -> bool {
+    if guest.unsupported(body, env).is_some() {
+        return false;
+    }
+    match guest.trivial(body) {
+        Ok(true) => return true,
+        Ok(false) => {}
+        Err(_) => return false,
+    }
+    let id = guest.id();
+    match guest.constructs(body) {
+        Ok(names) => {
+            let allow = config.construct_allow(id);
+            !names.is_empty() && names.iter().all(|n| allow.iter().any(|a| a == n))
+        }
+        Err(Error::Unsupported { .. }) => {
+            let text = body.trim();
+            let lines = u64::try_from(text.lines().count()).unwrap_or(u64::MAX);
+            let bytes = u64::try_from(text.len()).unwrap_or(u64::MAX);
+            config
+                .size_ceiling(id)
+                .is_some_and(|(max_lines, max_bytes)| lines <= max_lines && bytes <= max_bytes)
+        }
+        Err(_) => false,
+    }
+}
+
 /// `back`'s site extracted again, to `path`, from the host with its body
 /// put back: the edit that gives, proven as every extraction is
 /// (`src/extract:V4`, `src/extract:V5`), and the extract it writes
-/// checked against the file read back -- a move never rewrites what
-/// the extract holds (`src/extract:V270`).
+/// checked against the file read back -- a move or an inline never
+/// rewrites what the extract holds (`src/extract:V270`).
 ///
 /// # Errors
 ///

@@ -1,14 +1,19 @@
-//! What each edge's extract should be: where it is
-//! (`src/graph:V98`).
+//! What each edge's extract should be: where it is, and whether it is
+//! still worth a file (`src/graph:V98`, `src/graph:V100`).
 //!
 //! Each load that resolved is read back to its site
 //! ([`crate::extract::back`], `src/extract:V270`), the same way
-//! `--relocate` reads it, so the warning and the verb that acts on it
-//! cannot disagree. A warning, never a violation -- a config that moved
-//! on, and the tree still runs as it is:
+//! `--relocate` and `xnl inline` read it, so the warning and the verb
+//! that acts on it cannot disagree. Two warnings, never violations --
+//! both are a config or an edit that moved on, and the tree still runs
+//! as it is:
 //!
 //! * `misplaced-extract` -- today's placement config puts the extract
 //!   elsewhere; `xnl extract --relocate` moves it.
+//! * `inlineable-extract` -- its body is trivial for its guest now, by
+//!   the verdict `xnl check` gives a site (`src/check:V152`); `xnl
+//!   inline` puts it back. Said only when the run sees one load of the
+//!   extract, since inline refuses a shared one.
 //!
 //! A load that cannot be read back is not judged: a warning about a
 //! site nobody found would be a guess.
@@ -31,6 +36,10 @@ mod tests;
 /// (`src/graph:V98`).
 pub const MISPLACED: &str = "misplaced-extract";
 
+/// The warning code of an extract whose body may stay inline now
+/// (`src/graph:V100`).
+pub const INLINEABLE: &str = "inlineable-extract";
+
 /// One load that resolved, as the scan met it.
 pub(crate) struct Loaded<'a> {
     /// The host file, repo-root relative.
@@ -52,6 +61,10 @@ pub(crate) fn warnings<'a>(
     langs: &Langs<'a>,
     loads: &[Loaded<'a>],
 ) -> Vec<Warning> {
+    let mut count: BTreeMap<&str, usize> = BTreeMap::new();
+    for l in loads {
+        *count.entry(l.extract.as_str()).or_default() += 1;
+    }
     let mut texts: BTreeMap<&str, Option<String>> = BTreeMap::new();
     let mut out = Vec::new();
     for l in loads {
@@ -75,6 +88,18 @@ pub(crate) fn warnings<'a>(
                 message: format!(
                     "loaded by {at}, but the placement config now puts it at {to}; move it \
                      with `xnl extract --relocate {at}` (src/graph:V98)"
+                ),
+            });
+        }
+        let once = count.get(l.extract.as_str()) == Some(&1);
+        if once && read.trivial(tree.config_for(&l.name)) {
+            out.push(Warning {
+                code: INLINEABLE.to_owned(),
+                file: Some(PathBuf::from(&l.extract)),
+                message: format!(
+                    "its {} body is trivial now and may stay inline in {at}; put it back with \
+                     `xnl inline {}` (src/graph:V100)",
+                    l.load.guest, l.extract
                 ),
             });
         }

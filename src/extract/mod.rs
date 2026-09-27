@@ -35,6 +35,7 @@
 //! * [`lock`] -- one writer at a time (`src/extract:V127`).
 //! * [`back`] -- a load read back to its site (`src/extract:V270`).
 //! * [`relocate`] -- `--relocate` (`src/extract:V99`).
+//! * [`inline`] -- `xnl inline` (`src/extract:V101`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -57,11 +58,13 @@ use self::place::{Ask, Field, Placed, Vars};
 
 pub(crate) mod back;
 pub mod diff;
+pub mod inline;
 pub mod lock;
 pub mod place;
 pub mod relocate;
 pub mod write;
 
+pub use self::inline::{InlineOptions, inline};
 pub use self::relocate::relocate;
 
 #[cfg(test)]
@@ -252,8 +255,8 @@ pub enum ExtractError {
     Outside(PathBuf),
     /// `<dir>:<line>`: a line names a site in one file.
     LineOnDir(PathBuf),
-    /// The whole-tree graph `--relocate` counts loads with was refused
-    /// (`src/extract:V270`).
+    /// The whole-tree graph `--relocate` and `xnl inline` count loads
+    /// with was refused (`src/extract:V270`).
     Graph(GraphError),
 }
 
