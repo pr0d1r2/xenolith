@@ -1,55 +1,70 @@
 # Code of conduct
 
-xenolith is a small project with one maintainer. This page says what is
-expected of everyone who takes part — in issues, pull requests, reviews and
-any other space the project runs — and what happens when that is not met.
+## The short version
+
+Be civil, argue about the work, and assume the other person is trying to get it
+right. That is most of it.
+
+This project has a particular habit worth naming up front: **claims here are
+expected to carry evidence.** "This rule flags valid input" invites the file
+that shows it; "this extraction changes behaviour" invites the host before
+and after. It is a repository built around the idea that a claim about a file
+should be checked against the file, and the same standard applies to the
+arguments made about it — by maintainers exactly as much as by contributors.
+Pushing back on an unsupported claim, including one of ours, is participation
+rather than rudeness.
+
+Being direct is fine. Being dismissive of a person is not. The difference is
+whether you are addressing the argument or the human making it.
 
 ## Expected
 
-- Argue about the code, the spec and the evidence, not about the person.
-  "This rule flags valid input, here is the file" is the kind of message the
-  project exists to receive.
-- Assume the other side is acting in good faith until they show otherwise.
-- Say plainly when you were wrong, and accept it gracefully when someone
-  else says so.
-- Keep private things private: other people's details, and anything a
-  reporter asked to keep out of public view (vulnerabilities go through
-  [`SECURITY.md`](SECURITY.md)).
-- Respect a "no". A declined feature or a closed thread is not an invitation
-  to reopen it somewhere else.
+- Give a critique someone can act on. Say what is wrong and, where you can,
+  what would be right.
+- Take a correction on the substance without treating it as an attack.
+- Respect a decision once it is made and recorded, or reopen it with new
+  evidence. Both are legitimate; relitigating it unchanged is not.
+- Assume good faith in an unclear message before assuming malice.
 
-## Not acceptable
+## Boundaries
 
-- Harassment in any form, public or private, including sustained unwanted
-  contact after being asked to stop.
-- Insults, slurs, or demeaning remarks about anyone's identity, background,
-  experience or ability.
-- Sexualised language or imagery.
-- Threats, or encouraging anyone else to harm a person.
-- Publishing someone's private information without their explicit consent.
-- Deliberately disrupting discussion — flooding, trolling, derailing.
+Stated as norms rather than as a catalogue, because the categories cover more
+than any list would and a list invites arguing about its edges:
+
+- Address the work, not the person. Conduct aimed at someone rather than at
+  their argument falls outside these norms, whatever form it takes.
+- Nobody's background, experience level, identity or first language is relevant
+  to whether their point is correct.
+- Personal information stays private unless the person it belongs to shares it.
+  A reproduction case often comes from someone's own codebase; treat anything
+  you see in it as theirs, not as material.
+- Attention that has been declined is not continued.
+- A settled decision reopens on new evidence, not on repetition.
+
+Where something is unclear, the maintainers decide, and will say why.
 
 ## Scope
 
-This applies in every project space, and outside them when someone is
-representing the project or when conduct elsewhere is aimed at people here.
+Applies in issues, pull requests, commit messages, and anywhere someone is
+representing this project.
 
-## Reporting
+## Enforcement
 
-Email **pr0d1r2@gmail.com** with `xenolith conduct` in the subject. Say what
-happened, where, and when; links or screenshots help. Reports are read by
-the maintainer only and kept confidential. If the report concerns the
-maintainer, say so in the subject and it will be handled with that in mind.
+Report to **pr0d1r2@gmail.com** with `xenolith conduct` in the subject.
+Reports are handled privately and the reporter is not named without their
+consent. If the report concerns the maintainer, say so in the subject and it
+will be handled with that in mind.
 
-## What happens next
+Responses aim at restoring a workable environment rather than at punishment,
+and scale with what is needed — usually a clarification, sometimes an edit, and
+where participation cannot continue constructively, its withdrawal. If you
+think a call was wrong, say so; that is covered by the first section like
+anything else.
 
-The maintainer will acknowledge a report within a week and decide on a
-response proportionate to what happened:
+## Attribution
 
-1. a private note explaining why the behaviour was out of line;
-2. a public or private warning, with a stated consequence if it repeats;
-3. a temporary ban from project spaces;
-4. a permanent ban.
-
-The person reported will be told what the decision is. Retaliating against
-someone for making a report in good faith is itself a breach of this code.
+Adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
+version 2.1, and rewritten in this project's own terms rather than vendored,
+for two reasons: the evidence expectation above belongs in the document rather
+than in a note beside it, and the boundaries are stated as norms rather than as
+an enumeration of specifics.
