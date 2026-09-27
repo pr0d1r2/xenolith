@@ -107,8 +107,10 @@ trap 'rm -f "$corpus"' EXIT
       git cat-file tag "$ref"
     fi
   done
-  git log -p -m --root --text --no-color --no-ext-diff --no-textconv --no-renames \
-    --no-mailmap --format=fuller "${refs[@]}" --
+  # `core.quotepath=off`: a non-ASCII path in a diff header as its bytes,
+  # not octal escapes that put a digit before the name (V23 whole word).
+  git -c core.quotepath=off log -p -m --root --text --no-color --no-ext-diff \
+    --no-textconv --no-renames --no-mailmap --format=fuller "${refs[@]}" --
 } >"$corpus"
 
 here="${BASH_SOURCE[0]}"

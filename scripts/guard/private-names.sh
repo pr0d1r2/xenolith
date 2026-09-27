@@ -53,15 +53,46 @@ fi
 # The denylist itself is excluded: it is untracked, so `git ls-files` would
 # not return it anyway, but saying so here keeps the exclusion a decision
 # rather than an accident of another tool's behaviour.
-mapfile -t tracked < <(git ls-files -- . ':!:.private-names')
+# `-z` lists every path as its bytes: without it git C-quotes a non-ASCII
+# byte as an octal escape and a tab as `\t`, and a name after either would
+# follow a word character and never match.
+mapfile -d '' -t tracked < <(git ls-files -z -- . ':!:.private-names')
 
-# With no file arguments `grep -r` falls back to the working directory,
-# which would scan untracked scratch files and the denylist itself -- the
-# two things this guard must not read. An empty tracked set means there is
-# nothing in the repo to check.
+# An empty tracked set means there is nothing in the repo to check.
 if [ "${#tracked[@]}" -eq 0 ]; then
   exit 0
 fi
+
+# An entry matches as a WHOLE word (V23): case ignored, and no word
+# character -- [A-Za-z0-9_], the set `git grep -w` uses -- directly before
+# or after it. A substring match found short names inside unrelated words
+# (a licence's MERCHANTABILITY, any path with two letters in a row), and a
+# guard that fails on every tree is one nobody runs (B3).
+#
+# word_in TEXT NAME -- the path half of that rule, in bash so the same
+# semantics hold without leaning on which grep is on PATH. Every
+# occurrence is tried: "macme/acme" matches on the second.
+word_in() {
+  local text="${1,,}" name="${2,,}" from=0 rest head at end
+  while :; do
+    rest="${text:from}"
+    [[ "$rest" == *"$name"* ]] || return 1
+    head="${rest%%"$name"*}"
+    at=$((from + ${#head}))
+    end=$((at + ${#name}))
+    if { [ "$at" -eq 0 ] || [[ "${text:at-1:1}" != [A-Za-z0-9_] ]]; } &&
+      [[ "${text:end:1}" != [A-Za-z0-9_] ]]; then
+      return 0
+    fi
+    from=$((at + 1))
+  done
+}
+
+# content_hits NAME -- the tracked files whose content holds NAME as a
+# whole word, NUL-separated.
+content_hits() {
+  git grep -z -l -i -w -F -I -e "$1" -- . ':!:.private-names' 2>/dev/null || true
+}
 
 status=0
 index=0
@@ -72,20 +103,20 @@ for pattern in "${patterns[@]}"; do
   # Paths first: a file NAMED after a private repo leaks it in the tree
   # listing, where no content scan would look.
   for file in "${tracked[@]}"; do
-    if printf '%s' "$file" | grep -qiF -- "$pattern"; then
+    if word_in "$file" "$pattern"; then
       echo "private-names: the path ${file} matches ${denylist} line ${line} (C17). Rename it; the pattern is not repeated here on purpose." >&2
       status=1
     fi
   done
 
-  # Then content, over the tracked list only -- never `-r`, which would
-  # walk the working directory. `-I` skips binaries and `-l` keeps the
-  # output to paths: printing the matching line would print the name.
-  while IFS= read -r file; do
-    [ -n "$file" ] || continue
+  # Then content, over tracked files only: `git grep` never reads an
+  # untracked file. `-F` keeps the entry a fixed string, `-w` whole words,
+  # `-I` skips binaries and `-l` keeps the output to paths: printing the
+  # matching line would print the name.
+  while IFS= read -r -d '' file; do
     echo "private-names: ${file} contains the name on ${denylist} line ${line} (C17). Remove it -- anonymise the fixture or say \"a sibling repo\"; the pattern is not repeated here on purpose." >&2
     status=1
-  done < <(grep -liIF -- "$pattern" "${tracked[@]}" 2>/dev/null || true)
+  done < <(content_hits "$pattern")
 done
 
 exit "$status"

@@ -5,13 +5,33 @@
 #   awk -v refs=N -f history-audit.awk DENYLIST CORPUS
 #
 # DENYLIST is `.private-names`: one pattern per line, `#` comments and
-# blank lines skipped, matched as a fixed string ignoring case. CORPUS is
+# blank lines skipped, matched as a fixed string ignoring case and as a
+# WHOLE word (`scripts/guard:V23`, see `word`). CORPUS is
 # what the script gathered: `ref` and `tag` section markers, then `git log
 # -p` output, whose `commit <sha>` lines say which commit a hit belongs to.
 #
 # A hit is reported by the DENYLIST LINE NUMBER, a count and where it was
 # found (a commit id, "a ref name", "an annotated tag") -- never by the
 # text it matched, which would publish the name while reporting a leak.
+
+# word(TEXT, NAME): 1 when NAME occurs in TEXT with no word character
+# ([A-Za-z0-9_], the set `git grep -w` uses) directly before or after it.
+# Every occurrence is tried, so "macme, then acme" matches on the second.
+# A substring match found short names inside unrelated words (B3); both
+# arguments are already lower case, and `index` keeps NAME a fixed string.
+function word(text, name, from, at, before, after) {
+  from = 1
+  while ((at = index(substr(text, from), name)) > 0) {
+    at += from - 1
+    before = at > 1 ? substr(text, at - 1, 1) : ""
+    after = substr(text, at + length(name), 1)
+    if (before !~ /[A-Za-z0-9_]/ && after !~ /[A-Za-z0-9_]/) {
+      return 1
+    }
+    from = at + 1
+  }
+  return 0
+}
 
 FNR == NR {
   sub(/\r$/, "")
@@ -45,7 +65,7 @@ FNR == NR {
 {
   text = tolower($0)
   for (i = 1; i <= patterns; i++) {
-    if (index(text, pattern[i]) == 0) {
+    if (!word(text, pattern[i])) {
       continue
     }
     hits[i]++
