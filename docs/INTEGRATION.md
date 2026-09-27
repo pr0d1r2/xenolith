@@ -219,15 +219,26 @@ hk decides *when* things run. It never hides *what* runs; `hk check --all
 Configured in [`release.toml`](../release.toml) and run by `cargo-release`,
 never by a script (`nix:V109`). Dry-run is its default, so any command
 without `--execute` verifies and changes nothing. The version **bump** goes
-through a pull request like any other change; the tail then runs from
-`main`:
+through a pull request like any other change — the version edit without
+cargo-release's commit, then the CHANGELOG by hand (`nix:V110`):
+
+```sh
+cargo release version minor --workspace --execute
+```
+
+The tail then runs from `main`:
 
 ```sh
 cargo release hook                 # the gate. NOT optional -- see below
 cargo release tag --execute
-cargo release publish --execute
-cargo release push --execute
+cargo release publish --workspace --execute
+cargo release push --workspace --execute
 ```
+
+`--workspace` is required: the root manifest is also a package, so without
+it cargo-release selects `xenolith` alone and `publish` refuses, because the
+crates it depends on were never selected (`nix:B4`). `tag` runs without it —
+one `v<x.y.z>` tag marks the lockstep version.
 
 `hook` runs first because `tag`, `publish` and `push` do **not** run
 `pre-release-hook` — only the full flow and `cargo release hook` do. Start at
@@ -237,6 +248,13 @@ The workspace is released in lockstep: every crate carries the one
 `[workspace.package] version`, one `v<x.y.z>` tag marks it, and cargo-release
 publishes in dependency order — `xenolith-shebang`, `xenolith-lang-api`, the
 language crates, then `xenolith`. `xenolith-dev` is never released.
+
+A new crate name is rate-limited by crates.io: a burst of 5, then about one
+every 10 minutes. cargo-release refuses up front rather than waiting, so a
+release that adds more new crates than that publishes in `-p` batches,
+dependencies first, and pushes the tag only after the last batch. 0.1.0
+went out as 5, then 4 an hour later. New versions of existing crates are
+not affected.
 
 ## Using `xnl` in your own gate
 
