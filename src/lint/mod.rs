@@ -10,7 +10,9 @@
 //! 2. targets -- until `src/graph` names extracts, a file is an extract
 //!    when its shebang names a compiled-in guest, or it has none and its
 //!    extension is the guest's; a host file is one a host claims; a file
-//!    that is neither follows `src/check:V13` (`src/lint` §I, targets).
+//!    that is both, to one language, is linted once, as the extract
+//!    (its checks know the dialect and the config); a file that is
+//!    neither follows `src/check:V13` (`src/lint` §I, targets).
 //! 3. commands -- [`plan`]: the language crate's defaults and the
 //!    config's own, which run only when trusted (`src/lint:V91`).
 //! 4. runs -- [`run`]: a tool not on PATH is an `error`, exit 2
@@ -211,8 +213,14 @@ pub(crate) fn lint_with(
             unclaimed(&mut report, config, options, name)?;
             continue;
         }
+        let extract_lang = match &found {
+            Found::Guest(guest, _) => Some(guest.id()),
+            Found::Missing(..) | Found::Nothing => None,
+        };
         for host in hosts {
-            if config.lint.hosts {
+            // Linted once, as the extract, when the host is the guest's
+            // own language (`src/lint` §I targets, `src/lint:B1`).
+            if config.lint.hosts && extract_lang != Some(host.id()) {
                 run.host(&mut report, host, name, limit(config.lint.timeout));
             }
             if options.sites {
