@@ -60,7 +60,7 @@ T34|x|`.context-limits` ceilings + hk `itok check`|V26,C21
 T35|x|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget`; `sherd review` advisory ?|V27,C21
 T36|x|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1); sherd's debt ratio reads `src/` only (its fixed dir set) ∴ `languages/*` held by `clippy -D warnings` alone|V28,C14
 T113|x|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
-T114|.|`scripts/guard/github-settings.sh [OWNER/REPO]` + bats (stub `gh` on PATH): runbook = its header & `--print`: `main` protected, required checks = `gate (<os>)` ∀ `ci.yml` matrix os, admins enforced, Actions ⊥ create\|approve PRs (no bot needs it); `gh` absent \| repo unreachable → advisory exit 0; ⊥ hk step (network, `.:C3`)|V115
+T114|x|`scripts/guard/github-settings.sh [OWNER/REPO]` + bats (stub `gh` on PATH): runbook = its header & `--print`: `main` protected, required checks = `gate (<os>)` ∀ `ci.yml` matrix os, admins enforced, Actions ⊥ create\|approve PRs (no bot needs it); `gh` absent \| repo unreachable → advisory exit 0; ⊥ hk step (network, `.:C3`)|V115
 T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
 
 ## §B BUGS
