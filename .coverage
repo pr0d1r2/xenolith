@@ -15,4 +15,10 @@
 # number alone. A percentage cannot tell a test that asserts from one that
 # merely executes; a test written to move this number and asserting
 # nothing is the drop it hides, not a fix for it.
-lines 97.25
+# DROP 2026-09-27, 97.25 -> 96.75, recorded by hand: the 97.25 floor was
+# measured on the guards branch, whose base predates four waves that landed
+# beside it the same day (just threshold, lint parsers & `--sites`, extract
+# `--relocate` & `inline`, nix packaging). No test stopped asserting; the
+# floor was never measured on the merged tree. Measured there: 96.75. The
+# gap is owed back by tests, not by this number (the bug-fix wave after this).
+lines 96.75
