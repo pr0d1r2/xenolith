@@ -17,6 +17,7 @@
 pub mod classify;
 pub mod guest;
 pub mod host;
+mod params;
 mod sinks;
 
 pub use crate::classify::{Classification, Construct, ZSH_UNSUPPORTED, classify, classify_in};
