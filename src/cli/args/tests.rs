@@ -401,6 +401,7 @@ fn lint_defaults() {
         Verb::Lint {
             fix: false,
             trust_config: false,
+            sites: false,
             scan: scan(OutputFormat::Human, &[]),
         }
     );
@@ -413,9 +414,25 @@ fn lint_takes_fix_trust_config_and_format() {
         Verb::Lint {
             fix: true,
             trust_config: true,
+            sites: false,
             scan: scan(OutputFormat::Sarif, &["x.sh"]),
         }
     );
+}
+
+#[test]
+fn lint_takes_sites() {
+    // `src/lint:V93`: lint the sites in place, before extraction.
+    assert_eq!(
+        ok(&["lint", "--sites", "a.nix"]).verb,
+        Verb::Lint {
+            fix: false,
+            trust_config: false,
+            sites: true,
+            scan: scan(OutputFormat::Human, &["a.nix"]),
+        }
+    );
+    assert!(usage(&["check", "--sites"]).contains("`--sites`"));
 }
 
 // ---------------------------------------------------------------------
@@ -504,6 +521,7 @@ fn verb_names_are_the_words_typed() {
         Verb::Lint {
             fix: false,
             trust_config: false,
+            sites: false,
             scan: scan(OutputFormat::Human, &[]),
         }
         .name(),

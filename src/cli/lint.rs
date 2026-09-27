@@ -19,7 +19,7 @@ mod tests;
 
 /// The flags `xnl lint` takes beyond the scan (`src/cli` §I).
 ///
-/// Four switches, each a flag the user typed; an enum would only rename
+/// Five switches, each a flag the user typed; an enum would only rename
 /// them.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -32,6 +32,8 @@ pub struct Flags {
     pub verbose: bool,
     /// `--strict-hosts`.
     pub strict_hosts: bool,
+    /// `--sites` (`src/lint:V93`).
+    pub sites: bool,
 }
 
 /// Run `xnl lint` from `root` over `scan`, writing to `out` and `err`.
@@ -49,9 +51,9 @@ pub fn run(
     let options = Options {
         paths: scan.paths.clone(),
         strict_hosts: flags.strict_hosts,
+        sites: flags.sites,
         fix: flags.fix,
         trust_config: flags.trust_config,
-        ..Options::default()
     };
     match crate::lint::lint(root, &config, &options) {
         Ok(report) => render(&report, scan.format, flags.verbose, out, err),

@@ -201,6 +201,18 @@ fn fix_is_routed_to_the_engine() {
 }
 
 #[test]
+fn sites_is_routed_to_the_engine() {
+    // `src/lint:T94`: the flag runs; a missing path is discovery's refusal.
+    let flags = Flags {
+        sites: true,
+        ..Flags::default()
+    };
+    let (code, _, err) = ran(flags, &["nope.sh"]);
+    assert_eq!(code, EXIT_USAGE);
+    assert!(err.contains("nope.sh"), "{err:?}");
+}
+
+#[test]
 fn trust_config_is_routed_to_the_engine() {
     // `src/lint:T92`: the flag runs; a missing path is discovery's refusal.
     let flags = Flags {

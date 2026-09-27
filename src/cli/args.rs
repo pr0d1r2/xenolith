@@ -113,6 +113,9 @@ pub enum Verb {
         /// `--trust-config`: run commands a `xenolith.toml` defines
         /// (`src/lint:T92`).
         trust_config: bool,
+        /// `--sites`: lint each host file's sites in place, before
+        /// extraction (`src/lint:V93`).
+        sites: bool,
         /// Paths and format.
         scan: Scan,
     },
@@ -173,6 +176,7 @@ enum Flag {
     Relocate,
     Fix,
     TrustConfig,
+    Sites,
 }
 
 impl Flag {
@@ -185,6 +189,7 @@ impl Flag {
             Flag::Relocate => "--relocate",
             Flag::Fix => "--fix",
             Flag::TrustConfig => "--trust-config",
+            Flag::Sites => "--sites",
         }
     }
 }
@@ -245,6 +250,7 @@ const GRAMMARS: &[Grammar] = &[
             Flag::Format,
             Flag::Fix,
             Flag::TrustConfig,
+            Flag::Sites,
         ],
         formats: SCANNING,
     },
@@ -313,6 +319,7 @@ pub fn parse<A: AsRef<OsStr>>(args: &[A]) -> Result<Invocation, Usage> {
         Kind::Lint => Verb::Lint {
             fix: seen.has(Flag::Fix),
             trust_config: seen.has(Flag::TrustConfig),
+            sites: seen.has(Flag::Sites),
             scan: seen.scan(),
         },
         Kind::Extract => {

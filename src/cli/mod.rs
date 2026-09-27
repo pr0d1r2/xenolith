@@ -66,7 +66,7 @@ usage: xnl <verb> [flags] [paths...]
   xnl check   [--format human|json|sarif] [paths...]
   xnl extract [--write] [--relocate] <path>[:line]...
   xnl graph   [--format human|json|sarif] [paths...]
-  xnl lint    [--fix] [--trust-config] [--format human|json|sarif] [paths...]
+  xnl lint    [--fix] [--trust-config] [--sites] [--format human|json|sarif] [paths...]
   xnl langs   [--format human|json]
   xnl migrate [--write]
   xnl --version
@@ -164,10 +164,12 @@ fn dispatch(
             scan,
             fix,
             trust_config,
+            sites,
         } => sarif(err, "lint", scan).unwrap_or_else(|| {
             let flags = lint::Flags {
                 fix: *fix,
                 trust_config: *trust_config,
+                sites: *sites,
                 verbose: invocation.verbose,
                 strict_hosts: invocation.strict_hosts,
             };
