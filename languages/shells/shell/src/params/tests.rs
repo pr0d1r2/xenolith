@@ -45,6 +45,17 @@ fn vars_are_every_name_read_or_assigned_sorted() {
 }
 
 #[test]
+fn a_read_operand_is_a_var_only_when_it_is_a_name() {
+    // `read` assigns words the grammar does not call variable names, so
+    // each operand is screened: underscores belong in a name, a dash or a
+    // leading digit does not.
+    assert_eq!(
+        vars("read -r my_name a-b 9z _t\n"),
+        Ok(owned(&["_t", "my_name"]))
+    );
+}
+
+#[test]
 fn a_marker_is_not_a_var() {
     assert_eq!(vars(&marked("@ --a \"x @\"\n")), Ok(Vec::new()));
 }

@@ -33,6 +33,21 @@ fn a_heredoc_with_a_second_stdin_is_not_a_site() {
 }
 
 #[test]
+fn a_heredoc_beside_another_statement_redirect_is_not_a_site() {
+    // Two redirects on the statement itself: which stdin the interpreter
+    // reads as its program is not the host's to guess.
+    assert!(found("python3 <in.txt <<'PY'\nprint(1)\nPY\n").is_empty());
+    assert!(found("python3 2>err.log <<'PY'\nprint(1)\nPY\n").is_empty());
+}
+
+#[test]
+fn a_file_redirect_alone_is_not_a_site() {
+    // The program comes from a file the host does not hold.
+    assert!(found("python3 <prog.py\n").is_empty());
+    assert!(found("python3 >out.txt\n").is_empty());
+}
+
+#[test]
 fn an_empty_heredoc_is_a_site_with_an_empty_body() {
     let src = "python3 <<'PY'\nPY\n";
     let sites = found(src);

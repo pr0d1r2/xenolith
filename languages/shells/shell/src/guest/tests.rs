@@ -431,3 +431,20 @@ fn what_the_bash_grammar_decides_is_no_judgment() {
         assert_eq!(ShellGuest.unsupported("() { print hi }", &site), None);
     }
 }
+
+// --- the params trio is `params`'s, reached through the trait --------------
+
+#[test]
+fn param_refs_through_the_guest_are_the_params_modules() {
+    let body = "echo \"$FOO\" $BAR $OTHER\n";
+    let names = ["FOO".to_owned(), "BAR".to_owned()];
+    let Ok(refs) = ShellGuest.param_refs(body, &names) else {
+        panic!("{body:?} should parse");
+    };
+    let found: Vec<(Option<&str>, &str)> = refs
+        .iter()
+        .map(|(span, name)| (span.of(body), name.as_str()))
+        .collect();
+    assert_eq!(found, [(Some("\"$FOO\""), "FOO"), (Some("$BAR"), "BAR")]);
+    assert!(ShellGuest.param_refs("if then fi (", &names).is_err());
+}
