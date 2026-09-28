@@ -90,6 +90,13 @@ jobs:
             ${{ github.ref != 'refs/heads/main' || github.event_name ==
             'pull_request' }}
 
+      # The gate deliberately runs Cargo offline (`.:C3`). Its dev-generated
+      # step invokes the unpublished xenolith-dev workspace member directly,
+      # so those registry sources are not supplied by the Nix package cache.
+      # Fetch the committed lockfile's sources while network access is
+      # available; all gate commands below remain offline and deterministic.
+      - run: nix develop --command cargo fetch --locked
+
       # `--check` because `hk check` otherwise runs the FIX half of a step:
       # CI reports, it never rewrites. `--all` because there is no staged
       # set here. `--no-fail-fast` inverts the local default on purpose --
