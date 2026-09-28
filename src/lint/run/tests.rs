@@ -25,7 +25,7 @@ fn exit_zero_is_a_pass_with_no_tail() {
         None,
         &Tools::on_path(&bin),
     );
-    assert_eq!(ran.status, Status::Pass);
+    assert_eq!(ran.status, Status::Pass, "{:?}", ran.tail);
     assert_eq!(ran.exit, Some(0));
     assert_eq!(ran.tail, None);
 }
