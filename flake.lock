@@ -160,36 +160,7 @@
           "nixpkgs-lock",
           "nixpkgs"
         ],
-        "nixpkgs-lock": "nixpkgs-lock",
-        "sherd": "sherd"
-      }
-    },
-    "sherd": {
-      "inputs": {
-        "nix-hk": [
-          "nix-hk"
-        ],
-        "nixpkgs": [
-          "sherd",
-          "nixpkgs-lock",
-          "nixpkgs"
-        ],
-        "nixpkgs-lock": [
-          "nixpkgs-lock"
-        ]
-      },
-      "locked": {
-        "lastModified": 1789926558,
-        "narHash": "sha256-icosnIACokCQ5kwn8TWMCn73SIVpyR1IalmLaOVMrp8=",
-        "owner": "pr0d1r2",
-        "repo": "sherd",
-        "rev": "38f08e8983242bd67e5174262eb60720463f4dc2",
-        "type": "github"
-      },
-      "original": {
-        "owner": "pr0d1r2",
-        "repo": "sherd",
-        "type": "github"
+        "nixpkgs-lock": "nixpkgs-lock"
       }
     }
   },

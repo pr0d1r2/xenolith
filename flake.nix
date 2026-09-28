@@ -17,15 +17,20 @@
     ];
   };
 
-  # FIVE declared inputs, ONE nixpkgs (`nix:C6`, `nix:V17`). `nixpkgs-lock` is
+  # FOUR declared inputs, ONE nixpkgs (`nix:C6`, `nix:V17`). `nixpkgs-lock` is
   # the fleet's sole nixpkgs authority and every other input follows it, so
   # this repo names no revision of its own and the agreement is a property of
-  # the graph rather than of matching strings in five files.
+  # the graph rather than of matching strings in four files.
   #
-  # The last three are the SPEC toolchain (`scripts:C21`): microlith formats
-  # and checks every `SPEC.md`, itok counts its tokens against
-  # `.context-limits`, sherd validates the federation. They are dev-shell and
-  # guardrail only -- `packages.default` must not carry them (`nix:V29`).
+  # The SPEC toolchain (`scripts:C21`) is three tools: microlith formats and
+  # checks every `SPEC.md`, itok counts its tokens against `.context-limits`,
+  # sherd validates the federation. They are dev-shell and guardrail only --
+  # `packages.default` must not carry them (`nix:V29`). itok and microlith are
+  # the last two inputs. sherd is NOT an input: it is pinned to a crates.io
+  # release on purpose and built in `nix/tools.nix` (`nix:V351`). A fixed
+  # version and fixed hashes make a fixed derivation, so the cachix push from
+  # `main` is a cache hit locally, on the node and in CI. Bumping it = the
+  # version + its two hashes (source and `cargoHash`), in that one file.
   inputs = {
     nixpkgs-lock.url = "github:pr0d1r2/nixpkgs-lock";
     nixpkgs.follows = "nixpkgs-lock/nixpkgs";
@@ -35,10 +40,10 @@
       inputs.nixpkgs-lock.follows = "nixpkgs-lock";
     };
 
-    # itok names its hk input `hk`, microlith and sherd name theirs `nix-hk`.
-    # The attribute name is theirs; what matters is that all three resolve to
-    # the SAME node here, or the shell would hold three hk builds and two of
-    # them would miss the cache.
+    # itok names its hk input `hk`, microlith names its own `nix-hk`. The
+    # attribute name is theirs; what matters is that both resolve to the SAME
+    # node here, or the shell would hold two hk builds and one of them would
+    # miss the cache.
     itok = {
       url = "github:pr0d1r2/itok";
       inputs = {
@@ -60,14 +65,6 @@
         itok.follows = "itok";
       };
     };
-
-    sherd = {
-      url = "github:pr0d1r2/sherd";
-      inputs = {
-        nixpkgs-lock.follows = "nixpkgs-lock";
-        nix-hk.follows = "nix-hk";
-      };
-    };
   };
 
   outputs =
@@ -77,7 +74,6 @@
       nix-hk,
       itok,
       microlith,
-      sherd,
       ...
     }:
     let
@@ -104,15 +100,15 @@
           }
         );
 
-      # The spec toolchain, resolved per system. Passed as a list rather than
-      # looked up inside `nix/devshell.nix` so that file needs no flake inputs
-      # of its own and stays a package list.
+      # The flake-input half of the spec toolchain, resolved per system (sherd
+      # is built in `nix/tools.nix`). Passed as a list rather than looked up
+      # inside `nix/devshell.nix` so that file needs no flake inputs of its
+      # own and stays a package list.
       specTools =
         system:
         map (flake: flake.packages.${system}.default) [
           itok
           microlith
-          sherd
         ];
     in
     {

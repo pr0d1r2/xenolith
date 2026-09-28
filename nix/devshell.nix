@@ -4,10 +4,11 @@
 # have, and a gate that disagrees between machines is not a gate.
 {
   pkgs,
-  # itok, microlith and sherd, built from their own flakes (`scripts:C21`).
-  # Dev-shell only: they must never appear in `packages.default`'s closure
-  # (`nix:V29`), which is why they arrive as an argument instead of as an
-  # input this file resolves for itself.
+  # itok and microlith, built from their own flakes (`scripts:C21`); sherd,
+  # the third spec tool, is a crates.io release built in `nix/tools.nix`
+  # (`nix:V351`). Dev-shell only: none may appear in `packages.default`'s
+  # closure (`nix:V29`), which is why these arrive as an argument instead of
+  # as an input this file resolves for itself.
   specTools,
 }:
 let
@@ -22,6 +23,7 @@ pkgs.mkShell {
   packages =
     tools.dev
     ++ builtins.concatMap builtins.attrValues (builtins.attrValues tools.runtime)
+    ++ tools.spec
     ++ specTools;
 
   # Pin locale so tool output is byte-identical across machines (`.:C3`).
