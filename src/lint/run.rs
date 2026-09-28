@@ -7,7 +7,7 @@
 //! cannot hang the gate.
 
 use std::ffi::OsString;
-use std::io::{ErrorKind, Read};
+use std::io::{self, ErrorKind, Read};
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::thread::{self, JoinHandle};
@@ -89,7 +89,7 @@ pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools)
     if let Some(path) = &tools.path {
         cmd.env("PATH", path);
     }
-    let mut child = match cmd.spawn() {
+    let mut child = match retry_busy(|| cmd.spawn()) {
         Ok(child) => child,
         Err(e) if e.kind() == ErrorKind::NotFound => return Ran::error(absent(program)),
         Err(e) => return Ran::error(format!("`{program}` could not be run: {e}")),
@@ -123,6 +123,32 @@ pub fn run(root: &Path, argv: &[String], limit: Option<Duration>, tools: &Tools)
             Some(out) => format!("`{program}` was killed by a signal\n{out}"),
             None => format!("`{program}` was killed by a signal"),
         }),
+    }
+}
+
+/// How many times a spawn refused as text-file-busy is tried in all
+/// (`src/lint:V350`).
+pub(super) const BUSY_TRIES: u32 = 5;
+
+/// Try `spawn` again while it fails with `ExecutableFileBusy`, backing off
+/// a little longer each time (`src/lint:V350`, `src/lint:B3`).
+///
+/// On Linux, `execve` refuses a file that some process still has open for
+/// writing. A tool written just before its run -- a stub in a test, a
+/// materialised site -- can be held that way for a moment by a child that
+/// another thread forked in between, which inherits the write descriptor
+/// until its own `exec`. The race is this process's, not the tool's, so it
+/// is waited out; every other spawn error is returned at once.
+pub(super) fn retry_busy<T>(mut spawn: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    let mut tries = 1;
+    loop {
+        match spawn() {
+            Err(e) if e.kind() == ErrorKind::ExecutableFileBusy && tries < BUSY_TRIES => {
+                thread::sleep(Duration::from_millis(10 * u64::from(tries)));
+                tries += 1;
+            }
+            other => return other,
+        }
     }
 }
 

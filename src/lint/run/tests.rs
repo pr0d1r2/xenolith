@@ -5,7 +5,10 @@
 
 use std::time::{Duration, Instant};
 
-use super::{TAIL_LINES, Tools, absent, run, tail};
+use std::cell::Cell;
+use std::io::{Error, ErrorKind};
+
+use super::{BUSY_TRIES, TAIL_LINES, Tools, absent, retry_busy, run, tail};
 use crate::discover::Sandbox;
 use crate::lint::report::Status;
 use crate::lint::tests::stub;
@@ -209,4 +212,48 @@ fn a_tool_within_its_limit_is_judged_as_usual() {
     );
     assert_eq!(ran.status, Status::Fail);
     assert_eq!(ran.exit, Some(1));
+}
+
+// ---------------------------------------------------------------------
+// a spawn refused as text-file-busy (`src/lint:V350`, `src/lint:B3`)
+// ---------------------------------------------------------------------
+
+fn busy() -> Error {
+    Error::from(ErrorKind::ExecutableFileBusy)
+}
+
+#[test]
+fn a_busy_spawn_is_retried_until_it_starts() {
+    let calls = Cell::new(0);
+    let got = retry_busy(|| {
+        calls.set(calls.get() + 1);
+        if calls.get() < 3 { Err(busy()) } else { Ok(7) }
+    });
+    assert_eq!(got.ok(), Some(7));
+    assert_eq!(calls.get(), 3);
+}
+
+#[test]
+fn a_spawn_that_stays_busy_gives_up_with_the_busy_error() {
+    let calls = Cell::new(0);
+    let got: std::io::Result<()> = retry_busy(|| {
+        calls.set(calls.get() + 1);
+        Err(busy())
+    });
+    assert_eq!(
+        got.map_err(|e| e.kind()),
+        Err(ErrorKind::ExecutableFileBusy)
+    );
+    assert_eq!(calls.get(), BUSY_TRIES);
+}
+
+#[test]
+fn any_other_spawn_error_is_not_retried() {
+    let calls = Cell::new(0);
+    let got: std::io::Result<()> = retry_busy(|| {
+        calls.set(calls.get() + 1);
+        Err(Error::from(ErrorKind::PermissionDenied))
+    });
+    assert_eq!(got.map_err(|e| e.kind()), Err(ErrorKind::PermissionDenied));
+    assert_eq!(calls.get(), 1);
 }
