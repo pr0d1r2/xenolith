@@ -68,3 +68,4 @@ T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml
 
 id|date|cause|fix
 B1|2026-09-26|`.envrc` ⊥ shebang ∴ shellcheck w/o `--shell` (xnl lint via shell host, `src/registry:B11`) → SC2148; only hk passed `--shell=bash`|`# shellcheck shell=bash` directive in `.envrc`
+B2|2026-09-28|nix-direnv rebuilds the dev shell only on change to `flake.nix`, `flake.lock`, `.envrc`; devShell lives in `nix/devshell.nix` & `nix/tools.nix` ∴ tool-list change (#3 added `cargo-release`) reached `main` ⊥ any direnv shell → `no such command: release`|`watch_file nix/*.nix` in `.envrc` (direnv directive, ⊥ shell logic ∴ C13 holds)
