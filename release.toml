@@ -9,17 +9,35 @@
 # HOW IT IS RUN. Dry-run is `cargo-release`'s DEFAULT, and it reports every
 # problem in one pass rather than the first one it hits:
 #
-#     cargo release minor                 # verify everything, change nothing
+#     cargo release minor --workspace     # verify everything, change nothing
+#
+# `--workspace` IS NOT OPTIONAL. The root manifest is also a package, so a
+# command without it selects `xenolith` alone: `publish` then refuses,
+# because the crates it depends on were never selected (`nix:B4`). `tag` is
+# the exception -- one `v<x.y.z>` tag marks the lockstep version, and the
+# root package alone creates it.
 #
 # THE BUMP DOES NOT HAPPEN HERE. cargo-release's default flow bumps the
 # version, COMMITS it and pushes that commit to the release branch; `main`
 # takes changes through pull requests only. So the version is bumped in a PR
-# like any other change, and only the TAIL runs from `main` once it merges:
+# like any other change -- the edit without the commit, then the CHANGELOG
+# by hand (`nix:V110`):
+#
+#     cargo release version minor --workspace --execute
+#
+# and only the TAIL runs from `main` once it merges:
 #
 #     cargo release hook                  # the gate; dry-run is enough
 #     cargo release tag --execute
-#     cargo release publish --execute
-#     cargo release push --execute
+#     cargo release publish --workspace --execute
+#     cargo release push --workspace --execute
+#
+# A NEW CRATE NAME is rate-limited by crates.io: a burst of 5, then about
+# one every 10 minutes. cargo-release refuses up front rather than waiting
+# ("attempting to publish N new crates which is above the rate limit"), so
+# a release that adds more than that publishes in `-p` batches, dependencies
+# first, and pushes the tag only after the last one. 0.1.0 went out as 5
+# then 4. New versions of existing crates are not affected.
 #
 # `hook` IS FIRST ON PURPOSE, and it is the one thing here that must not be
 # assumed: `tag`, `publish` and `push` do NOT run `pre-release-hook` -- only
