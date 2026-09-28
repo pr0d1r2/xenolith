@@ -39,6 +39,7 @@ V91: config-defined commands run only w/ `--trust-config`; untrusted → skipped
 V92: findings parsed per `LintCmd.format` into `{line, col, code, severity, message}`; unparseable output → `raw_tail` (last 40 lines), ⊥ dropped; `fail` \| `error` → exit 1 \| 2 per `src` §I exit.
 V93: `xnl lint --sites` lints in-host sites BEFORE extraction: body materialised to temp file via `wrap`, checks run, finding positions mapped back to host `file:line:col` through `Delim.body` & `unescape`; `kind: site`.
 V126: ∀ check & fixer killed at `[lint] timeout` (default 60s) → `status: error`, exit 2, naming tool & limit; ⊥ hang. a gate that hangs is bypassed next commit.
+V350: a spawn refused w/ `ExecutableFileBusy` (ETXTBSY: a tool written moments before, its write fd still inherited by a child forked on another thread) is retried ≤ 5× w/ short backoff before `status: error`; ⊥ retry any other spawn error. the race is the host's, ⊥ the tool's ∴ ⊥ a finding.
 
 ## §T TASKS
 
@@ -60,3 +61,4 @@ T125|x|timeout per check/fixer + fixture: a sleeping tool errors at the limit|V1
 id|date|cause|fix
 B1|2026-09-27|file host-claimed ∧ extract, same lang → `Host::checks` & `Guest::checks` both ran ∴ `*.tcl` → `xenolith-tcl-syntax` ×2; `*.sh` → shellcheck ×2 (host's ⊥ `--shell`) & `shfmt --diff` ×2; zsh-shebang file → host's shellcheck on zsh ⊥ reads|§I targets: same lang → extract only; other-lang host & `--sites` unchanged
 B2|2026-09-27|timeout & site tests stubbed tools as `/bin/sleep`, `/bin/cat`: on macOS & in `cargo test`, but ⊥ in the Linux nix build sandbox (only `/bin/sh`) ∴ `checks.test` failed 3 tests on Linux CI|stubs name tools by the test process's own `PATH` (`on_path`)
+B3|2026-09-28|`run` spawned once; on Linux a stub written by `fs::write` just before its run can be held open by a child another test thread forks → `execve` ETXTBSY → `Status::Error` (flaky `exit_zero_is_a_pass_with_no_tail` on ubuntu-24.04-arm, #16); test asserted status before tail ∴ the cause ⊥ printed|V350: `run` retries `ExecutableFileBusy`; status asserts print `ran.tail`
