@@ -26,11 +26,9 @@ V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & dis
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T58, T127 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T58|x|candidate discovery via `git ls-files`; fixture: untracked & ignored files ⊥ scanned; outside git → exit 2|V57
-T127|x|symlink handling in discovery + fixtures: symlinked file, symlinked dir, explicit symlink path|V128,V57
 
 ## §B BUGS
 

@@ -51,15 +51,12 @@ V102: `--format sarif` = SARIF 2.1.0: rule id → `ruleId`, `file:line:col` → 
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T9, T144 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T96, T97, T103 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T96, T103 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T9|x|CLI skeleton `xnl` (check, extract, graph, lint, langs; `--format`, `--verbose`); exit codes|I.cmd,V24,`src/check:V13`
 T96|.|`xnl init` + fixture: empty repo, existing config refused|`src/config:V89`
-T97|x|`xnl migrate` + fixtures per legacy allowlist format|`src/config:V10`
 T103|.|SARIF writer ∀ verb + schema validation test|V102
-T144|x|`src:C139` backfill: `src/main.rs` → shim; verb dispatch & `refuse` → lib module w/ own `tests.rs` (w/ T9)|`src:C139`,`scripts/guard:V140`,T9
 
 ## §B BUGS
 

@@ -25,10 +25,9 @@ self|languages/api/src|api modules: site, lens, holes; hub root `lib.rs` & `sheb
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T145 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T145|x|`src:C139` backfill: `languages/api/src/tests.rs` (`lib.rs`), `languages/api/src/shebang/tests.rs`|`src:C139`,`scripts/guard:V140`
 
 ## §B BUGS
 

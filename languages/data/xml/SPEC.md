@@ -39,12 +39,11 @@ V189: launchd sink: top `<plist><dict>` w/ `<key>ProgramArguments</key>` → `<a
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M3 | publication -- just, xml, tcl | T190-T192 | host claims its files, flags launchd `sh -c` argv w/ fixtures, runs `xmllint` (`languages:V56`) |
+| M3 | publication -- just, xml, tcl | T190-T191 | host claims its files, flags launchd `sh -c` argv w/ fixtures, runs `xmllint` (`languages:V56`) |
 
 id|status|task|cites
 T190|.|DECIDE by 2026-10-15: xml load after extract — `WorkingDirectory`-relative, absolute install path, or stay `Judgment`; fixture per shape|V189,`languages:V74`,`languages/api:V35`
 T191|.|DECIDE by 2026-10-15: CDATA sinks — measure the fleet's 3 CDATA files' element names (counts & shapes only); name an element here only w/ that evidence, else drop|R186,`languages:V81`
-T192|x|scaffold `languages/data/xml` crate (`tree-sitter-xml`, `LangId` variant 1st per `languages/api:V33`): `claims` + launchd sink + `xmllint` check; fixtures: text plist `sh -c` flagged, `bash -c` single command ⊥ flagged, binary plist ⊥ claimed, `Program` key ⊥ site, entity-escaped body decoded, `.xml` w/o sink clean|V188,V189,R187,`tests:V14`,`tests:V15`
 
 ## §B BUGS
 

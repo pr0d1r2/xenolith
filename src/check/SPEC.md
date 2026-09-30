@@ -29,15 +29,12 @@ V152: `xenolith::check` = ONE engine: candidates (`src/discover:V57`, `src/disco
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T75, T88, T153 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T75|x|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
-T88|x|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,`src:V11`
 T119|.|benchmark harness + recorded budget file|V120,V95
-T153|x|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,`src/registry:T46`,`src/discover:T58`
 
 ## §B BUGS
 

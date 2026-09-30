@@ -57,20 +57,13 @@ V240: `[threshold.just] max_lines` = N: site whose `DelimKind::runs_line_by_line
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T10, T25, T49, T56, T70, T73, T80, T143 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T89, T240 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | T49, T70, | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T89| public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T10|x|`xenolith.toml` parser: extract layout & rules, allow (reason required, hash/span keyed), lint map, langs toggle|C16,V9,V10
-T25|x|allow staleness check: unmatched `[[allow]]` = violation|V9
 T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
-T56|x|parse & validate `[threshold]`; fixtures: allowed construct passes, unknown construct exits 2|V55
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
-T73|x|defaults table as one Rust const module; test: ∀ key in table parsed & overridable; grep guard ⊥ literal default in engines|V73
-T80|x|exclude parsing, reason required, `stale-exclude`; fixture: vendored dir excluded|V79
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
-T143|x|`src:C139` backfill: `src/config/defaults/tests.rs`|`src:C139`,`scripts/guard:V140`
-T240|x|`[threshold.just] max_lines`: parse, default row, nested merge, `Config::line_ceiling`; engine per-line verdict via `DelimKind::runs_line_by_line`; tests: 2 lines flagged by default, clean at 2, 3 flagged, negative → exit 2|V240,V55,V73,`languages/ci/just:T185`
 
 ## §B BUGS
 

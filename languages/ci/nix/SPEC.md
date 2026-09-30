@@ -32,22 +32,10 @@ V174: `rewrite_bound` w/ `languages/api/src/holes:V40` params: body `__NAME__`, 
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T12, T55, T71, T146, T155-T161, T170, T174 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T71, | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T12|x|host nix (`rnix`): sinks per matrix, fixtures pos+neg|`languages:V2`,`tests:V14`,`tests:V15`
-T55|x|nix `Host::placement` & `hole_advice` + fixtures|V53,V54
 T71|.|`ExecStart*` classifier & extraction; fixtures: short line inline, long line → script|V69
-T146|x|`src:C139` backfill: `languages/ci/nix/src/tests.rs` (`lib.rs`), `languages/ci/nix/src/sinks/tests.rs`|`src:C139`,`scripts/guard:V140`
-T155|x|`+`-built sink value: ∀ string operand = site; fixture|B1,`languages:V2`,`tests:V118`
-T156|x|phase hooks `pre*`/`post*` = shell sinks; fixture|B1,`tests:V118`
-T157|x|shebang-led string in any attr = site, guest by shebang; fixture|B1,`tests:V118`
-T158|x|`''` dedent & escapes before guest sees body (`languages/api/src/lens:V39`); fixture|B1,`tests:V118`
-T159|x|shell init attrs → shell, dialect per program; fixture|B1,`tests:V118`
-T160|x|T157 ∀ whole text arg of `writeScript`/`writeText`; fixture|B1,`tests:V118`
-T161|x|sink value wrapped once in `mk*` order/priority = its site; fixture|B1,`tests:V118`
-T170|x|`rewrite`/`inline`/`escape`; laws (a)-(c) & `escape_law` ∀ fixture site|V170,V53,`languages/api/src/lens:V34`
-T174|x|holes via `replaceStrings`; laws ∀ hole fixture|V174
 
 ## §B BUGS
 

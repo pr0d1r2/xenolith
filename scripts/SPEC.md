@@ -49,20 +49,10 @@ V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T2, T4, T27, T33-T36, T121 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T113, T114 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication |  | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T2|x|`scripts/dev/shell-hook.sh` + bats (RED→GREEN): idempotent `hk install`, wired via `builtins.readFile`|C10,`scripts/guard:V21`
-T4|x|`hk.pkl`: fmt, clippy, deny, test, bats, cargo-hack, shellcheck, shfmt, nixfmt, statix, deadnix, taplo, typos, editorconfig, trailing-whitespace, final-newline, no-large-files, secret scan, link check; commit-msg & pre-push hooks|C9,V22,V122
-T27|x|CI workflow: tier-1 matrix, `hk check --all`, bats, `nix flake check`, cachix|C7,V22
-T33|x|hk steps `mth fmt --check` & `mth check` ∀ `SPEC.md`; `mth fmt` as fix|V25,C21
-T34|x|`.context-limits` ceilings + hk `itok check`|V26,C21
-T35|x|hk steps `sherd validate`, `sherd sync --check`, `sherd check`, `sherd budget`; `sherd review` advisory ?|V27,C21
-T36|x|`.coverage` floor + `.lint-debt` baseline; hk pre-push `sherd coverage --check`, `sherd debt --check` (supersedes C14 llvm-cov wiring in T1); sherd's debt ratio reads `src/` only (its fixed dir set) ∴ `languages/*` held by `clippy -D warnings` alone|V28,C14
-T113|x|hk steps zizmor, actionlint, lychee + `.github/zizmor.yml` ledger|V114
-T114|x|`scripts/guard/github-settings.sh [OWNER/REPO]` + bats (stub `gh` on PATH): runbook = its header & `--print`: `main` protected, required checks = `gate (<os>)` ∀ `ci.yml` matrix os, admins enforced, Actions ⊥ create\|approve PRs (no bot needs it); `gh` absent \| repo unreachable → advisory exit 0; ⊥ hk step (network, `.:C3`)|V115
-T121|x|repo hygiene files: `.envrc` (`use flake`), `.editorconfig`, `.typos.toml`, `.taplo.toml`, `.gitignore`|V122,C10
 
 ## §B BUGS
 

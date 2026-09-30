@@ -45,16 +45,10 @@ V350: a spawn refused w/ `ExecutableFileBusy` (ETXTBSY: a tool written moments b
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T24, T87, T92, T93, T125 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T94 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication |  | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T24|x|`lint`: per-language linter map w/ defaults (shellcheck+shfmt, ruff ?, sqlfluff ?, eslint ?, stylelint ?), missing binary = exit 2|V8
-T87|x|multi-check runner, per-check results, `--fix`; defaults table; fixture w/ 2 checks both failing|V8
-T92|x|`--trust-config` gate; fixture: config check skipped w/ warning, runs w/ flag|V91
-T93|x|findings parsers (shellcheck json, ruff json, sqlfluff json, SARIF) + raw fallback|V92
-T94|x|virtual-extract linting w/ source mapping; fixture: shellcheck finding in nix `script` reported at nix line|V93
-T125|x|timeout per check/fixer + fixture: a sleeping tool errors at the limit|V126
 
 ## §B BUGS
 

@@ -36,17 +36,9 @@ V310: `claims` ⊥ shebang interpreter `zsh`, before ext: tree-sitter-bash ⊥ r
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T11, T15, T53, T83, T135, T136, T149, T310 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | , , | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T11|x|single-command classifier on tree-sitter-bash AST ∀ shell sink|V3,`languages:V2`
-T15|x|host: heredoc to interpreter, `-c`/`-e` args + fixtures|V139,`languages:V2`,`tests:V14`,`tests:V15`
-T53|x|guest `prelude`/`executable`/`invoke` defaults + fixture: extract passes shellcheck|V51
-T83|x|dialect & options per host context; fixtures `sh -c`, `bash -c` + `set -e`, `zsh -c` + `setopt`|V82,V139
-T135|x|`claims` ∀ shell excl. `*.bats` + fixtures|V137,`languages:V130`
-T136|x|`Judgment` in `Classification` ∀ unsupported zsh construct (B1)|V138,V82,`languages/shells:V132`
-T149|x|`src:C139` backfill: `classify/tests.rs`, `guest/tests.rs`|`src:C139`,`scripts/guard:V140`
-T310|x|`claims` ⊥ zsh shebang, `x.sh` too; sh-family still claimed|V310
 
 ## §B BUGS
 

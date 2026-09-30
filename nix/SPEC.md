@@ -49,22 +49,15 @@ V351: dev-shell `sherd` = pinned crates.io release: `buildRustPackage` over `fet
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T1, T26, T38, T41, T99 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T39, T108-T112, T345 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T39, T109-T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T1|x|scaffold flake: inputs nixpkgs-lock + nix-hk w/ follows, devShell (rustc, cargo, clippy, rustfmt, cargo-deny, cargo-llvm-cov ?, hk, bats, shellcheck, shfmt, nixfmt, statix, deadnix), `.gitignore`, `flake.lock`|V17,C6
-T26|x|nix package `packages.default`, `checks` (test, clippy, dogfood); cachix push from CI `main`|C7,C19,`.:V19`
-T38|x|closure check: `nix path-info -r` of `packages.default` ∌ dev tools|V29,V250,C6
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
-T41|x|nix `languages` override arg → cargo features; flake check builds subset `[ "nix" ]` & asserts `xnl langs`; README consumer snippet w/ subset rides `.:T30` (README owner)|V31,V251,C8
-T99|x|wrap `xnl` w/ tool PATH per compiled-in language; check: `xnl lint` on fixture repo finds ∀ tool; subset build lacks excluded tools|V96,V250,V251
-T108|x|`release.toml` for the workspace (lockstep; cargo-release publishes in dependency order shebang → api → languages → root; `xenolith-dev` never) + runbook section in `docs/INTEGRATION.md`|V109,V349
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
 T111|.|crate metadata ∀ crate + check script + docs.rs `[package.metadata.docs.rs]`|V112
 T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
-T345|x|`cargoBuildFlags = -p xenolith`, `dev/` in the source fileset, `passthru.toolLicenses` (argv0 → nixpkgs name, version, SPDX ids) read by `dev:V347`|V349,V96,`docs:V108`
 
 ## §B BUGS
 

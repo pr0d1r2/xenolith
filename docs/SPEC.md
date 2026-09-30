@@ -29,15 +29,9 @@ V348: README & docs in the fleet shape (`dev:R340`). README: `# name` → genera
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M3 | publication | T104-T107, T343, T344 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication |  | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T104|x|write `LICENSE` (MIT), CoC, CONTRIBUTING (gate, TDD & commit rules), LLM-DISCLAIMER, mirroring the siblings' texts|V106
-T105|x|write `docs/SECURITY.md` per V107, incl. CI trust boundary (fork PRs take config from base branch)|V107
-T106|x|notices generator + drift check (cargo metadata + nix eval of wrapped tools' `meta.license`)|V108
-T107|x|`AGENTS.md`: the gate (`hk check --all`), never `--no-verify`, TDD & atomic commits w/ `Why:` (`scripts/guard` C11, C12), spec-first flow, PR-per-change & pause for review|V106
-T343|x|restyle README, AGENTS & docs/ to the fleet shape: generated badges, disclaimer line, measured problem, Install · Commands · Exit codes · Configuration · Languages · Use it as a library · Guarantees · Status · The name · Changelog · Contributing · Security · License|V348,V280,`dev:V340`
-T344|x|`docs/INTEGRATION.md`: the gate & consumer wiring, ∀ command run on the tree|V348,V280,`nix:V109`
 
 ## §B BUGS
 
