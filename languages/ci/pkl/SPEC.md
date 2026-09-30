@@ -19,15 +19,9 @@ V172: hk step site `env` = what hk runs it under (`languages/shells/shell:V82`),
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T13, T54, T147, T171, T172, T176 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | , | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 
 id|status|task|cites
-T13|x|host pkl (vendored `apple/tree-sitter-pkl`, Apache-2.0, `languages:V121`): hk step sinks, fixtures|`languages:V2`,`languages/shells/shell:V3`,`tests:V14`,`tests:V15`
-T54|x|pkl `Host::placement` for hk steps + fixture (`{{files}}` forwarded)|V52
-T147|x|`src:C139` backfill: `languages/ci/pkl/src/host/tests.rs`, `languages/ci/pkl/src/string/tests.rs`|`src:C139`,`scripts/guard:V140`
-T171|x|`escape` + `escape_law` ∀ fixture site; `inline` keeps CRLF; `rewrite` refuses holes|V171,B2,`languages/api/src/lens:V39`
-T172|x|site `env` from hk's shell: default, step, `Group`, unreadable; fixture|V172,B3,`languages/shells/shell:V82`
-T176|x|load runs the extract under its prelude's interpreter (`sh` by default); e2e hk step|V52,V172,`src/extract:T175`
 
 ## §B BUGS
 

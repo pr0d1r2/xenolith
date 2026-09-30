@@ -41,13 +41,9 @@ V198: checks (host & guest, both dialects) = bin `xenolith-tcl-syntax` of this c
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M3 | publication -- just, xml, tcl | T199-T202 | host & guest tcl w/ fixtures, checks decided (`languages:V56`) |
+| M3 | publication -- just, xml, tcl |  | host & guest tcl w/ fixtures, checks decided (`languages:V56`) |
 
 id|status|task|cites
-T199|x|scaffold `languages/shells/tcl` crate (vendored `tree-sitter-tcl`, `LangId` variant 1st per `languages/api:V33`): `claims` + V196 sinks; fixtures: `exec sh -c {a \| b}` flagged, `exec bash -c {ls}` ⊥ flagged, `exec python3 << $src` → python, `spawn sh -c` flagged, `spawn ssh` + `send` ⊥ site, `.exp` → dialect expect|V195,V196,R194,`tests:V14`,`tests:V15`
-T200|x|shell side of V197: `tclsh`/`wish`/`expect` heredoc & `expect -c` as shell sinks → guest tcl; fixture = R193's shape (`tclsh /dev/stdin "$f" <<'TCL'`)|V197,`languages/shells/shell:V139`,`languages:V81`
-T201|x|2026-09-27 user: checker in Rust, fast ∴ own (R208), ⊥ `tclint`/`nagelfar`; `checks()` returns it|V198,R208,`src/lint:V8`
-T202|x|2026-09-27 user: tcl = extension language, ⊥ shell lookalike ∴ ⊥ kinship edge, ⊥ fixture pair|`languages:V131`
 
 ## §B BUGS
 

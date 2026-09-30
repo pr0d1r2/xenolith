@@ -60,28 +60,15 @@ V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advi
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T22, T50, T51, T64-T66, T69, T72, T81, T84-T85, T126, T175 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T67, T101, T102, T177 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M1 | nix + pkl + shell end-to-end | T51, T65 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M3 | publication | T67, T177 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 | M4 | CI languages -- yaml, dockerfile | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
-T22|x|`extract` nix + pkl + yaml + bash (first wave): diff default, `--write`, lossless & idempotent asserts, collision guard|V4,V5,V6,C15
 T23|.|`extract` remaining hosts (Dockerfile, rust, ruby, html)|V4,V5,V6
-T50|x|placement resolver: per-field precedence, templates, collision suffix, `--verbose` explain|V45,V46,V47,V48
 T51|.|companion creation under `--write` w/ V4–V6 laws|V49
-T64|x|back-to-front multi-site rewrite + all-or-nothing file write; fixture w/ 3 sites, 1 refused|V64
 T65|.|fixpoint extraction w/ depth limit; fixture nix → shell → python (3 levels) & one over limit|V65
-T66|x|repo-root placement path → host-relative load path; fixtures w/ host in subdir|`languages/api/src/lens:V66`,V46
 T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per C17); until then V4 compares normalized whitespace|V4,C17
-T69|x|runtime `languages/api/src/lens:V34` (c) check for rule `invoke`; fixture w/ unrecognisable invoke → exit 2|V68
-T72|x|symlink guard on write; fixtures: symlinked dir inside root, symlink pointing outside|V71
-T81|x|extract skips allowed & excluded; fixture: allowed site untouched by `--write`|V80
-T84|x|path charset guard; fixtures: rule template yielding space, quote, leading `-`|V83
-T85|x|atomic writes & write order; test kills between extract & host write|V84
-T101|x|`--relocate` + fixture: layout change → file moved, load rewritten, graph clean|V99,V270,`src/graph:V98`
-T102|x|`xnl inline` + `inlineable-extract`; fixtures: shrunk extract inlined, shared extract refused|V101,V270,`src/graph:V100`
-T126|x|repo lock around write paths + fixture: concurrent `--write` exits 2, stale lock reclaimed|V127,V64
-T175|x|holes via `rewrite_bound`, invoke per prelude, `viable`|V4,`src/check:B12`
 T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose load stays `Judgment` is refused w/ why|V4,V5,V6,`.:C25`
 
 ## §B BUGS

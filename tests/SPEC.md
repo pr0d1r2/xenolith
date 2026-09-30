@@ -29,7 +29,7 @@ V150: ∀ bats touching git = sandboxed: `setup` unsets ∀ `GIT_*` env (hook-ex
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T68, T151, T154 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T68, T154 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M2 | language survey & corpus run | T117 | counts & failure shapes recorded, every finding filed as a fixture (`tests:V118`) |
 | M3 | publication | T118 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
@@ -37,8 +37,7 @@ id|status|task|cites
 T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
 T117|.|local corpus runner: `xnl check`/`extract --dry-run` over sibling repos, writes aggregate report only; finding → fixture checklist|V118
 T118|.|proptest harness over laws + cargo-fuzz targets (nix, shell, pkl first)|V119
-T151|x|git sandbox in ∀ git-touching bats `setup` + per-file hook-env regression test over a sentinel repo|V150,B1,`scripts:C13`
-T154|.|fleet pilot: one sibling repo swaps its nix no-embedded-shell hook for `xnl check` + migrated `xenolith.toml`; same verdicts, ⊥ repo names here (`scripts/guard` C17)|V118,`.:T31`
+T154|.|fleet pilot: one sibling repo swaps its nix no-embedded-shell hook for `xnl check` + migrated `xenolith.toml`; same verdicts, ⊥ repo names here (`scripts/guard` C17)|V118,`.:T32`
 
 ## §B BUGS
 

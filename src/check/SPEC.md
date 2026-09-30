@@ -29,15 +29,12 @@ V152: `xenolith::check` = ONE engine: candidates (`src/discover:V57`, `src/disco
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T75, T88, T153 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T98, T119 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T75|x|unclaimed handling: default ignore, `--strict-hosts` & config error/warn; fixture: hk-style file list w/ `.png`, `.md`|V13
-T88|x|`missing_guest` error/warn/ignore; fixture on `lang-nix`-only build|V42
 T98|.|parallel scan + determinism test (serial vs `--jobs 8` byte-equal)|V95,`src:V11`
 T119|.|benchmark harness + recorded budget file|V120,V95
-T153|x|`xenolith::check` per V152; fixtures: nix `&&` script flagged, single command clean, allowed clean, stale allow flagged, pkl hk step flagged|V152,`src/registry:T46`,`src/discover:T58`
 
 ## §B BUGS
 
@@ -47,8 +44,8 @@ B2|2026-09-26|file marked scanned before its host parsed it ∴ parse error (syn
 B3|2026-09-26|whole-tree run judged ∀ `[[allow]]` ∴ allow for file ⊥ scanned (host compiled out, excluded) → `stale-allow`|judge allow only ∀ scanned file \| ⊥ candidate
 B4|2026-09-26|`repo_name` kept absolute path absolute ∴ ⊥ met allow, exclude, nested config; path outside root scanned|named path → root-relative (lexical \| canonical root); outside → exit 2
 B5|2026-09-26|engine ⊥ called `stale_excludes` ∴ stale exclude ⊥ reported (`src/config:V79`)|whole-tree run: warning `stale-exclude` ∀ layer; violation shape open (`src:V1`)
-B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:T22` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until T22
+B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:V4` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until the extract contract is complete
 B7|2026-09-26|direction command printed path unquoted ∴ space \| quote → pastes as ≠ words|path quoted as 1 POSIX shell word
-B8|2026-09-26|`languages/ci/nix:T157` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
+B8|2026-09-26|`languages/ci/nix:V170` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
 B10|2026-09-26|`--strict-hosts` refusal built `lang-<id>` from the extension's language ∴ `.py` → "rebuild with feature `lang-python`", ⊥ ∃ (B8 fixed guests only)|name the feature only if it exists (`registry::existing_feature`), else "no support … yet"
-B12|2026-09-27|extract direction `Judgment` ∀ site after `src/extract:T22` landed (B6: until T22)|`Mechanical` `xnl extract <file>:<line>` iff `src/extract` `viable`, else `Judgment` w/ its why
+B12|2026-09-27|extract direction `Judgment` ∀ site after `src/extract:V4` landed (B6: until the extract contract)|`Mechanical` `xnl extract <file>:<line>` iff `src/extract` `viable`, else `Judgment` w/ its why

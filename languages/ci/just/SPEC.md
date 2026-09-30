@@ -42,13 +42,9 @@ V181: V180 alone replaces the fleet allowlist (R178): 1 knob, `[threshold.just] 
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M3 | publication -- just, xml, tcl | T16, T183-T185 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
+| M3 | publication -- just, xml, tcl |  | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
-T16|x|host just (`tree-sitter-just` crates.io 0.2.0, casey, MIT; `languages:V121`): recipe sinks + fixtures: 1-line simple ⊥ flagged, 2 lines flagged, `-`/`@` prefixes, shebang recipe → python guest, `set shell := ["bash", "-uc"]` → bash, `{{param}}` hole, `cd` then cmd → `Judgment`|V58,V179,V180,`languages/shells/shell:V3`,`tests:V14`,`tests:V15`
-T183|x|host checks: measure `just --fmt --check` w/ & w/o `--unstable` on the pinned just; record & drop the `?`|`languages/api` §I,`src/lint:V8`
-T184|x|DECIDED 2026-09-27: placement dir = prototype `scripts/just/<recipe>.<ext>` (§I); ⊥ conflict w/ fleet `bash scripts/…` loads (R178)|`languages:T86`,R178
-T185|x|REDECIDED 2026-09-27 (user: one-liner = adjustable default): `[threshold.just] max_lines` (default 1) keeps recipes of ≤N lines inline, each line judged alone (V180); ⊥ allowlist; fixture `pos-fleet-delta` = the default|V180,V181,R178,`src/config:V240`,`src/config:V55`
 
 ## §B BUGS
 

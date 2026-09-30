@@ -30,21 +30,15 @@ V117: before the FIRST public push: ∀ commit message & blob in every ref to be
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T5-T7, T29, T47, T141 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T5|x|`scripts/guard/commit-msg.sh` + bats: Conventional Commits + `Why:`|V20,C12
-T6|x|`scripts/guard/bats-mirror.sh` + bats: 1-to-1 `.sh` ↔ `.bats`|V21,C13
-T7|x|`scripts/guard/tdd-order.sh` + bats: test commit precedes impl commit (`.rs`, `.sh`)|V16,C11
-T29|x|private-name denylist guard (gitignored list) + bats|V23,C17
-T47|x|`scripts/guard/crate-deps.sh` + bats: from `cargo metadata` (read w/ `jq`), ∀ dep kind (normal, build, dev): api deps ⊆ {`xenolith-shebang`} & ⊥ features; language crate (`xenolith-lang-*` ≠ api) workspace deps ⊆ {api} ∴ ⊥ root, ⊥ other language crate, shebang only via api; grammar (`tree-sitter-*`, ⊥ runtime `tree-sitter`) in ≤ 1 language crate (own); std-ish ⊥ checked (open set); hk pre-push|`languages/api:V32`,C13
 T115|.|`scripts/guard/history-audit.sh [REF…]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
-T141|x|`scripts/guard/rust-mirror.sh` + bats: 1-to-1 `.rs` ↔ `tests.rs` over `git ls-files`, closed exemption list, orphan & unwired `tests.rs` fail; hk step in `all` (pre-push, B1)|V140,`src:C139`,`scripts:C13`
 
 ## §B BUGS
 
 id|date|cause|fix
 B1|2026-09-20|`bats-mirror` ran on pre-commit ∴ ⊥ RED commit possible: C11 test commit precedes its script, so orphan test = method working, ⊥ defect. V21 read as per-commit ⊥ per-branch|step moved to `all` (pre-push, `hk check`); mirror = property of branch, checked before push when GREEN exists
-B2|2026-09-27|`--no-renames` listed a moved file as added ∴ moving a crate under a hub (`languages:T137`) read as Rust w/o a prior `test:` commit|`git show -M`: rename (≥50% similar) ≠ added; rewritten beyond that = new code
+B2|2026-09-27|`--no-renames` listed a moved file as added ∴ moving a crate under a hub (`languages/shells/shell:V137`) read as Rust w/o a prior `test:` commit|`git show -M`: rename (≥50% similar) ≠ added; rewritten beyond that = new code
 B3|2026-09-27|denylist entry matched as substring (tree guard & history audit) ∴ short name hit inside unrelated words & paths, guard unusable|whole-word match (V23): `git grep -w` for content, word check for paths & history; paths read unquoted (`ls-files -z`, `log` w/ `core.quotepath=off`) ∵ octal escape puts digit before name

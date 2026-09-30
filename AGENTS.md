@@ -81,19 +81,10 @@ namespaced, backticked form `` `src/cli:V24` ``.
 - Where the spec is silent, make the most conservative choice and write it
   down as a spec change, in its own commit, **before** the test that depends
   on it.
-- **§T states remaining work, never history** (sherd's `src/fed:V9`).
-  Finish a task by flipping its row to `x`, then **archive** it in the same
-  change:
-
-  ```sh
-  mth archive <node>/SPEC.md
-  ```
-
-  The row's text moves to `SPEC-ARCHIVE.md` beside the spec and a stub
-  stays in §T (`T88|x|ARCHIVED to SPEC-ARCHIVE.md|V42`). Never delete a
-  finished row: the stub keeps its id, status and citations, so its
-  milestone still finds it and every citation still resolves (microlith
-  `V48`). A measurement or decision the row carried goes to `§R` first.
+- **§T states remaining work, never history** (sherd's `src/fed:V9`). Delete a
+  finished row in the same change. Its id remains retired and must never be
+  reused, so citations to it remain historical references in existing
+  records. A measurement or decision the row carried goes to `§R` first.
 - **§B for every defect**, at the node that owns it: date, cause, fix. Prefer
   adding a §V that catches recurrence over a bug row alone.
 - **Ids are monotonic and never reused.** Append; inserting moves every
