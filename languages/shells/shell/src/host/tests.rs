@@ -40,6 +40,14 @@ fn bash_valid_parameter_and_redirect_forms_are_parseable() {
 }
 
 #[test]
+fn bash_valid_forms_do_not_hide_embedded_sites() {
+    let src = "echo \"${b:+ ($b)}\"\npython3 -c 'print(1)'\n";
+    let sites = ShellHost.sites(src).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(sites.len(), 1);
+    assert_eq!(sites[0].sink, "python3 -c");
+}
+
+#[test]
 fn a_heredoc_with_a_second_stdin_is_not_a_site() {
     assert!(found("python3 <<'PY' <input.txt\nprint(1)\nPY\n").is_empty());
     assert!(found("python3 <<'PY'\nprint(1)\nPY\n").len() == 1);
