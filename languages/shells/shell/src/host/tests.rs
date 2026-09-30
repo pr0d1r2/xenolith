@@ -44,7 +44,10 @@ fn bash_valid_forms_do_not_hide_embedded_sites() {
     let src = "echo \"${b:+ ($b)}\"\npython3 -c 'print(1)'\n";
     let sites = ShellHost.sites(src).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(sites.len(), 1);
-    assert_eq!(sites.first().map(|site| site.sink.as_str()), Some("python3 -c"));
+    assert_eq!(
+        sites.first().map(|site| site.sink.as_str()),
+        Some("python3 -c")
+    );
 }
 
 #[test]
