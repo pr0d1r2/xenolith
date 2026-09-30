@@ -15,7 +15,7 @@
 //! terminator -- and which argv holds a program is `sinks`'s, as is the
 //! dialect and options a shell site runs under (`languages/shells/shell:T83`).
 
-use std::path::Path;
+use std::{io::Write, path::Path};
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
@@ -195,12 +195,11 @@ fn bash_accepts(src: &str) -> bool {
     let Some(mut stdin) = child.stdin.take() else {
         return false;
     };
-    use std::io::Write;
     if stdin.write_all(src.as_bytes()).is_err() {
         return false;
     }
     drop(stdin);
-    child.wait().map(|status| status.success()).unwrap_or(false)
+    child.wait().is_ok_and(|status| status.success())
 }
 
 /// Whether a shebang runs zsh: its resolved interpreter's basename, the
