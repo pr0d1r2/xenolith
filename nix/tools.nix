@@ -5,6 +5,26 @@
 # (`nix:V29`, `nix:T38`). A tool in both lists would be a contradiction, so
 # a tool the package ships is runtime even though the shell has it too.
 { pkgs }:
+let
+  # sherd, pinned to a crates.io release on purpose (`nix:V351`). A fixed
+  # version and two fixed hashes make a fixed derivation, so the cachix
+  # push from `main` serves it everywhere the shell is entered. Bumping it
+  # is the version and both hashes: set them to `lib.fakeHash`, build, and
+  # copy what nix reports. The crate ships its own `Cargo.lock`, which is
+  # what `cargoHash` vendors.
+  sherd = pkgs.rustPlatform.buildRustPackage rec {
+    pname = "sherd";
+    version = "0.5.2";
+    src = pkgs.fetchCrate {
+      inherit pname version;
+      hash = "sha256-SmiXquF6oYWWozK/QwqbEPsHzkCbrT2omXRtFwWWwc0=";
+    };
+    cargoHash = "sha256-693lm6urHneBZjb6hZgfWNy17xbkiXdZXgEEDLvfYAs=";
+    # sherd's tests build fixture repositories with `git init`, which the
+    # sandbox lacks (`nix:B1` is the same trap in this repo's own checks).
+    nativeCheckInputs = [ pkgs.git ];
+  };
+in
 {
   # Keyed by language (the `lang-<l>` feature), then by the command the
   # crate's `checks()` / `fixers()` put in argv[0] -- the name `xnl lint`
@@ -105,9 +125,12 @@
     pkgs.ripsecrets
   ];
 
-  # The spec toolchain arrives from flake inputs (`scripts:C21`), so its
-  # derivations are not in `pkgs`; its names are fixed by `nix:V17`, which
-  # pins exactly these inputs.
+  # The spec toolchain built here rather than taken from a flake input
+  # (`nix:V351`). Dev shell only, like `dev`.
+  spec = [ sherd ];
+
+  # The spec toolchain's names (`scripts:C21`), for the closure check: itok
+  # and microlith arrive from flake inputs (`nix:V17`), sherd from `spec`.
   specNames = [
     "itok"
     "microlith"
