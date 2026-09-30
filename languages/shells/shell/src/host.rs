@@ -15,7 +15,7 @@
 //! terminator -- and which argv holds a program is `sinks`'s, as is the
 //! dialect and options a shell site runs under (`languages/shells/shell:T83`).
 
-use std::path::Path;
+use std::{io::Write, path::Path};
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
@@ -102,7 +102,7 @@ impl Host for ShellHost {
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
         let tree = parse(src)?;
         let root = tree.root_node();
-        if root.has_error() {
+        if root.has_error() && !bash_accepts(src) {
             return Err(Error::parse(
                 LangId::Shell,
                 "the file is not valid shell, so none of its sites were read",
@@ -181,6 +181,25 @@ impl Host for ShellHost {
     fn fixers(&self) -> Vec<LintCmd> {
         vec![raw(&["shfmt", "--write"])]
     }
+}
+
+/// tree-sitter-bash 0.25.1 rejects several valid bash parameter expansions
+/// and read-write redirects. Bash remains the authority for whether the host
+/// itself is syntactically valid; the tree is still used for site discovery.
+fn bash_accepts(src: &str) -> bool {
+    let mut command = std::process::Command::new("bash");
+    command.arg("-n").stdin(std::process::Stdio::piped());
+    let Ok(mut child) = command.spawn() else {
+        return false;
+    };
+    let Some(mut stdin) = child.stdin.take() else {
+        return false;
+    };
+    if stdin.write_all(src.as_bytes()).is_err() {
+        return false;
+    }
+    drop(stdin);
+    child.wait().is_ok_and(|status| status.success())
 }
 
 /// Whether a shebang runs zsh: its resolved interpreter's basename, the

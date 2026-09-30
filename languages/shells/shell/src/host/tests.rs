@@ -27,6 +27,30 @@ fn the_walk_reaches_commands_at_any_depth() {
 }
 
 #[test]
+fn bash_valid_parameter_and_redirect_forms_are_parseable() {
+    for src in [
+        "#!/usr/bin/env bash\nexec 3<>/dev/null\n",
+        "#!/usr/bin/env bash\necho \"${b:+ ($b)}\"\n",
+        "#!/usr/bin/env bash\nx=\"${c:+$c; }y\"\n",
+        "#!/usr/bin/env bash\nprintf %s \"${s:$i:1}\"\n",
+    ] {
+        assert!(ShellHost.sites(src).is_ok(), "{src:?}");
+    }
+    assert!(ShellHost.sites("if; then\n").is_err());
+}
+
+#[test]
+fn bash_valid_forms_do_not_hide_embedded_sites() {
+    let src = "echo \"${b:+ ($b)}\"\npython3 -c 'print(1)'\n";
+    let sites = ShellHost.sites(src).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(sites.len(), 1);
+    assert_eq!(
+        sites.first().map(|site| site.sink.as_str()),
+        Some("python3 -c")
+    );
+}
+
+#[test]
 fn a_heredoc_with_a_second_stdin_is_not_a_site() {
     assert!(found("python3 <<'PY' <input.txt\nprint(1)\nPY\n").is_empty());
     assert!(found("python3 <<'PY'\nprint(1)\nPY\n").len() == 1);
