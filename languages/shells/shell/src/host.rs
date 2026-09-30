@@ -188,7 +188,13 @@ impl Host for ShellHost {
 /// itself is syntactically valid; the tree is still used for site discovery.
 fn bash_accepts(src: &str) -> bool {
     let mut command = std::process::Command::new("bash");
-    command.arg("-n").stdin(std::process::Stdio::piped());
+    command
+        .arg("-n")
+        .stdin(std::process::Stdio::piped())
+        // Syntax diagnostics are an implementation detail here. The caller
+        // reports the parse failure if bash rejects the file; leaking bash's
+        // stderr would make xnl's diagnostic noisy.
+        .stderr(std::process::Stdio::null());
     let Ok(mut child) = command.spawn() else {
         return false;
     };
