@@ -61,7 +61,7 @@ V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advi
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | T51, T65 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T67, , T177 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T67, T177 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 | M4 | CI languages -- yaml, dockerfile | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
