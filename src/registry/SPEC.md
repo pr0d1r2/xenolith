@@ -32,4 +32,4 @@ id|status|task|cites
 ## §B BUGS
 
 id|date|cause|fix
-B11|2026-09-26|`ShellHost` shipped (`languages/shells/shell:T15`) ⊥ in `HOSTS` ∴ ∀ `.sh` unclaimed (`src/check:V13`) ∴ ⊥ scanned, dogfood blind to scripts|register behind `lang-shell` (V41); `scripts/guard/tdd-order.sh` `test\(*` → `'test('*` (tree-sitter-bash ERROR)
+B11|2026-09-26|`ShellHost` shipped (`languages/shells/shell:V3`) ⊥ in `HOSTS` ∴ ∀ `.sh` unclaimed (`src/check:V13`) ∴ ⊥ scanned, dogfood blind to scripts|register behind `lang-shell` (V41); `scripts/guard/tdd-order.sh` `test\(*` → `'test('*` (tree-sitter-bash ERROR)

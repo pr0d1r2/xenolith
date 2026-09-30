@@ -44,8 +44,8 @@ B2|2026-09-26|file marked scanned before its host parsed it ∴ parse error (syn
 B3|2026-09-26|whole-tree run judged ∀ `[[allow]]` ∴ allow for file ⊥ scanned (host compiled out, excluded) → `stale-allow`|judge allow only ∀ scanned file \| ⊥ candidate
 B4|2026-09-26|`repo_name` kept absolute path absolute ∴ ⊥ met allow, exclude, nested config; path outside root scanned|named path → root-relative (lexical \| canonical root); outside → exit 2
 B5|2026-09-26|engine ⊥ called `stale_excludes` ∴ stale exclude ⊥ reported (`src/config:V79`)|whole-tree run: warning `stale-exclude` ∀ layer; violation shape open (`src:V1`)
-B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:T22` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until T22
+B6|2026-09-26|extract direction `Mechanical` (even ∀ unparseable body) while `xnl extract` refuses ∀ host (`src/extract:V4` open) ∴ SARIF fix nothing applies|`Judgment`, says by hand until the extract contract is complete
 B7|2026-09-26|direction command printed path unquoted ∴ space \| quote → pastes as ≠ words|path quoted as 1 POSIX shell word
-B8|2026-09-26|`languages/ci/nix:T157` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
+B8|2026-09-26|`languages/ci/nix:V170` shebang site → guest ∉ any build (python …) → V42 exit 2 ∀ run, shell findings hidden; message named `lang-python`, ⊥ ∃|`Host::guest_by_shebang` → warning always; message names feature only if ∃ (`FEATURED`)
 B10|2026-09-26|`--strict-hosts` refusal built `lang-<id>` from the extension's language ∴ `.py` → "rebuild with feature `lang-python`", ⊥ ∃ (B8 fixed guests only)|name the feature only if it exists (`registry::existing_feature`), else "no support … yet"
-B12|2026-09-27|extract direction `Judgment` ∀ site after `src/extract:T22` landed (B6: until T22)|`Mechanical` `xnl extract <file>:<line>` iff `src/extract` `viable`, else `Judgment` w/ its why
+B12|2026-09-27|extract direction `Judgment` ∀ site after `src/extract:V4` landed (B6: until the extract contract)|`Mechanical` `xnl extract <file>:<line>` iff `src/extract` `viable`, else `Judgment` w/ its why

@@ -37,7 +37,7 @@ id|status|task|cites
 T68|.|fixture runner comparing `expected/` tree (bytes + file set)|V67,V14
 T117|.|local corpus runner: `xnl check`/`extract --dry-run` over sibling repos, writes aggregate report only; finding → fixture checklist|V118
 T118|.|proptest harness over laws + cargo-fuzz targets (nix, shell, pkl first)|V119
-T154|.|fleet pilot: one sibling repo swaps its nix no-embedded-shell hook for `xnl check` + migrated `xenolith.toml`; same verdicts, ⊥ repo names here (`scripts/guard` C17)|V118,`.:T31`
+T154|.|fleet pilot: one sibling repo swaps its nix no-embedded-shell hook for `xnl check` + migrated `xenolith.toml`; same verdicts, ⊥ repo names here (`scripts/guard` C17)|V118,`.:T32`
 
 ## §B BUGS
 
