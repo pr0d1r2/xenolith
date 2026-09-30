@@ -82,13 +82,20 @@ jobs:
       # simply cannot populate it. Without the guard the step fails on an
       # outside contributor's PR, turning a cache into a gate only members
       # can pass.
-      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
+      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
         with:
           name: pr0d1r2
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           skipPush:
             ${{ github.ref != 'refs/heads/main' || github.event_name ==
             'pull_request' }}
+
+      # The gate deliberately runs Cargo offline (`.:C3`). Its dev-generated
+      # step invokes the unpublished xenolith-dev workspace member directly,
+      # so those registry sources are not supplied by the Nix package cache.
+      # Fetch the committed lockfile's sources while network access is
+      # available; all gate commands below remain offline and deterministic.
+      - run: nix develop --command cargo fetch --locked
 
       # `--check` because `hk check` otherwise runs the FIX half of a step:
       # CI reports, it never rewrites. `--all` because there is no staged
