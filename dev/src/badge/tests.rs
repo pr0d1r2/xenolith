@@ -206,6 +206,14 @@ fn publish_false_and_unsafe_levels_are_read_from_the_manifest() {
 }
 
 #[test]
+fn publish_forms_match_cargo_metadata_shipped_rule() {
+    assert!(!published("[package]\npublish = []\n"));
+    assert!(!published("[package]\npublish = false  # reason\n"));
+    assert!(published("[package]\npublish = true\n"));
+    assert!(published("[package]\nname = \"inherited\"\n"));
+}
+
+#[test]
 fn ratchets_read_their_own_row() {
     let cov = "# comment\nlines 97.96\n# trailing note\n";
     assert_eq!(ratchet(cov, "lines").as_deref(), Some("97.96"));

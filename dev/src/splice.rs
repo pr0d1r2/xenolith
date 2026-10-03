@@ -51,7 +51,7 @@ pub enum Outcome {
 }
 
 /// Up to three lines of `want` that `have` lacks, prefixed.
-fn sample(want: &str, have: &str, prefix: &str) -> Vec<String> {
+pub(crate) fn sample(want: &str, have: &str, prefix: &str) -> Vec<String> {
     want.lines()
         .filter(|l| !l.trim().is_empty() && !have.lines().any(|h| h == *l))
         .take(3)

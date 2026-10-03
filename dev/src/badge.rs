@@ -132,10 +132,21 @@ pub fn features(manifest: &str) -> Vec<String> {
         .collect()
 }
 
-/// A manifest that says `publish = false` ships nowhere.
+/// Whether a package with this Cargo `publish` value ships.
+#[must_use]
+pub(crate) fn shipped(publish: Option<&str>) -> bool {
+    !matches!(publish.map(str::trim), Some("false" | "[]"))
+}
+
+/// Whether a manifest's package ships, using the same rule as metadata.
 #[must_use]
 pub fn published(manifest: &str) -> bool {
-    !manifest.lines().any(|l| l.trim() == "publish = false")
+    let publish = manifest.lines().find_map(|line| {
+        let line = line.trim();
+        let value = line.strip_prefix("publish = ")?;
+        Some(value.split('#').next().unwrap_or_default().trim())
+    });
+    shipped(publish)
 }
 
 /// The `unsafe_code` level a manifest sets for itself, if it sets one.
