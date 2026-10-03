@@ -142,7 +142,7 @@ its own licence. A cargo build ships none of them.
 | `shfmt` | shfmt | 3.13.1 | `BSD-3-Clause` |
 | `statix` | statix | 0-unstable-2026-05-14 | `MIT` |
 | `xenolith-tcl-syntax` | xenolith-tcl-syntax | 0.1.0 | `MIT` |
-| `xmllint` | libxml2 | 2.15.3 | `MIT` |
+| `xmllint` | libxml2 | 2.15.4 | `MIT` |
 | `zsh` | zsh | 5.9.1 | `MIT-Modern-Variant` |
 
 ## Trademarks
