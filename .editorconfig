@@ -23,6 +23,7 @@ indent_size = unset
 max_line_length = 100
 
 [*.sh]
+switch_case_indent = true
 # shfmt is run with `-i 2`, so the two agree by construction.
 indent_size = 2
 
