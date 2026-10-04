@@ -208,7 +208,9 @@ fn publish_false_and_unsafe_levels_are_read_from_the_manifest() {
 #[test]
 fn publish_forms_match_cargo_metadata_shipped_rule() {
     assert!(!published("[package]\npublish = []\n"));
+    assert!(!published("[package]\npublish = [ ]\n"));
     assert!(!published("[package]\npublish = false  # reason\n"));
+    assert!(!published("[package]\npublish=false\n"));
     assert!(published("[package]\npublish = true\n"));
     assert!(published("[package]\nname = \"inherited\"\n"));
 }
