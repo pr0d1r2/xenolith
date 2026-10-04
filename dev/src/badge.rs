@@ -315,7 +315,11 @@ pub fn gate_steps(pkl: &str) -> usize {
 /// The platforms CI gates, from the workflow's `os:` matrix (`dev:V342`) --
 /// never from the flake's `systems`, which declares one CI never builds.
 /// Each as `(vendor logo, os)`, sorted.
-#[must_use]
+///
+/// # Errors
+///
+/// Returns an error when the workflow contains disagreeing matrices or an
+/// unknown runner name.
 pub fn ci_platforms(workflow: &str) -> Result<Vec<(String, String)>, String> {
     let lists: Vec<&str> = workflow
         .lines()

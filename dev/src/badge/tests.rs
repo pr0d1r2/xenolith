@@ -305,11 +305,10 @@ fn platforms_come_from_the_matrix_and_ubuntu_means_two_vendors() {
 
 #[test]
 fn unknown_runner_and_disagreeing_matrices_are_errors() {
-    assert!(
-        ci_platforms("os: [windows-latest]\n")
-            .unwrap_err()
-            .contains("windows-latest")
-    );
+    assert!(matches!(
+        ci_platforms("os: [windows-latest]\n"),
+        Err(error) if error.contains("windows-latest")
+    ));
     assert!(ci_platforms("os: [ubuntu-latest]\nos: [macos-13]\n").is_err());
 }
 

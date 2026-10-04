@@ -17,32 +17,49 @@ pub fn markers(name: &str) -> (String, String) {
 }
 
 /// What the document carries between one block's markers, if both exist.
-#[must_use]
+///
+/// # Errors
+///
+/// Returns an error when the document does not contain exactly one BEGIN and
+/// END marker in the expected order.
 pub fn current(doc: &str, name: &str) -> Result<String, String> {
-    let (begin, end) = markers(name);
+    let (begin_marker, end_marker) = markers(name);
     let begins: Vec<_> = doc
         .lines()
         .enumerate()
-        .filter(|(_, l)| *l == begin)
+        .filter(|(_, l)| *l == begin_marker)
         .collect();
-    let ends: Vec<_> = doc.lines().enumerate().filter(|(_, l)| *l == end).collect();
-    if begins.len() != 1 || ends.len() != 1 || ends[0].0 < begins[0].0 {
+    let ends: Vec<_> = doc
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| *l == end_marker)
+        .collect();
+    let (Some(begin_position), Some(end_position)) = (begins.first(), ends.first()) else {
+        return Err(format!(
+            "no markers for {name}: marker error, expected one BEGIN before one END"
+        ));
+    };
+    if begins.len() != 1 || ends.len() != 1 || end_position.0 < begin_position.0 {
         return Err(format!(
             "no markers for {name}: marker error, expected one BEGIN before one END"
         ));
     }
     let after = doc
-        .split_once(&begin)
+        .split_once(&begin_marker)
         .ok_or_else(|| format!("marker error for `{name}`"))?
         .1;
     let (block, _) = after
-        .split_once(&end)
+        .split_once(&end_marker)
         .ok_or_else(|| format!("marker error for `{name}`"))?;
     Ok(block.trim_start_matches('\n').to_string())
 }
 
 /// The document with one block replaced; `None` when a marker is missing.
-#[must_use]
+///
+/// # Errors
+///
+/// Returns an error when the document does not contain valid markers for the
+/// named block.
 pub fn splice(doc: &str, name: &str, block: &str) -> Result<String, String> {
     let (begin, end) = markers(name);
     let _ = current(doc, name)?;
