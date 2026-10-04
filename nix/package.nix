@@ -37,6 +37,9 @@ let
           ../Cargo.toml
           ../Cargo.lock
           ../clippy.toml
+          # xenolith-dev's source-level test checks the gate's generated-input
+          # glob against the repository file that owns it.
+          ../hk.pkl
           ../dev/Cargo.toml
           ../dev/src
           ../dev/tests
