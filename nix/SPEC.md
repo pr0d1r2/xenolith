@@ -50,13 +50,12 @@ V351: dev-shell `sherd` = pinned crates.io release: `buildRustPackage` over `fet
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T39, T109-T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T39, T109-T110, T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
-T111|.|crate metadata ∀ crate + check script + docs.rs `[package.metadata.docs.rs]`|V112
 T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
 
 ## §B BUGS

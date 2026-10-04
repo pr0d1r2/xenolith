@@ -431,6 +431,15 @@ local all = (fast) {
     glob = List("**/Cargo.toml", "Cargo.lock")
     check = "scripts/guard/crate-deps.sh"
   }
+  // The metadata every published crate carries (`nix:V112`,
+  // `scripts/guard:T346`): the fields crates.io shows, a docs.rs page,
+  // a packaging list, and docs.rs building every language. Push-side and
+  // whole-repo for the reason `crate-deps` gives; the rule itself is
+  // `scripts/guard/crate-metadata.jq`.
+  ["crate-metadata"] {
+    glob = List("**/Cargo.toml", "scripts/guard/crate-*.jq")
+    check = "scripts/guard/crate-metadata.sh"
+  }
 
   // Dogfood (`.:V19`, `.:C19`, `.:T28`): this repo passes its own `xnl check`,
   // built from the tree under test so a change to the engine is judged by

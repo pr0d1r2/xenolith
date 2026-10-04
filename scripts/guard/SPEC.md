@@ -31,11 +31,10 @@ V117: before the FIRST public push: ∀ commit message & blob in every ref to be
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T115, T346 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T115|.|`scripts/guard/history-audit.sh [REF…]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
-T346|.|`scripts/guard/crate-metadata.sh` + bats: `cargo metadata --no-deps --offline` (rule in `crate-metadata.jq`) ∀ package ⊥ `publish = false`: `nix:V112` fields set, `documentation` on docs.rs, `keywords`/`categories` ⊥ empty, root `[package.metadata.docs.rs] features` ⊇ every `lang-*`; `exclude` ∨ `include` read per manifest w/ `taplo get` (cargo metadata ⊥ carries them); a cargo, jq or taplo that cannot run ⇒ fail, ⊥ pass; hk push-side step `crate-metadata`|`nix:V112`,`nix:T111`
 
 ## §B BUGS
 
