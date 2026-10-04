@@ -91,6 +91,20 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-tool.sh shfmt --indent 2 --diff {{files}}"
     fix = "scripts/hk/run-tool.sh shfmt --indent 2 --write {{files}}"
   }
+  // Every test, rather than the mirrored file, and the glob says why: a
+  // change to a script must run its own test, but a change to any test must
+  // run beside the others it shares helpers with. The suite is seconds;
+  // splitting it would buy nothing and lose the cross-check.
+  //
+  // Every test whose script EXISTS (`scripts:V352`): a RED commit adds a
+  // test before its script (`scripts:C11`), and the whole suite here
+  // refused it (`scripts:B3`). The runner names each test it holds back;
+  // `bats-all` runs the whole suite on push.
+  ["bats"] {
+    glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
+    check = "scripts/hk/bats-ready.sh"
+  }
+
   // Nix gates this repo's own toolchain: the flake decides what every other
   // step runs with, so drift here is drift everywhere. statix and deadnix
   // catch what a formatter cannot -- a dead `let` binding evaluates fine
@@ -311,15 +325,12 @@ local fast = new Mapping<String, Step> {
 /// LAYER TWO: everything above, plus the steps too slow or too whole-tree
 /// to sit on every commit. Runs on push and in CI (`scripts:V22`).
 local all = (fast) {
-  // Runs the WHOLE suite rather than the mirrored file, and the glob says
-  // why: a change to a script must run its own test, but a change to any
-  // test must run beside the others it shares helpers with. The suite is
-  // seconds; splitting it would buy nothing and lose the cross-check.
-  //
-  // Push-side for now (`scripts:B3`): on pre-commit the whole suite
-  // refuses every RED bats commit. `scripts:T347` brings the ready tests
-  // back to commit time.
-  ["bats"] {
+  // The WHOLE suite, held-back tests included (`scripts:V352`): by push
+  // the GREEN commit exists, so a test still failing here is a finding.
+  // A step of its own rather than an override of `bats`, so the step
+  // count stays one step per name (`dev:V344`); the ready tests run twice
+  // on push, which costs seconds.
+  ["bats-all"] {
     glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
     check = "scripts/hk/run-tool.sh bats --recursive tests/unit"
   }

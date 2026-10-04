@@ -51,10 +51,9 @@ V352: pre-commit `bats` runs only the bats files whose mirrored script (C13) exi
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T347 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication |  | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T347|.|`scripts/hk/bats-ready.sh [DIR]` + bats: ∀ `.bats` under DIR (default `tests/unit`) whose mirrored script exists → `bats` via `run-tool.sh`; each held-back file named on stderr; ∄ bats file → fail (⊥ vacuous pass); hk `bats` in `fast` uses it, `all` keeps `bats --recursive tests/unit`|V352,C11,C13
 
 ## §B BUGS
 
