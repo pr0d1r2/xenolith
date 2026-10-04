@@ -44,18 +44,21 @@ V114: workflows audited in the gate: `zizmor --persona=pedantic` (declines recor
 V115: GitHub settings stated & checked, ⊥ assumed: `main` protected, CI jobs required, admins included, Actions may open PRs only if a bot needs it; `scripts/guard/github-settings.sh` compares `gh api` output (advisory offline).
 V116: ⊥ silent automation: a workflow that pushes a branch ! confirm its PR exists & exit non-zero otherwise; "branch exists → nothing to do" is ⊥ success.
 V122: `hk.pkl` = the gate of RECORD & its single definition: CI calls the same `hk` set, ⊥ restates steps; a step exists once. hooks installed by shell entry (C10) & REFUSE when `hk` is off PATH, ⊥ skip silently.
+V352: pre-commit `bats` runs only the bats files whose mirrored script (C13) exists (`scripts/hk/bats-ready.sh`) ∴ RED bats commit (C11) possible & ∀ other bats still run per commit; push & `hk check` run the whole suite ∴ a held-back test ⊥ leaves the branch failing.
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication |  | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T347 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
+T347|.|`scripts/hk/bats-ready.sh [DIR]` + bats: ∀ `.bats` under DIR (default `tests/unit`) whose mirrored script exists → `bats` via `run-tool.sh`; each held-back file named on stderr; ∄ bats file → fail (⊥ vacuous pass); hk `bats` in `fast` uses it, `all` keeps `bats --recursive tests/unit`|V352,C11,C13
 
 ## §B BUGS
 
 id|date|cause|fix
 B1|2026-09-26|`.envrc` ⊥ shebang ∴ shellcheck w/o `--shell` (xnl lint via shell host, `src/registry:B11`) → SC2148; only hk passed `--shell=bash`|`# shellcheck shell=bash` directive in `.envrc`
 B2|2026-09-28|nix-direnv rebuilds the dev shell only on change to `flake.nix`, `flake.lock`, `.envrc`; devShell lives in `nix/devshell.nix` & `nix/tools.nix` ∴ tool-list change (#3 added `cargo-release`) reached `main` ⊥ any direnv shell → `no such command: release`|`watch_file nix/*.nix` in `.envrc` (direnv directive, ⊥ shell logic ∴ C13 holds)
+B3|2026-10-04|`bats` on pre-commit ran the whole suite ∴ a RED bats commit (C11) was refused — same shape as `scripts/guard:B1`, on the suite rather than the mirror|V352: pre-commit runs only bats whose script exists (T347); push & `hk check` run all
