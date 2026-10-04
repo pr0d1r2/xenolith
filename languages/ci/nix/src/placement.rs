@@ -93,7 +93,7 @@ pub(crate) fn kebab(text: &str) -> String {
     out
 }
 
-/// The ways out for `${…}` holes that cannot become parameters
+/// The ways out for `${...}` holes that cannot become parameters
 /// mechanically (`languages/ci/nix:V54`), nix's own first.
 ///
 /// The same three for every site: which one fits is a judgement about
@@ -103,10 +103,10 @@ pub(crate) fn kebab(text: &str) -> String {
 /// placement guess here could name a file the rules moved.
 pub(crate) fn hole_advice() -> Vec<String> {
     [
-        "replaceVars: write each `${…}` as `@var@` in the extract and load it \
-         with `replaceVars ./<file> { var = …; }`",
-        "argv: pass each `${…}` to the extract as an argument",
-        "env: pass each `${…}` to the extract as an environment variable",
+        "replaceVars: write each `${...}` as `@var@` in the extract and load it \
+         with `replaceVars ./<file> { var = ...; }`",
+        "argv: pass each `${...}` to the extract as an argument",
+        "env: pass each `${...}` to the extract as an environment variable",
     ]
     .into_iter()
     .map(str::to_owned)

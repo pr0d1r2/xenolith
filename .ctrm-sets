@@ -1,0 +1,5 @@
+# Symbols used by this repository's formal specifications. They are written
+# as code points because this file is the evidence for the characters, not a
+# place to hide them in prose; composing with `caveman` keeps all other prose
+# characters constrained.
+xenolith-spec-symbols U+21D0 U+2204 U+220B U+220C U+2216 U+223C

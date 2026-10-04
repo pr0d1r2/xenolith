@@ -7,7 +7,7 @@ set unstable
 
 name := "world"
 
-# `f` format strings, their `{{…}}` interpolations and `{{{{` escape.
+# `f` format strings, their `{{...}}` interpolations and `{{{{` escape.
 greeting := f"hello {{name}}"
 literal := f'{{{{name}} is {{name + "!"}}'
 block := f"""

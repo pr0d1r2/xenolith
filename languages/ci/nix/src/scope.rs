@@ -17,9 +17,9 @@
 //!   binding it. A `with` never shadows a lexical binding, but an inner
 //!   one does shadow an outer, so a namespace this module cannot read
 //!   ends the search;
-//! - failing both, a path the file already uses, `<x>.….nix-shebang.lib.…`,
+//! - failing both, a path the file already uses, `<x>.....nix-shebang.lib....`,
 //!   whose base `<x>` has the SAME lexical binder at the use and at the
-//!   site: then `<x>.….nix-shebang` is the one the file already reaches.
+//!   site: then `<x>.....nix-shebang` is the one the file already reaches.
 
 use rnix::ast::{self, AstNode, HasEntry};
 use rnix::{SyntaxKind, SyntaxNode};
@@ -79,7 +79,7 @@ fn param_binds(param: &ast::Param, name: &str) -> bool {
     }
 }
 
-/// Whether a `let` or a set binds `name`: `name = …`, `name.a = …`, or
+/// Whether a `let` or a set binds `name`: `name = ...`, `name.a = ...`, or
 /// `inherit name` with or without a source.
 fn entries_bind(set: &impl HasEntry, name: &str) -> bool {
     let is = |attr: Option<ast::Attr>| match attr {
@@ -131,7 +131,7 @@ fn text<T: AstNode>(typed: &T) -> String {
     typed.syntax().text().to_string()
 }
 
-/// Every `<x>.….nix-shebang.lib.<more>` in the tree under `root`, in
+/// Every `<x>.....nix-shebang.lib.<more>` in the tree under `root`, in
 /// source order: the base identifier `<x>` and the path up to and
 /// including `nix-shebang`. Plain identifier segments only.
 fn prefix_uses(root: &SyntaxNode) -> Vec<(SyntaxNode, String)> {

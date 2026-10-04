@@ -41,8 +41,8 @@ pub(crate) enum Token {
     Op(&'static str),
 }
 
-/// `line` cut into words and operators. Quotes (`'…'`, `"…"`), a `\`
-/// escape and a `$(…)` stay inside their word; a `#` starting a word
+/// `line` cut into words and operators. Quotes (`'...'`, `"..."`), a `\`
+/// escape and a `$(...)` stay inside their word; a `#` starting a word
 /// ends the line.
 pub(crate) fn tokens(line: &str) -> Vec<Token> {
     let mut out = Vec::new();
@@ -119,7 +119,7 @@ pub(crate) fn tokens(line: &str) -> Vec<Token> {
     out
 }
 
-/// `NAME=…` or `NAME+=…`: an assignment word.
+/// `NAME=...` or `NAME+=...`: an assignment word.
 fn assignment(word: &str) -> bool {
     let Some(eq) = word.find('=') else {
         return false;

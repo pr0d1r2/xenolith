@@ -44,7 +44,7 @@ fn all<'t>(node: Node<'t>, kind: &str) -> Vec<Node<'t>> {
     out
 }
 
-/// The value of the top-level property `name = …`.
+/// The value of the top-level property `name = ...`.
 fn value<'t>(tree: &'t Tree, src: &str, name: &str) -> Node<'t> {
     all(tree.root_node(), "classProperty")
         .into_iter()
@@ -69,7 +69,7 @@ fn hk(lines: &[&str]) -> String {
     src
 }
 
-/// One hk step `["name"] { … }` in a hk config, `body` as its lines.
+/// One hk step `["name"] { ... }` in a hk config, `body` as its lines.
 fn step(name: &str, body: &str) -> String {
     format!("{HK}steps {{\n  [\"{name}\"] {{\n{body}  }}\n}}\n")
 }

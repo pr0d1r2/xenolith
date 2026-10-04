@@ -93,10 +93,10 @@ fn hole_advice_is_replace_vars_argv_env_in_that_order() {
     assert_eq!(
         hole_advice(),
         [
-            "replaceVars: write each `${…}` as `@var@` in the extract and load it \
-             with `replaceVars ./<file> { var = …; }`",
-            "argv: pass each `${…}` to the extract as an argument",
-            "env: pass each `${…}` to the extract as an environment variable",
+            "replaceVars: write each `${...}` as `@var@` in the extract and load it \
+             with `replaceVars ./<file> { var = ...; }`",
+            "argv: pass each `${...}` to the extract as an argument",
+            "env: pass each `${...}` to the extract as an environment variable",
         ]
     );
 }

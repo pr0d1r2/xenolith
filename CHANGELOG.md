@@ -10,7 +10,7 @@ A minor version here is a level of **guarantee**, not a feature count. Each
 rung answers one question: *what can you rely on at this tag?*
 
 **An even minor is stable; an odd minor is functional but not for
-production** — the Linux 2.x and GNOME convention, and the one
+production** -- the Linux 2.x and GNOME convention, and the one
 [`microlith`](https://github.com/pr0d1r2/microlith) and
 [`sherd`](https://github.com/pr0d1r2/sherd) state, so one reading serves the
 fleet. The parity describes the *release*, not the work that went into it.
@@ -19,15 +19,15 @@ fleet. The parity describes the *release*, not the work that went into it.
 
 | version | parity | what you can rely on | status |
 |---|---|---|---|
-| `0.1` | odd | **first public artifact.** Every verb over six languages — nix, pkl and shell end to end, just, tcl and xml as the fleet hooks they replace — each a crate behind its own `lang-*` feature; extraction for nix, pkl and just hosts; the nix package with its linters; the public doc set and the release machinery | reached |
+| `0.1` | odd | **first public artifact.** Every verb over six languages -- nix, pkl and shell end to end, just, tcl and xml as the fleet hooks they replace -- each a crate behind its own `lang-*` feature; extraction for nix, pkl and just hosts; the nix package with its linters; the public doc set and the release machinery | reached |
 | `0.2` | even | that surface settled: what the first users find, fixed before anything new lands | planned |
-| later | — | one language family per milestone, in the order the language survey sets (`.:C25`): CI, data, web and application languages, then test hosts | planned |
-| `1.0` | — | the contract frozen: the CLI surface, the JSON output, the `xenolith.toml` schema and the library API | planned |
+| later | -- | one language family per milestone, in the order the language survey sets (`.:C25`): CI, data, web and application languages, then test hosts | planned |
+| `1.0` | -- | the contract frozen: the CLI surface, the JSON output, the `xenolith.toml` schema and the library API | planned |
 
 Pre-`1.0` SemVer permits a minor to break, and here each rung *is* a
 behaviour change, so that permission is used honestly rather than worked
-around. crates.io is immutable — yanking hides a version, it does not delete
-it — so the release is cut by `cargo-release` from [`release.toml`](release.toml),
+around. crates.io is immutable -- yanking hides a version, it does not delete
+it -- so the release is cut by `cargo-release` from [`release.toml`](release.toml),
 behind the full gate, and never by hand.
 
 ## [Unreleased]
@@ -39,27 +39,27 @@ linted, over the six languages the fleet's embedded-shell hooks covered.
 
 ### Added
 
-- **`xnl check`** — reports every non-trivial embed: a shell script in a Nix
+- **`xnl check`** -- reports every non-trivial embed: a shell script in a Nix
   attribute or string, an hk step, a justfile recipe, a heredoc or `-c`
   argument in a shell script, an `exec` in Tcl, a launchd plist's
   `ProgramArguments`. A single simple command stays inline; a pipeline,
   sequence, loop or heredoc is flagged. `--format human|json`.
-- **`xnl extract`** — prints the diff that moves each embed into its own file
+- **`xnl extract`** -- prints the diff that moves each embed into its own file
   and rewrites the host to load it; `--write` applies it, `--relocate` moves
   extracts the config now places elsewhere. Supported for nix, pkl and just
   hosts; shell, tcl and xml hosts are report-only and refused with a reason
   (`src/extract:T177`).
-- **`xnl inline`** — puts an extract that has become trivial back into its
+- **`xnl inline`** -- puts an extract that has become trivial back into its
   host, and refuses one that more than one host loads.
-- **`xnl graph`** — lists every host → extract load, and flags dangling loads
+- **`xnl graph`** -- lists every host → extract load, and flags dangling loads
   and orphaned extracts.
-- **`xnl lint`** — runs each language's linters over extracts and host files;
+- **`xnl lint`** -- runs each language's linters over extracts and host files;
   `--fix` runs the fixers, `--sites` lints embeds in place and reports at the
   host's line, and commands a config names run only under `--trust-config`.
-- **`xnl langs`** and **`xnl migrate`** — what this build carries, and legacy
+- **`xnl langs`** and **`xnl migrate`** -- what this build carries, and legacy
   `.<lang>-embedded-shell-allowlist` files turned into `xenolith.toml`
   ([docs/MIGRATION.md](docs/MIGRATION.md)).
-- **`xenolith.toml`** — nested per directory; `[[allow]]` keeps one embed
+- **`xenolith.toml`** -- nested per directory; `[[allow]]` keeps one embed
   inline by the hash of its body; `[[exclude]]`, per-verb excludes, inline
   thresholds, extract layouts and per-language lint commands. A stale
   `[[allow]]` is a violation; a stale exclude is a warning. `[threshold.just]
@@ -71,12 +71,12 @@ linted, over the six languages the fleet's embedded-shell hooks covered.
   `lang-shell`, `lang-tcl` and `lang-xml`, all on by default, over the
   `xenolith-lang-api` contract; three grammars vendored as C with their
   upstream records. `xenolith-tcl-syntax`, Tcl's parse errors found in Rust.
-- **The nix flake** — `packages.default` wraps `xnl` with the linters of its
-  languages, `.override { languages = [ … ]; }` builds a subset, and
+- **The nix flake** -- `packages.default` wraps `xnl` with the linters of its
+  languages, `.override { languages = [ ... ]; }` builds a subset, and
   `checks` cover the test suite, clippy, the closure and the dogfood run.
-- **The library** — `xenolith::check` and the engines behind every verb.
-- **The public doc set** in the fleet's shape — README, `docs/`, this file,
-  `release.toml` — with the README badges, the Languages table and
+- **The library** -- `xenolith::check` and the engines behind every verb.
+- **The public doc set** in the fleet's shape -- README, `docs/`, this file,
+  `release.toml` -- with the README badges, the Languages table and
   [`docs/THIRD-PARTY-NOTICES.md`](docs/THIRD-PARTY-NOTICES.md) generated by
   `xenolith-dev`, an unpublished workspace member, and gated for drift.
 
@@ -87,8 +87,8 @@ linted, over the six languages the fleet's embedded-shell hooks covered.
 - A launchd plist's `sh -c` script is reported, never extracted: launchd runs
   a job from `/`, so no load path is right on every machine
   (`languages/data/xml:T190`).
-- A zsh script is linted with `zsh -n` only — shellcheck refuses zsh and
-  `shfmt -ln zsh` rejects valid zsh — and embeds inside a zsh script are not
+- A zsh script is linted with `zsh -n` only -- shellcheck refuses zsh and
+  `shfmt -ln zsh` rejects valid zsh -- and embeds inside a zsh script are not
   checked.
 - A finding with no site (a stale exclude) is a warning, not a violation,
   until the JSON shape can carry one honestly.

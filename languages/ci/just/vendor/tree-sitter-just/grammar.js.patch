@@ -107,7 +107,7 @@
          /'[^']*'/,
 +        // LOCAL PATCH (xenolith): just 1.51 prefixed strings, the prefix
 +        // inside the one `string` node. `x` shell-expands the string; `f`
-+        // makes it a format string, its `{{…}}` interpolations and its
++        // makes it a format string, its `{{...}}` interpolations and its
 +        // `{{{{` a literal `{{`.
 +        seq('x"""', repeat(choice($.escape_sequence, /[^\\]?[^\\"]+/)), '"""'),
 +        seq("x'''", repeat(/./), "'''"),

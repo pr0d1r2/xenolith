@@ -20,10 +20,10 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 
 ## §I INTERFACES
 
-- cmd: `xnl check [--format human|json|sarif] [paths…]` → detect embeds; exit 1 ∃ violation.
-- cmd: `xnl extract [--write] [--relocate] <path>[:line]…` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
-- cmd: `xnl graph [--format human|json|sarif] [paths…]` → host → extract load edges; flags orphan extracts & dangling loads.
-- cmd: `xnl lint [--fix] [--sites] [paths…]` → run ∀ configured check ∀ extract by language; `--fix` runs fixers then re-checks, extracts only; `--sites` also lints in-host sites in place (`src/lint:V93`); missing binary = error, ⊥ skip.
+- cmd: `xnl check [--format human|json|sarif] [paths...]` → detect embeds; exit 1 ∃ violation.
+- cmd: `xnl extract [--write] [--relocate] <path>[:line]...` → move embed to extract file, rewrite host to load it; ≥1 path, each ∀ its sites or one `:line`; default = print unified diff (all paths, sorted); exit 1 if diff non-empty.
+- cmd: `xnl graph [--format human|json|sarif] [paths...]` → host → extract load edges; flags orphan extracts & dangling loads.
+- cmd: `xnl lint [--fix] [--sites] [paths...]` → run ∀ configured check ∀ extract by language; `--fix` runs fixers then re-checks, extracts only; `--sites` also lints in-host sites in place (`src/lint:V93`); missing binary = error, ⊥ skip.
 - cmd: `xnl langs [--format human|json]` → ∀ known language (`LangId`): role host \| guest \| both, compiled in (feature `lang-<lang>` on) y/n, sinks, delimiter kinds, load idiom, default linter.
 - flag: `--verbose` ∀ verb; silence = success otherwise.
 - flag: `--strict-hosts` ∀ verb: unclaimed file → exit 2 (≡ `[langs] unclaimed = "error"`).
@@ -37,8 +37,8 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - flag: `--trust-config`: permit commands defined in any `xenolith.toml` (`[lint.<guest>]` checks/fixers, `[lint] all`); ⊥ config key can grant it.
 - cmd: `xnl lint` gains `--format human|json|sarif` (see `src/lint` §I).
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
-- cmd: `xnl migrate [--write]` → root `.<lang>-embedded-shell-allowlist` (`.nix-…`, `.pkl-…` & siblings; line = repo path, `#` = comment) lists FILES, `src/config:V9` ⊥ wildcard ∴ `xenolith::check` (defaults) over listed files → 1 `[[allow]]` ∀ flagged site keyed per `src/config:V10`; `reason` = `migrated from <file>` [`: <comment above entry>`]; listed file missing \| ⊥ flagged site → warning `legacy-missing` \| `legacy-no-site`; ∃ `xenolith.toml` → exit 2, ⊥ merge; default prints diff, exit 1 if non-empty.
-- cmd: `xnl inline [--write] <extract>…` → put extract body back into host via lens inverse (`languages/api/src/lens:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
+- cmd: `xnl migrate [--write]` → root `.<lang>-embedded-shell-allowlist` (`.nix-...`, `.pkl-...` & siblings; line = repo path, `#` = comment) lists FILES, `src/config:V9` ⊥ wildcard ∴ `xenolith::check` (defaults) over listed files → 1 `[[allow]]` ∀ flagged site keyed per `src/config:V10`; `reason` = `migrated from <file>` [`: <comment above entry>`]; listed file missing \| ⊥ flagged site → warning `legacy-missing` \| `legacy-no-site`; ∃ `xenolith.toml` → exit 2, ⊥ merge; default prints diff, exit 1 if non-empty.
+- cmd: `xnl inline [--write] <extract>...` → put extract body back into host via lens inverse (`languages/api/src/lens:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
 - json (`xnl langs`): envelope + `langs`: `[{"id": "shell", "role": "both", "compiled_in": true, "feature": "lang-shell", "sinks": [...], "delims": [...], "checks": [...], "fixers": [...]}]`.
 - human (`graph`, `lint`): one line per item `file:line:col <rule|check>: <message>`, summary line last (`N edges, N violations` \| `N checks, N failed`), silent on success unless `--verbose`.
 

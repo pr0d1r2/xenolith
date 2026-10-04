@@ -119,7 +119,7 @@ pub(crate) fn literal(written: &str) -> Option<String> {
 }
 
 /// The dialect and options of a shell argv: `<sh|bash|zsh>
-/// [-<letters>|-o <name>]…`, one letter bundle holding the `c` that
+/// [-<letters>|-o <name>]...`, one letter bundle holding the `c` that
 /// takes the line. `None` for anything else.
 pub(crate) fn read(argv: &[String]) -> Option<(&'static str, Vec<&'static str>)> {
     let (interpreter, flags) = argv.split_first()?;

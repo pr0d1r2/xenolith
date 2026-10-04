@@ -249,7 +249,7 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<(bool, bool
     let params = params(src, site);
     let unused = "the guest's body, which nix does not read with params";
     let rewritten = NIX.rewrite_bound(src, site, &invoke, &path, unused, &params);
-    // A `"…"` body holding a line break would come back as `''…''`.
+    // A `"..."` body holding a line break would come back as `''...''`.
     let multi_line = site.delim.kind == DelimKind::NixString
         && NIX
             .unescape(&site.delim, raw(src, site))
@@ -272,7 +272,7 @@ fn round_trip(src: &str, index: usize, site: &Site) -> Result<Option<(bool, bool
     }
     let (load, strips) = load_of(&y, &path);
     // Law (a): inlining the extract's body puts back what was there --
-    // for a site with holes, each `${…}` exactly as it was written
+    // for a site with holes, each `${...}` exactly as it was written
     // (`languages/api/src/lens:V34` (e)).
     let body = if params.is_empty() {
         this.1.clone()

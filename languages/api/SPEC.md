@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `xenolith-lang-api`: contract ∀ language crate — `Host` & `Guest` traits, shared types, lens law harness. language plays host (file holding embed), guest (embedded code), or both; extract & inline = one lens, 2 directions.
+crate `xenolith-lang-api`: contract ∀ language crate -- `Host` & `Guest` traits, shared types, lens law harness. language plays host (file holding embed), guest (embedded code), or both; extract & inline = one lens, 2 directions.
 
 ## §F FEDERATION
 
@@ -26,12 +26,12 @@ sib|languages/ruby|ruby parser, ruby host sinks
 ## §I INTERFACES
 
 - trait `Host`: `id() -> LangId`; `sites(src: &str) -> Result<Vec<Site>>` (sinks holding guest code); `loads(src) -> Result<Vec<LoadRef>>` (for `src/graph`); `rewrite(src, &Site, &Invoke, path) -> Result<String>` (extract direction: body out, load in); `inline(src, &LoadRef, body) -> Result<String>` (inverse direction); `unescape(&Delim, raw) -> Result<String>` (body as the guest reads it, `languages/api/src/lens:V39`).
-- trait `Guest`: `id() -> LangId`; `extension(&GuestEnv) -> &'static str` (dialect decides: zsh → `zsh`, `languages/shells/shell:V51`); `invoke(path) -> Invoke` (how to run a file of me: `bash x.sh`, `jq -f x.jq`); `trivial(body) -> Result<bool>` (may stay inline — shell = single simple command, `languages/shells/shell:V3`); `constructs(body) -> Result<Vec<&'static str>>` (sorted, empty iff `trivial`; `[threshold.<guest>] allow` names; default `Unsupported` (V37) → `max_lines`/`max_bytes`); `unsupported(body, &GuestEnv) -> Option<&'static str>` (dialect syntax the guest cannot judge → that reason, a Judgment, `languages/shells/shell:V138`; default `None`); `checks(&GuestEnv) -> Vec<LintCmd>`, `fixers(&GuestEnv) -> Vec<LintCmd>`.
+- trait `Guest`: `id() -> LangId`; `extension(&GuestEnv) -> &'static str` (dialect decides: zsh → `zsh`, `languages/shells/shell:V51`); `invoke(path) -> Invoke` (how to run a file of me: `bash x.sh`, `jq -f x.jq`); `trivial(body) -> Result<bool>` (may stay inline -- shell = single simple command, `languages/shells/shell:V3`); `constructs(body) -> Result<Vec<&'static str>>` (sorted, empty iff `trivial`; `[threshold.<guest>] allow` names; default `Unsupported` (V37) → `max_lines`/`max_bytes`); `unsupported(body, &GuestEnv) -> Option<&'static str>` (dialect syntax the guest cannot judge → that reason, a Judgment, `languages/shells/shell:V138`; default `None`); `checks(&GuestEnv) -> Vec<LintCmd>`, `fixers(&GuestEnv) -> Vec<LintCmd>`.
 - `Host::guest_by_shebang(src, &Site) -> bool`: site's guest named by a shebang in its body (`languages/ci/nix:V170`), ⊥ by its sink (`src/check:V42`); default `false` = host never reads one (a fact, ⊥ missing capability, V37).
-- crate impl: host-only | guest-only | both. guest-only language (python, sql, jq, …) ⊥ needs host grammar.
+- crate impl: host-only | guest-only | both. guest-only language (python, sql, jq, ...) ⊥ needs host grammar.
 - type `LangId`: closed enum ∀ language in root host × sink matrix + guest-only (python, sql, js, css, perl, awk, jq, ruby); ⊥ feature-gated.
 - type `LoadRef { span, path, guest: LangId }`, `Invoke { argv }`, `LintCmd { argv, file_arg, format: Json(parser) | Sarif | Raw }`, `Error`.
-- `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<String> }` (owned: `languages/shells/shell:V82` wants the site's exact `set -o` state, ⊥ a fixed literal set) (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) — one value per guest, consumed by mod `shebang`.
+- `Guest::prelude(&GuestEnv) -> Prelude` & `Guest::executable() -> bool`: default content & mode of extract file, overridable by config. type `Prelude { shebang: Option<Shebang>, strict: Option<String> }` (owned: `languages/shells/shell:V82` wants the site's exact `set -o` state, ⊥ a fixed literal set) (strict: bash `set -euo pipefail`; ⊥ for python/sql/jq/awk) -- one value per guest, consumed by mod `shebang`.
 - `Host::checks() -> Vec<LintCmd>` & `Host::fixers()`: checks for host files themselves (nix `statix`, `deadnix`, `nixfmt --check`; GH `actionlint`, `zizmor`; Dockerfile `hadolint`; just `just --fmt --check --unstable`; pkl `pkl format --diff` ?).
 - kinship, beside `LangId` & ungated like it (V33): `base_of(LangId) -> Option<LangId>` (bats → shell) & `lookalikes(LangId) -> &'static [LangId]` (shell ~ awk, perl, jq) ∴ relation stated even when neither crate compiled in (`languages:V130`, `languages:V131`).
 - `Host::claims` ⊥ true ∀ file of a language based-on it (`.bats` ⊥ claimed by shell): parent grammar either MISREADS child syntax confidently or errors on it, & both are wrong answers (`languages:V130`).

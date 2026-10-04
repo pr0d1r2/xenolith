@@ -292,7 +292,7 @@ fn holes(parts: &[Node<'_>], src: &str) -> Option<Vec<Span>> {
 }
 
 /// A hole's span: its node, minus leading whitespace. The grammar starts
-/// a `[cmd]` that follows other text in a `"…"` at the space before it
+/// a `[cmd]` that follows other text in a `"..."` at the space before it
 /// (measured: in `"echo $x [pwd]"` the substitution spans ` [pwd]`), and
 /// the space is the guest's text, not the host's interpolation.
 fn hole(node: Node<'_>, src: &str) -> Span {
@@ -359,7 +359,7 @@ impl Walk {
         }
     }
 
-    /// `namespace eval NAME {…}` runs its body; any other subcommand's
+    /// `namespace eval NAME {...}` runs its body; any other subcommand's
     /// braced words are data.
     fn namespace(&mut self, node: Node<'_>, src: &str) {
         let list: Vec<Node<'_>> = children(node)

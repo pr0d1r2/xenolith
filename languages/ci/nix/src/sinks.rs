@@ -2,7 +2,7 @@
 //! (`languages/ci/nix` §I).
 //!
 //! A string is a site only when its SYNTACTIC CONTEXT says so
-//! (`languages/api/src/site:V38`). `''…''` under `script` is shell; the
+//! (`languages/api/src/site:V38`). `''...''` under `script` is shell; the
 //! same bytes under `description` are prose, under `text` of
 //! `environment.etc` a config file, under a `let` binding a value nobody
 //! has run yet. So every decision here reads the rnix tree around the
@@ -251,16 +251,16 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
 /// The node that stands in sink position for `string`: the string
 /// itself, or the outermost `+` chain it is an operand of.
 ///
-/// `shellHook = '' … '' + extra;` hands bash every string it
+/// `shellHook = '' ... '' + extra;` hands bash every string it
 /// concatenates, so each literal operand is judged where the whole value
 /// sits (`languages/ci/nix:T155`). Parentheses are climbed only around a
-/// concatenation -- `writeShellScript "n" ('' … '' + x)` needs them -- and
+/// concatenation -- `writeShellScript "n" ('' ... '' + x)` needs them -- and
 /// never around a lone string, which is not a new shape. Every other
 /// operator (`-`, `//`, `++`, a comparison) is not concatenation, and a
 /// hole is a nix expression of its own: the climb stops at either.
 ///
 /// Last, ONE order or priority wrap around that value is climbed too
-/// ([`is_order_wrap`], `languages/ci/nix:T161`): `shellHook = mkBefore ''…''`
+/// ([`is_order_wrap`], `languages/ci/nix:T161`): `shellHook = mkBefore ''...''`
 /// is the hook's body, placed early. A wrap is never the whole value a
 /// shebang is read from, since the string is then not the value itself.
 pub(crate) fn sink_value(string: &SyntaxNode) -> SyntaxNode {
@@ -356,7 +356,7 @@ pub(crate) fn shell_init_sink(program: &str, name: &str) -> Option<Sink> {
 /// The segment naming what `binding` configures: the one before its
 /// last in its own path (`programs.zsh.initContent`), else the last of
 /// the nearest enclosing binding -- through nested sets and through a
-/// function the set is handed to (`programs.zsh = mkIf c { … }`).
+/// function the set is handed to (`programs.zsh = mkIf c { ... }`).
 pub(crate) fn program_of(binding: &SyntaxNode) -> Option<String> {
     let mut own = attr_segments(binding);
     own.pop()?;
@@ -445,7 +445,7 @@ fn attr_value_sink(binding: &SyntaxNode) -> Option<Sink> {
     if let Some(sink) = program_of(binding).and_then(|p| shell_init_sink(&p, &name)) {
         return Some(sink);
     }
-    // `text` is a sink BY NAME only as `writeShellApplication { text = …; }`.
+    // `text` is a sink BY NAME only as `writeShellApplication { text = ...; }`.
     // `environment.etc."x".text` is a config file, and flagging it would
     // be the confident wrong answer `languages:V2` forbids -- unless its
     // own first line says otherwise ([`shebang_sink`]).

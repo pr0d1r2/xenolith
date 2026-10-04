@@ -13,8 +13,8 @@
 //! - the opening `"""` is followed by a line break, which is not content;
 //! - the closing `"""` sits on its own line, and that line's whitespace
 //!   is the indent stripped from every content line;
-//! - `\` starts an escape (`\n`, `\t`, `\r`, `\"`, `\\`, `\u{…}`) or an
-//!   interpolation (`\(…)`), and under `#"""` it takes as many `#` as the
+//! - `\` starts an escape (`\n`, `\t`, `\r`, `\"`, `\\`, `\u{...}`) or an
+//!   interpolation (`\(...)`), and under `#"""` it takes as many `#` as the
 //!   delimiter has before it means anything -- so `#"""` holds a literal
 //!   backslash without escaping it.
 //!
@@ -34,7 +34,7 @@ mod tests;
 /// The string pkl evaluates the multi-line literal `raw` to, where `raw`
 /// is the text between the delimiters of `delim`.
 ///
-/// Interpolations (`\(…)`, `\#(…)`) are kept verbatim: they are pkl, not
+/// Interpolations (`\(...)`, `\#(...)`) are kept verbatim: they are pkl, not
 /// guest text, and resolving them is the holes machinery's job
 /// (`languages/api/src/holes:V40`), not this function's.
 ///

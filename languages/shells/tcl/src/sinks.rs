@@ -109,7 +109,7 @@ pub(crate) struct Program {
     pub how: &'static str,
 }
 
-/// The program of `runner interpreter args…`, if the argv holds one
+/// The program of `runner interpreter args...`, if the argv holds one
 /// (`languages/shells/tcl:V196`): a shell's `-c` word, or, for `exec`
 /// only, the word after `<<` when `<<` comes straight after the
 /// interpreter and no later word feeds stdin again.

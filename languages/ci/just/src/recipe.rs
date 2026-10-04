@@ -149,7 +149,7 @@ pub(crate) fn prefix<'s>(line: Node<'_>, src: &'s str) -> &'s str {
         .map_or("", |n| text(n, src))
 }
 
-/// The `{{…}}` interpolations of a line, in order: the grammar's
+/// The `{{...}}` interpolations of a line, in order: the grammar's
 /// `interpolation` nodes that just's lexer also starts one at.
 ///
 /// The grammar lexes `{{{{` -- just's escape for a literal `{{` -- by
@@ -224,7 +224,7 @@ fn setting(node: Node<'_>, src: &str, out: &mut Settings) {
             .map(|n| text(*n, src).to_owned())
             .collect()
     };
-    // `set shell := […]` has its own rule, with `shell` a keyword rather
+    // `set shell := [...]` has its own rule, with `shell` a keyword rather
     // than an identifier.
     if node.child(1).is_some_and(|kw| kw.kind() == "shell") {
         out.shell = Some(strings());

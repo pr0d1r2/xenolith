@@ -31,7 +31,7 @@ use crate::model::{Fix, Report, Rule, Violation};
 // ---------------------------------------------------------------------
 
 /// A host that claims `*.fake` and reads one site per line,
-/// `<sink>=<guest>: <body>`. `{{…}}` in a body is a hole; a line `!` is
+/// `<sink>=<guest>: <body>`. `{{...}}` in a body is a hole; a line `!` is
 /// a parse error. Its sites are just recipe bodies, which run line by
 /// line (`src/config:V240`), and `\n` in one unescapes to a line break.
 struct FakeHost;
@@ -1727,7 +1727,7 @@ mod nix_shell {
 
     #[test]
     fn a_concatenated_shell_hook_is_flagged_in_its_literal() {
-        // `languages/ci/nix:T155`: the literal half of `''…'' + extra`.
+        // `languages/ci/nix:T155`: the literal half of `''...'' + extra`.
         let why = flagged_at(
             "{ pkgs, extra }:\npkgs.mkShell {\n  shellHook = ''\n    [ -f x ] || cmd\n  ''\n  \
              + extra;\n}\n",

@@ -202,7 +202,7 @@ fn readme_writes_then_checks_clean_and_is_idempotent() {
         "federated_nodes-2",
         "languages-1_built,_17_planned",
         "| nix | default build | `lang-nix` | [`languages/ci/nix`](languages/ci/nix/SPEC.md) |",
-        "| awk | planned | — | — |",
+        "| awk | planned | -- | -- |",
     ] {
         assert!(once.contains(expected), "missing {expected} in:\n{once}");
     }

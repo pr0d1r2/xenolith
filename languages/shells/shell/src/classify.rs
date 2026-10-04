@@ -28,18 +28,18 @@ mod tests;
 pub enum Construct {
     /// `a && b`, `a || b`.
     AndOr,
-    /// `case … esac`.
+    /// `case ... esac`.
     Case,
-    /// `$(…)` or a backtick pair, other than the whitelisted
+    /// `$(...)` or a backtick pair, other than the whitelisted
     /// `$(dirname "${BASH_SOURCE[0]}")`.
     CommandSubstitution,
-    /// `for … done`, in either syntax.
+    /// `for ... done`, in either syntax.
     For,
-    /// `f() { … }`.
+    /// `f() { ... }`.
     FunctionDefinition,
     /// `<<TAG`, in any of its forms.
     Heredoc,
-    /// `if … fi`.
+    /// `if ... fi`.
     If,
     /// `a | b`.
     Pipeline,
@@ -47,9 +47,9 @@ pub enum Construct {
     Redirect,
     /// Two or more commands, separated by `;` or a newline.
     Sequence,
-    /// `( … )`.
+    /// `( ... )`.
     Subshell,
-    /// `while … done`, and `until`.
+    /// `while ... done`, and `until`.
     While,
 }
 
@@ -151,7 +151,7 @@ pub fn classify(body: &str) -> Result<Classification> {
 /// For sh and bash the grammar IS the language, so a rejected body is
 /// broken. For zsh it is only the base (`languages/shells:V132`): a body it
 /// rejects may be valid zsh the grammar has no rule for -- `${(f)x}`,
-/// `*(N)`, `() { … }` -- and is [`Classification::unsupported`]
+/// `*(N)`, `() { ... }` -- and is [`Classification::unsupported`]
 /// rather than an error (`languages/shells/shell:V138`). Which of the two it
 /// is takes a zsh parser to say, and this crate has none.
 ///

@@ -641,7 +641,7 @@ pub trait Guest {
 
     /// `body` with each param's marker replaced by a reference to that env
     /// param, in the form its context needs -- shell `"$NAME"` as a word,
-    /// `${NAME}` inside `"…"` -- or [`holes::Bound::Unexpanded`] naming
+    /// `${NAME}` inside `"..."` -- or [`holes::Bound::Unexpanded`] naming
     /// the first param whose marker sits where this guest would not
     /// expand a reference (`languages/api/src/holes:V40`).
     ///

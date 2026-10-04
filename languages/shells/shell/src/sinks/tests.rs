@@ -9,7 +9,7 @@ use super::{
 };
 
 /// `words` as the host hands them over: a plain word as `Some`, and a
-/// `'…'` placeholder as `None` (quoted, so never a flag).
+/// `'...'` placeholder as `None` (quoted, so never a flag).
 fn argv<'a>(words: &[&'a str]) -> Vec<Option<&'a str>> {
     words
         .iter()
