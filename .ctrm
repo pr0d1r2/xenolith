@@ -2,33 +2,9 @@
 # comment records why a file type needs more than the ASCII floor.
 * ascii
 
-# Markdown is specification and project prose. `caveman` covers the notation
-# used by the specs; `xenolith-spec-symbols` covers the five set/logic symbols
-# that the specs explain and use, declared in .ctrm-sets rather than disabling
-# checking with `any`.
-*.md ascii+caveman+xenolith-spec-symbols
-
-# Rust source uses the same specification notation and marks as the prose.
-*.rs ascii+caveman+marks
-
-# These test modules contain Polish examples; grant the Polish locale only to
-# the files that contain those examples rather than widening every Rust file.
-src/lint/sites/tests.rs ascii+caveman+marks+pl
-src/graph/scan/tests.rs ascii+caveman+marks+pl
-languages/shebang/src/tests.rs ascii+caveman+marks+pl
-languages/data/xml/tests/lens.rs ascii+caveman+marks+pl
-languages/data/xml/src/text/tests.rs ascii+caveman+marks+pl
-languages/ci/pkl/tests/lens.rs ascii+caveman+marks+pl
-languages/ci/pkl/src/string/tests.rs ascii+caveman+marks+pl
-languages/ci/pkl/src/placement/tests.rs ascii+caveman+marks+pl
-languages/ci/pkl/src/host/tests.rs ascii+caveman+marks+pl
-languages/ci/nix/tests/lens.rs ascii+caveman+marks+pl
-languages/ci/nix/src/unescape/tests.rs ascii+caveman+marks+pl
-languages/ci/nix/src/placement/tests.rs ascii+caveman+marks+pl
-languages/ci/nix/src/bound/tests.rs ascii+caveman+marks+pl
-languages/api/src/tests.rs ascii+caveman+marks+pl
-
 *.c ascii+legal
+*.exempt ascii+caveman
+*.md ascii+caveman
 *.txt ascii+legal+caveman
 *.pkl ascii+box+caveman
 *.bats ascii+caveman
@@ -37,3 +13,7 @@ languages/api/src/tests.rs ascii+caveman+marks+pl
 *.sh ascii+caveman
 *.toml ascii+caveman
 .context-limits ascii+caveman
+SPEC.md ascii+caveman+math+spec-logic
+tests.rs ascii+caveman+marks+pl+en-aux
+**/tests/*.rs ascii+caveman+marks+pl+en-aux
+docs/THIRD-PARTY-NOTICES.md ascii+caveman+legal
