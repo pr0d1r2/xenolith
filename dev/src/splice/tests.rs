@@ -32,8 +32,8 @@ fn splice_replaces_only_between_one_blocks_markers() {
     let d = doc("old\n", "keep\n");
     let out = splice(&d, "badges", "new\n").unwrap_or_default();
     assert_eq!(out, doc("new\n", "keep\n"));
-    assert_eq!(current(&out, "badges").as_deref(), Some("new\n"));
-    assert_eq!(current(&out, "langs").as_deref(), Some("keep\n"));
+    assert_eq!(current(&out, "badges").ok().as_deref(), Some("new\n"));
+    assert_eq!(current(&out, "langs").ok().as_deref(), Some("keep\n"));
 }
 
 /// Idempotent (`dev:V343`): a second splice of the same block is a no-op.
@@ -41,7 +41,7 @@ fn splice_replaces_only_between_one_blocks_markers() {
 fn splicing_twice_changes_nothing_the_second_time() {
     let once = splice(&doc("old\n", ""), "badges", "new\n").unwrap_or_default();
     assert_eq!(
-        splice(&once, "badges", "new\n").as_deref(),
+        splice(&once, "badges", "new\n").ok().as_deref(),
         Some(once.as_str())
     );
 }
@@ -49,9 +49,21 @@ fn splicing_twice_changes_nothing_the_second_time() {
 #[test]
 fn a_block_without_both_markers_is_absent() {
     let d = "# t\n<!-- BEGIN badges -->\nx\n";
-    assert_eq!(current(d, "badges"), None);
-    assert_eq!(splice(d, "badges", "y\n"), None);
-    assert_eq!(current("# t\n", "langs"), None);
+    assert!(current(d, "badges").is_err());
+    assert!(splice(d, "badges", "y\n").is_err());
+    assert!(current("# t\n", "langs").is_err());
+}
+
+#[test]
+fn duplicate_or_reversed_markers_are_errors() {
+    assert!(
+        current(
+            "<!-- BEGIN badges -->\n<!-- BEGIN badges -->\n<!-- END badges -->\n",
+            "badges"
+        )
+        .is_err()
+    );
+    assert!(current("<!-- END badges -->\n<!-- BEGIN badges -->\n", "badges").is_err());
 }
 
 #[test]

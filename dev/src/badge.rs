@@ -81,6 +81,30 @@ pub fn default_languages(manifest: &str) -> Vec<String> {
         .collect()
 }
 
+/// Classification shared by the badge and language table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LanguageKind {
+    /// Enabled by the default feature.
+    Default,
+    /// Declared as a non-default cargo feature.
+    OptIn,
+    /// No cargo language feature is declared.
+    Planned,
+}
+
+/// Classify a language from the manifest's declared and default features.
+#[must_use]
+pub fn language_kind(id: &str, declared: &[String], default: &[String]) -> LanguageKind {
+    let feature = format!("lang-{id}");
+    if !declared.contains(&feature) {
+        LanguageKind::Planned
+    } else if default.iter().any(|d| d == id) {
+        LanguageKind::Default
+    } else {
+        LanguageKind::OptIn
+    }
+}
+
 /// The keys of one `[table]`, each once, with the text of its entry.
 ///
 /// A key is counted where it STARTS, never per line: a formatter wrapping
@@ -292,29 +316,38 @@ pub fn gate_steps(pkl: &str) -> usize {
 /// never from the flake's `systems`, which declares one CI never builds.
 /// Each as `(vendor logo, os)`, sorted.
 #[must_use]
-pub fn ci_platforms(workflow: &str) -> Vec<(String, String)> {
-    let Some(list) = workflow
+pub fn ci_platforms(workflow: &str) -> Result<Vec<(String, String)>, String> {
+    let lists: Vec<&str> = workflow
         .lines()
-        .find_map(|l| l.trim().strip_prefix("os: [")?.strip_suffix(']'))
-    else {
-        return Vec::new();
+        .filter_map(|l| {
+            let t = l.trim();
+            t.strip_prefix("os: [")?.strip_suffix(']')
+        })
+        .collect();
+    let Some(list) = lists.first() else {
+        return Ok(Vec::new());
     };
+    if lists.iter().skip(1).any(|other| other != list) {
+        return Err("xenolith-dev: CI has disagreeing os matrices".to_string());
+    }
     let mut out = Vec::new();
     for runner in list.split(',').map(str::trim) {
-        let (os, vendors): (&str, &[&str]) = if runner.starts_with("macos") {
+        let (os, vendors): (&str, &[&str]) = if runner == "macos-latest" {
             ("macos", &["arm"])
+        } else if runner == "macos-13" {
+            ("macos", &["intel"])
         } else if runner.contains("arm") {
             ("linux", &["arm"])
         } else if runner.starts_with("ubuntu") {
             ("linux", &["intel", "amd"])
         } else {
-            continue;
+            return Err(format!("xenolith-dev: unknown CI runner `{runner}`"));
         };
         out.extend(vendors.iter().map(|v| ((*v).to_string(), os.to_string())));
     }
     out.sort();
     out.dedup();
-    out
+    Ok(out)
 }
 
 /// Every file the block is rendered from, read by the CALLER (`dev` §C).
@@ -371,7 +404,7 @@ pub struct Facts {
 ///
 /// # Errors
 /// An owning file missing the value it owns.
-pub fn facts(s: &Sources, nodes: usize, known_languages: usize) -> Result<Facts, String> {
+pub fn facts(s: &Sources, nodes: usize, known_languages: &[&str]) -> Result<Facts, String> {
     let missing = |what: &str| format!("xenolith-dev: no {what} to read (dev:V340)");
     let lines = ratchet(&s.coverage, "lines").ok_or_else(|| missing("`lines` row in .coverage"))?;
     let root_level =
@@ -403,6 +436,17 @@ pub fn facts(s: &Sources, nodes: usize, known_languages: usize) -> Result<Facts,
         .filter(|m| unsafe_level(m).as_deref() == Some("deny"))
         .count();
     let languages = default_languages(&s.manifest).len();
+    let declared = features(&s.manifest);
+    let default = default_languages(&s.manifest);
+    let planned = known_languages
+        .iter()
+        .filter(|id| {
+            matches!(
+                language_kind(id, &declared, &default),
+                LanguageKind::Planned
+            )
+        })
+        .count();
     Ok(Facts {
         license: manifest_value(&s.manifest, "license")
             .ok_or_else(|| missing("`license` in Cargo.toml"))?,
@@ -413,7 +457,7 @@ pub fn facts(s: &Sources, nodes: usize, known_languages: usize) -> Result<Facts,
         deps: third_party.len(),
         unsafe_deny,
         languages,
-        planned: known_languages.saturating_sub(languages),
+        planned,
         gate_steps: gate_steps(&s.pkl),
         coverage_floor: truncate_tenth(&lines)
             .ok_or_else(|| missing("a number in .coverage's `lines` row"))?,
@@ -422,7 +466,7 @@ pub fn facts(s: &Sources, nodes: usize, known_languages: usize) -> Result<Facts,
         nodes,
         nixpkgs: locked(&s.lock, "nixpkgs")
             .ok_or_else(|| missing("`nixpkgs` node in flake.lock"))?,
-        platforms: ci_platforms(&s.workflow),
+        platforms: ci_platforms(&s.workflow)?,
     })
 }
 

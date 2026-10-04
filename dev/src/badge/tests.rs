@@ -285,17 +285,32 @@ fn gate_steps_counts_steps_and_not_hooks_or_env() {
 
 #[test]
 fn platforms_come_from_the_matrix_and_ubuntu_means_two_vendors() {
-    let yml = "        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]\n";
+    let yml = "        os: [ubuntu-latest, ubuntu-24.04-arm, macos-13, macos-latest]\n";
     assert_eq!(
         ci_platforms(yml),
-        vec![
+        Ok(vec![
             ("amd".to_string(), "linux".to_string()),
             ("arm".to_string(), "linux".to_string()),
             ("arm".to_string(), "macos".to_string()),
             ("intel".to_string(), "linux".to_string()),
-        ]
+            ("intel".to_string(), "macos".to_string()),
+        ])
     );
-    assert!(ci_platforms("jobs:\n  gate:\n").is_empty());
+    assert!(
+        ci_platforms("jobs:\n  gate:\n")
+            .unwrap_or_default()
+            .is_empty()
+    );
+}
+
+#[test]
+fn unknown_runner_and_disagreeing_matrices_are_errors() {
+    assert!(
+        ci_platforms("os: [windows-latest]\n")
+            .unwrap_err()
+            .contains("windows-latest")
+    );
+    assert!(ci_platforms("os: [ubuntu-latest]\nos: [macos-13]\n").is_err());
 }
 
 #[test]
@@ -326,7 +341,12 @@ fn sources() -> Sources {
 /// twice, `private-only` belongs to the unpublished crate.
 #[test]
 fn facts_are_gathered_from_every_owner() {
-    let f = facts(&sources(), 46, 18).unwrap_or_else(|e| panic!("{e}"));
+    let ids = [
+        "nix", "shell", "missing", "missing", "missing", "missing", "missing", "missing",
+        "missing", "missing", "missing", "missing", "missing", "missing", "missing", "missing",
+        "missing", "missing",
+    ];
+    let f = facts(&sources(), 46, &ids).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         f,
         Facts {
@@ -378,7 +398,7 @@ fn a_missing_value_names_the_file_that_owns_it() {
     for (owner, break_it) in cases {
         let mut s = sources();
         break_it(&mut s);
-        let err = facts(&s, 1, 1).err().unwrap_or_default();
+        let err = facts(&s, 1, &["missing"]).err().unwrap_or_default();
         assert!(err.contains(owner), "{owner}: {err}");
         assert!(err.contains("dev:V340"), "{err}");
     }
@@ -388,13 +408,18 @@ fn a_missing_value_names_the_file_that_owns_it() {
 fn a_root_that_does_not_forbid_unsafe_is_refused() {
     let mut s = sources();
     s.manifest = s.manifest.replace("\"forbid\"", "\"warn\"");
-    let err = facts(&s, 1, 1).err().unwrap_or_default();
+    let err = facts(&s, 1, &["missing"]).err().unwrap_or_default();
     assert!(err.contains("unsafe_code = \"warn\""), "{err}");
     assert!(err.contains("dev:V346"), "{err}");
 }
 
 fn rendered(unsafe_deny: usize) -> String {
-    let mut f = facts(&sources(), 46, 18).unwrap_or_else(|e| panic!("{e}"));
+    let ids = [
+        "nix", "shell", "missing", "missing", "missing", "missing", "missing", "missing",
+        "missing", "missing", "missing", "missing", "missing", "missing", "missing", "missing",
+        "missing", "missing",
+    ];
+    let mut f = facts(&sources(), 46, &ids).unwrap_or_else(|e| panic!("{e}"));
     f.unsafe_deny = unsafe_deny;
     render(&f)
 }
@@ -442,7 +467,7 @@ fn an_all_forbid_tree_renders_the_plain_unsafe_badge() {
 /// A release-less pin says so rather than claiming a release.
 #[test]
 fn an_unpinned_nixpkgs_says_unpinned() {
-    let mut f = facts(&sources(), 1, 1).unwrap_or_else(|e| panic!("{e}"));
+    let mut f = facts(&sources(), 1, &["missing"]).unwrap_or_else(|e| panic!("{e}"));
     f.nixpkgs.release = None;
     assert!(render(&f).contains("nixpkgs-unpinned_("));
 }

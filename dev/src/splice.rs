@@ -18,20 +18,41 @@ pub fn markers(name: &str) -> (String, String) {
 
 /// What the document carries between one block's markers, if both exist.
 #[must_use]
-pub fn current(doc: &str, name: &str) -> Option<String> {
+pub fn current(doc: &str, name: &str) -> Result<String, String> {
     let (begin, end) = markers(name);
-    let after = doc.split_once(&begin)?.1;
-    let (block, _) = after.split_once(&end)?;
-    Some(block.trim_start_matches('\n').to_string())
+    let begins: Vec<_> = doc
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| *l == begin)
+        .collect();
+    let ends: Vec<_> = doc.lines().enumerate().filter(|(_, l)| *l == end).collect();
+    if begins.len() != 1 || ends.len() != 1 || ends[0].0 < begins[0].0 {
+        return Err(format!(
+            "no markers for {name}: marker error, expected one BEGIN before one END"
+        ));
+    }
+    let after = doc
+        .split_once(&begin)
+        .ok_or_else(|| format!("marker error for `{name}`"))?
+        .1;
+    let (block, _) = after
+        .split_once(&end)
+        .ok_or_else(|| format!("marker error for `{name}`"))?;
+    Ok(block.trim_start_matches('\n').to_string())
 }
 
 /// The document with one block replaced; `None` when a marker is missing.
 #[must_use]
-pub fn splice(doc: &str, name: &str, block: &str) -> Option<String> {
+pub fn splice(doc: &str, name: &str, block: &str) -> Result<String, String> {
     let (begin, end) = markers(name);
-    let (head, rest) = doc.split_once(&begin)?;
-    let (_, tail) = rest.split_once(&end)?;
-    Some(format!("{head}{begin}\n{block}{end}{tail}"))
+    let _ = current(doc, name)?;
+    let (head, rest) = doc
+        .split_once(&begin)
+        .ok_or_else(|| format!("marker error for `{name}`"))?;
+    let (_, tail) = rest
+        .split_once(&end)
+        .ok_or_else(|| format!("marker error for `{name}`"))?;
+    Ok(format!("{head}{begin}\n{block}{end}{tail}"))
 }
 
 /// Each generated block, by marker name.
@@ -48,6 +69,8 @@ pub enum Outcome {
     Stale(Vec<String>),
     /// A block's markers are absent: the document has not opted in.
     NoMarkers(Vec<String>),
+    /// Markers are missing, duplicated, or out of order.
+    Invalid(String),
 }
 
 /// Up to three lines of `want` that `have` lacks, prefixed.
@@ -67,9 +90,14 @@ pub fn apply(doc: &str, blocks: &Blocks, check_only: bool) -> Outcome {
     let mut diff = Vec::new();
     let mut missing = Vec::new();
     for (name, want) in blocks {
-        let Some(have) = current(&next, name) else {
+        let (begin, end) = markers(name);
+        if !doc.lines().any(|line| line == begin) && !doc.lines().any(|line| line == end) {
             missing.push(name.clone());
             continue;
+        }
+        let have = match current(&next, name) {
+            Ok(have) => have,
+            Err(error) => return Outcome::Invalid(error),
         };
         if &have == want {
             continue;
@@ -78,7 +106,7 @@ pub fn apply(doc: &str, blocks: &Blocks, check_only: bool) -> Outcome {
             diff.push(format!("stale: {name}"));
             diff.extend(sample(want, &have, "want"));
             diff.extend(sample(&have, want, "have"));
-        } else if let Some(s) = splice(&next, name, want) {
+        } else if let Ok(s) = splice(&next, name, want) {
             next = s;
         }
     }
