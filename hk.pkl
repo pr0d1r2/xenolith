@@ -477,21 +477,21 @@ local all = (fast) {
 }
 
 hooks {
-  /// `stash = "git"` is correctness, not speed: without it a partially
-  /// staged file (`git add -p`) is checked as it looks in the WORKTREE,
-  /// giving a verdict about code that is not being committed.
+  // `stash = "git"` is correctness, not speed: without it a partially
+  // staged file (`git add -p`) is checked as it looks in the WORKTREE,
+  // giving a verdict about code that is not being committed.
   ["pre-commit"] {
     fix = true
     stash = "git"
     steps = fast
   }
-  /// The message gate. Its step is not in `fast` or `all`: those run over
-  /// FILES, and a commit message is not a file in the tree -- git hands it
-  /// to this hook and to nothing else (`scripts:V122`, a step exists once,
-  /// in the one hook that can run it).
-  ///
-  /// The checker is `xnl`-free on purpose (`scripts/guard:V20`): it has to
-  /// work before this repo's own tool exists, which is now.
+  // The message gate. Its step is not in `fast` or `all`: those run over
+  // FILES, and a commit message is not a file in the tree -- git hands it
+  // to this hook and to nothing else (`scripts:V122`, a step exists once,
+  // in the one hook that can run it).
+  //
+  // The checker is `xnl`-free on purpose (`scripts/guard:V20`): it has to
+  // work before this repo's own tool exists, which is now.
   ["commit-msg"] {
     steps {
       ["commit-msg"] {
@@ -502,7 +502,7 @@ hooks {
   ["pre-push"] {
     steps = all
   }
-  /// The entry point for CI and for a full run by hand: `hk check --all`.
+  // The entry point for CI and for a full run by hand: `hk check --all`.
   ["check"] {
     steps = all
   }

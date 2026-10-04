@@ -13,6 +13,13 @@ setup() {
   mkdir -p "$BIN"
 }
 
+@test "hk hooks use member comments accepted by the Pkl evaluator" {
+  hk_file="${BATS_TEST_DIRNAME}/../../../..//hk.pkl"
+  hooks_body="$(sed -n '/^hooks {/,$p' "$hk_file")"
+
+  ! grep -q '^  ///' <<<"$hooks_body"
+}
+
 # A stub tool that echoes its arguments and exits with a chosen code. Its
 # shebang names bash absolutely: these stubs run under a PATH that holds
 # only this directory, so `/usr/bin/env bash` would find no bash at all.
