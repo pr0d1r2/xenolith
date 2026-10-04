@@ -6,6 +6,14 @@
 //! dependency is build-only, a proc-macro and an `AND` licence.
 
 use super::{Crate, Tool, Vendored, closure, render, tools, upstream_field};
+use crate::badge::shipped;
+
+#[test]
+fn metadata_publish_values_use_the_badge_shipped_rule() {
+    assert!(!shipped(Some("[]")));
+    assert!(!shipped(Some("false")));
+    assert!(shipped(None));
+}
 
 const META: &str = r#"{
   "packages": [

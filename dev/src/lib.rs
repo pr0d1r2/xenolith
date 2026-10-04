@@ -467,16 +467,9 @@ fn notices(
         "xenolith-dev: {NOTICES} is STALE against cargo metadata, the vendored grammars or \
          the nix tool table. Run `xenolith-dev notices` (or `hk fix`) to regenerate it (dev:V347)."
     );
-    let differs = |a: &str, b: &str, tag: &str| -> Vec<String> {
-        a.lines()
-            .filter(|l| !l.trim().is_empty() && !b.lines().any(|m| m == *l))
-            .take(3)
-            .map(|l| format!("  {tag}: {l}"))
-            .collect()
-    };
-    for line in differs(&want, &have, "want")
+    for line in splice::sample(&want, &have, "want")
         .into_iter()
-        .chain(differs(&have, &want, "have"))
+        .chain(splice::sample(&have, &want, "have"))
     {
         let _ = writeln!(err, "{line}");
     }

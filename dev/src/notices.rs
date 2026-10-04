@@ -13,6 +13,8 @@ use std::fmt::Write as _;
 
 use serde_json::Value;
 
+use crate::badge::shipped;
+
 #[cfg(test)]
 mod tests;
 
@@ -163,9 +165,7 @@ pub fn closure(metadata: &str) -> Result<(Vec<Crate>, Vec<Crate>), String> {
         .filter_map(Value::as_str)
         .filter(|id| {
             let publish = packages.get(id).and_then(|p| p.get("publish"));
-            publish
-                .and_then(Value::as_array)
-                .is_none_or(|a| !a.is_empty())
+            shipped(publish.map(Value::to_string).as_deref())
         })
         .collect();
     let runtime = reach(shipped, &edges, false);

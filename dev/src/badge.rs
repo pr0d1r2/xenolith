@@ -132,10 +132,34 @@ pub fn features(manifest: &str) -> Vec<String> {
         .collect()
 }
 
-/// A manifest that says `publish = false` ships nowhere.
+/// Whether a package with this Cargo `publish` value ships.
+#[must_use]
+pub(crate) fn shipped(publish: Option<&str>) -> bool {
+    let Some(value) = publish.map(str::trim) else {
+        return true;
+    };
+    if value == "false" {
+        return false;
+    }
+    // Cargo permits whitespace inside the empty restricted-registry list.
+    // Metadata normally serializes this as `[]`, while a manifest may spell
+    // it `[ ]`; both mean that the package is not publishable.
+    !value
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .eq("[]".chars())
+}
+
+/// Whether a manifest's package ships, using the same rule as metadata.
 #[must_use]
 pub fn published(manifest: &str) -> bool {
-    !manifest.lines().any(|l| l.trim() == "publish = false")
+    let publish = manifest.lines().find_map(|line| {
+        let line = line.trim();
+        let (key, value) = line.split_once('=')?;
+        (key.trim() == "publish").then_some(value)?;
+        Some(value.split('#').next().unwrap_or_default().trim())
+    });
+    shipped(publish)
 }
 
 /// The `unsafe_code` level a manifest sets for itself, if it sets one.
