@@ -3,7 +3,7 @@
 # The RED commit precedes the GREEN one (`scripts/guard:C11`,
 # `scripts/guard:V16`).
 #
-#   scripts/guard/tdd-order.sh [REV_RANGE]
+#   scripts/guard/tdd-order.sh [--exempt FILE] [REV_RANGE]
 #
 # Default range is `@{upstream}..HEAD` -- what a push would publish -- and
 # the whole history when there is no upstream yet. The ordering is a
@@ -22,6 +22,13 @@
 #            names is the commit type, and that is what is checked.
 #            Limitation, stated rather than hidden: if the RED commit was
 #            pushed in an earlier range, pass the wider range explicitly.
+#
+# THE exemption list -- closed, exactly `scripts/guard:V353`'s rule:
+# `tdd-order.exempt` beside this script (or `--exempt FILE`), one commit per
+# line as its FULL id and the reason, naming where the RED-first history
+# lives. Only a commit already on `main` that cannot be rewritten belongs
+# there, and each entry has a §B row. A list that is missing or malformed
+# fails: an exemption nobody can read is not one.
 set -euo pipefail
 
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -29,10 +36,47 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ "$#" -gt 1 ]; then
-  echo "usage: tdd-order.sh [REV_RANGE]" >&2
+usage() {
+  echo "usage: tdd-order.sh [--exempt FILE] [REV_RANGE]" >&2
   exit 2
+}
+
+here="${BASH_SOURCE[0]}"
+case "$here" in
+*/*) here="${here%/*}" ;;
+*) here="." ;;
+esac
+exempt_file="${here}/tdd-order.exempt"
+if [ "${1:-}" = --exempt ]; then
+  [ "$#" -ge 2 ] || usage
+  exempt_file="$2"
+  shift 2
 fi
+[ "$#" -le 1 ] || usage
+
+if [ ! -f "$exempt_file" ]; then
+  echo "tdd-order: the exemption list ${exempt_file} does not exist -- nothing was checked, which is a failure rather than a pass (scripts/guard:V353)." >&2
+  exit 1
+fi
+declare -A exempt=()
+line_no=0
+while IFS= read -r line || [ -n "$line" ]; do
+  line_no=$((line_no + 1))
+  case "$line" in
+  '' | '#'*) continue ;;
+  esac
+  id="${line%% *}"
+  reason="${line#"$id"}"
+  if ! [[ "$id" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "tdd-order: ${exempt_file} line ${line_no}: an exempt commit is named by its FULL 40-character id (scripts/guard:V353)." >&2
+    exit 1
+  fi
+  if [ -z "${reason// /}" ]; then
+    echo "tdd-order: ${exempt_file} line ${line_no}: ${id} has no reason; say where its RED-first history lives (scripts/guard:V353)." >&2
+    exit 1
+  fi
+  exempt["$id"]=1
+done <"$exempt_file"
 
 range="${1:-}"
 if [ -z "$range" ]; then
@@ -57,6 +101,9 @@ fail() {
 }
 
 for commit in $commits; do
+  if [ -n "${exempt[$commit]:-}" ]; then
+    continue
+  fi
   short="$(git rev-parse --short "$commit")"
   subject="$(git log -1 --format=%s "$commit")"
 

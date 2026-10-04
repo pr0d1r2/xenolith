@@ -32,11 +32,10 @@ V353: `tdd-order` exemption = closed list `scripts/guard/tdd-order.exempt`: full
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T115, T350 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T115|.|`scripts/guard/history-audit.sh [REF…]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
-T350|.|`scripts/guard/tdd-order.sh [--exempt FILE] [RANGE]` + bats: commit in the list (default `tdd-order.exempt` beside the script) skipped; malformed line, short id, ∄ list ⇒ fail (⊥ vacuous pass); `6783bb9` listed (B4)|V353,C11
 
 ## §B BUGS
 

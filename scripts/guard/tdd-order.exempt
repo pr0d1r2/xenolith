@@ -1,0 +1,7 @@
+# Commits on `main` that tdd-order skips (`scripts/guard:V353`). Closed:
+# an entry is a commit already on `main` that cannot be rewritten, named by
+# its full id, with where its RED-first history lives. Each one has a §B
+# row in scripts/guard/SPEC.md.
+#
+# <full commit id> <reason>
+6783bb92c328af064ba18443f7bedc335c4bca9f squash merge of #39 (scripts/guard:B4); RED-first commits are PR #39's own: c170aaa before ab0ea21 (bats-ready.sh), f4fa9d2 before 89f368e (crate-metadata.sh)
