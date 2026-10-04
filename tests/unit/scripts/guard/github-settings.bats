@@ -50,10 +50,12 @@ reply() {
 
 REPO_API="repos/pr0d1r2/xenolith"
 CHECKS='"gate (ubuntu-latest)","gate (ubuntu-24.04-arm)","gate (macos-latest)"'
+# Pull requests land by rebase merge only (scripts:V115, scripts/guard:B4).
+MERGE_ONLY_REBASE='{"full_name":"pr0d1r2/xenolith","allow_rebase_merge":true,"allow_squash_merge":false,"allow_merge_commit":false}'
 
 # Every intended setting in place.
 intended() {
-  reply "$REPO_API" '{"full_name":"pr0d1r2/xenolith"}'
+  reply "$REPO_API" "$MERGE_ONLY_REBASE"
   reply "${REPO_API}/branches/main/protection" \
     "{\"enforce_admins\":{\"enabled\":true},\"required_status_checks\":{\"contexts\":[${CHECKS}]}}"
   reply "${REPO_API}/actions/permissions/workflow" \
@@ -212,4 +214,43 @@ run_script() {
 @test "an unknown flag is a usage error" {
   run_script --frobnicate
   [ "$status" -eq 2 ]
+}
+
+@test "squash merges allowed fails: a squash collapses RED and GREEN" {
+  intended
+  reply "$REPO_API" '{"allow_rebase_merge":true,"allow_squash_merge":true,"allow_merge_commit":false}'
+  run_script
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"squash"* ]]
+  [[ "$output" == *"scripts:V115"* ]]
+}
+
+@test "merge commits allowed fails" {
+  intended
+  reply "$REPO_API" '{"allow_rebase_merge":true,"allow_squash_merge":false,"allow_merge_commit":true}'
+  run_script
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"merge commit"* ]]
+}
+
+@test "rebase merges not allowed fails" {
+  intended
+  reply "$REPO_API" '{"allow_rebase_merge":false,"allow_squash_merge":false,"allow_merge_commit":false}'
+  run_script
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"rebase"* ]]
+}
+
+@test "a repository reply without the merge settings is a finding, not a pass" {
+  intended
+  reply "$REPO_API" '{"full_name":"pr0d1r2/xenolith"}'
+  run_script
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"rebase"* ]]
+}
+
+@test "--print states that pull requests land by rebase merge only" {
+  run_script --print
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"rebase merge only"* ]]
 }

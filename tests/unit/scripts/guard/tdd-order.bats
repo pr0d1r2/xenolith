@@ -237,3 +237,78 @@ sentinel_untouched() {
   [ "$status" -eq 0 ]
   sentinel_untouched
 }
+
+# The exemption list (scripts/guard:V353): a commit already on main that
+# cannot be rewritten, with the place its RED-first history lives.
+exempt_list() {
+  EXEMPT="${BATS_TEST_TMPDIR}/exempt"
+  printf '%s\n' "$@" >"$EXEMPT"
+}
+
+run_exempt() {
+  cd "$REPO" || return 1
+  run "$BASH" "$SCRIPT" --exempt "$EXEMPT" "${BASE}..HEAD"
+}
+
+@test "a commit in the exemption list is skipped" {
+  commit feat "add the thing with its test" scripts/dev/thing.sh tests/unit/scripts/dev/thing.bats
+  exempt_list "$(git -C "$REPO" rev-parse HEAD) squash merge; RED-first commits in PR #1"
+  run_exempt
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+}
+
+@test "a commit not in the exemption list still fails" {
+  commit feat "add the thing with its test" scripts/dev/thing.sh tests/unit/scripts/dev/thing.bats
+  exempt_list "$(printf '0%.0s' {1..40}) some other commit"
+  run_exempt
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"SAME commit"* ]]
+}
+
+@test "comments and blank lines in the exemption list are allowed" {
+  commit feat "add the thing with its test" scripts/dev/thing.sh tests/unit/scripts/dev/thing.bats
+  exempt_list "# why this list exists" "" "$(git -C "$REPO" rev-parse HEAD) squash merge"
+  run_exempt
+  [ "$status" -eq 0 ]
+}
+
+@test "a short commit id in the exemption list fails: an entry names one commit" {
+  commit feat "add the thing with its test" scripts/dev/thing.sh tests/unit/scripts/dev/thing.bats
+  exempt_list "$(git -C "$REPO" rev-parse --short HEAD) squash merge"
+  run_exempt
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"exempt"* ]]
+  [[ "$output" == *"line 1"* ]]
+}
+
+@test "an exemption with no reason fails" {
+  commit feat "add the thing with its test" scripts/dev/thing.sh tests/unit/scripts/dev/thing.bats
+  exempt_list "$(git -C "$REPO" rev-parse HEAD)"
+  run_exempt
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"reason"* ]]
+}
+
+@test "a missing exemption list fails rather than passing" {
+  commit test "cover the thing" tests/unit/scripts/dev/thing.bats
+  EXEMPT="${BATS_TEST_TMPDIR}/no-such-list"
+  run_exempt
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"no-such-list"* ]]
+}
+
+@test "--exempt without a file is a usage error" {
+  cd "$REPO"
+  run "$BASH" "$SCRIPT" --exempt
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"usage"* ]]
+}
+
+@test "this repository's list exempts the squashed #39 by its full id" {
+  local root list
+  root="$(cd "${BATS_TEST_DIRNAME}/../../../.." && pwd)"
+  list="${root}/scripts/guard/tdd-order.exempt"
+  [ -f "$list" ]
+  grep -q '^6783bb92c328af064ba18443f7bedc335c4bca9f ' "$list"
+}

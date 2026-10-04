@@ -8,6 +8,13 @@
 # whose script exists still runs, and push runs them all.
 
 setup() {
+  # tests:V150: a hook exports GIT_DIR and friends, and they beat the
+  # test's own repository (tests:B1). Drop every GIT_* variable, keep git
+  # off the user's and the system's config, and stop repository discovery
+  # at the test's own tmpdir.
+  unset "${!GIT_@}"
+  export GIT_CONFIG_GLOBAL="${BATS_TEST_TMPDIR}/gitconfig" GIT_CONFIG_NOSYSTEM=1
+  export GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR"
   SCRIPT="${BATS_TEST_DIRNAME}/../../../../scripts/hk/bats-ready.sh"
   RUN_TOOL="${BATS_TEST_DIRNAME}/../../../../scripts/hk/run-tool.sh"
   BIN="${BATS_TEST_TMPDIR}/bin"
@@ -40,6 +47,17 @@ mirror() {
   if [ "$built" = built ]; then
     touch "$path"
   fi
+}
+
+# The test tree as a git repository with everything so far committed, and
+# git on the staged PATH, so the index says what a commit would hold.
+git_repo() {
+  ln -s "$(command -v git)" "${BIN}/git"
+  git init --quiet
+  git config user.email t@example.com
+  git config user.name test
+  git add -A
+  git commit --quiet --no-verify -m "chore: seed"
 }
 
 # PATH is REPLACED, not prepended to: the suite runs inside the dev shell,
@@ -139,4 +157,51 @@ run_ready() {
   PATH="${BIN}" run "$BASH" scripts/hk/bats-ready.sh
   [ "$status" -eq 0 ]
   [[ "$output" == *"tests/unit/scripts/hk/run-tool.bats"* ]]
+}
+
+@test "a test staged without its script is held back: RED for an existing script" {
+  stub_bats
+  mirror scripts/a.sh
+  mirror scripts/b.sh
+  git_repo
+  echo "# a new case" >>tests/unit/scripts/a.bats
+  git add tests/unit/scripts/a.bats
+  run_ready
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"holding back tests/unit/scripts/a.bats"* ]]
+  [[ "$output" == *"staged without scripts/a.sh"* ]]
+  [ "$(grep -c '^tests/unit/scripts/a.bats$' <<<"$output")" -eq 0 ]
+  [ "$(grep -c '^tests/unit/scripts/b.bats$' <<<"$output")" -eq 1 ]
+}
+
+@test "a test staged with its script runs: that is the GREEN commit" {
+  stub_bats
+  mirror scripts/a.sh
+  git_repo
+  echo "# a new case" >>tests/unit/scripts/a.bats
+  echo "# the change" >>scripts/a.sh
+  git add tests/unit/scripts/a.bats scripts/a.sh
+  run_ready
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^tests/unit/scripts/a.bats$' <<<"$output")" -eq 1 ]
+  [[ "$output" != *"holding back"* ]]
+}
+
+@test "a changed test that is not staged still runs" {
+  stub_bats
+  mirror scripts/a.sh
+  git_repo
+  echo "# a new case" >>tests/unit/scripts/a.bats
+  run_ready
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^tests/unit/scripts/a.bats$' <<<"$output")" -eq 1 ]
+}
+
+@test "outside a git work tree nothing is held back for being staged" {
+  stub_bats
+  ln -s "$(command -v git)" "${BIN}/git"
+  mirror scripts/a.sh
+  run_ready
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^tests/unit/scripts/a.bats$' <<<"$output")" -eq 1 ]
 }

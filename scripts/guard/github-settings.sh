@@ -17,6 +17,10 @@
 #   4. GitHub Actions may NOT create or approve pull requests (Settings ->
 #      Actions -> General -> Workflow permissions). No bot here needs it;
 #      the day one does, this line changes with the reason (V115).
+#   5. Pull requests land by REBASE merge only (Settings -> General ->
+#      Pull Requests): allow rebase merging, disallow squash merging and
+#      merge commits. A squash collapses a RED and a GREEN commit into one
+#      (`scripts/guard:B4`), and the TDD order is then unprovable.
 #
 # Read-only: every call is a plain `gh api GET`. The comparison itself is
 # `github-settings.jq` beside this file.
@@ -45,6 +49,8 @@ print_runbook() {
   echo "  main: rule includes administrators (enforce_admins = true)"
   echo "  Actions: may not create or approve pull requests" \
     "(can_approve_pull_request_reviews = false)"
+  echo "  pull requests: rebase merge only (allow_rebase_merge = true," \
+    "allow_squash_merge = false, allow_merge_commit = false)"
 }
 
 case "${1:-}" in
@@ -117,6 +123,11 @@ compare() {
   fi
 }
 
+if ! compare repo "repos/${repo}"; then
+  echo "github-settings: could not read repos/${repo} -- the merge settings" \
+    "are not confirmed, which is not a pass (scripts:V115)." >&2
+  status=1
+fi
 if ! compare protection "repos/${repo}/branches/main/protection"; then
   echo "github-settings: main is not protected -- no branch rule answered" \
     "at repos/${repo}/branches/main/protection (scripts:V115)." >&2

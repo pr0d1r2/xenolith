@@ -98,8 +98,10 @@ local fast = new Mapping<String, Step> {
   //
   // Every test whose script EXISTS (`scripts:V352`): a RED commit adds a
   // test before its script (`scripts:C11`), and the whole suite here
-  // refused it (`scripts:B3`). The runner names each test it holds back;
-  // `bats-all` runs the whole suite on push.
+  // refused it (`scripts:B3`). A test staged without its script is held
+  // back too: the RED commit for a script that exists (`scripts:B4`). The
+  // runner names each test it holds back; `bats-all` runs the whole suite
+  // on push.
   ["bats"] {
     glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
     check = "scripts/hk/bats-ready.sh"
