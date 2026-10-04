@@ -255,8 +255,8 @@ pub fn sources(root: &Path) -> Result<badge::Sources, String> {
 pub fn readme_blocks(root: &Path) -> Result<splice::Blocks, String> {
     let src = sources(root)?;
     let specs = spec_paths(root);
-    let facts = badge::facts(&src, specs.len(), LangId::ALL.len())?;
     let ids: Vec<&str> = LangId::ALL.iter().map(|l| l.as_str()).collect();
+    let facts = badge::facts(&src, specs.len(), &ids)?;
     let langs = langs::render(
         &ids,
         &badge::features(&src.manifest),
@@ -305,6 +305,10 @@ fn readme(
                  as it is.",
                 names.join(", ")
             );
+            1
+        }
+        Ok(splice::Outcome::Invalid(error)) => {
+            let _ = writeln!(err, "{error}");
             1
         }
         Ok(splice::Outcome::Stale(diff)) => {

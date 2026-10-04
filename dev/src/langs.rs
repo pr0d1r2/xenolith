@@ -7,6 +7,7 @@
 //! table `xnl langs` prints for the default build, plus the one column a
 //! binary cannot know -- where the rules for each language live.
 
+use crate::badge::{LanguageKind, language_kind};
 use std::fmt::Write as _;
 
 #[cfg(test)]
@@ -15,12 +16,10 @@ mod tests;
 /// What the tree says about one language.
 fn status(id: &str, declared: &[String], default: &[String]) -> (&'static str, String) {
     let feature = format!("lang-{id}");
-    if !declared.contains(&feature) {
-        ("planned", "—".to_string())
-    } else if default.iter().any(|d| d == id) {
-        ("default build", format!("`{feature}`"))
-    } else {
-        ("opt-in feature", format!("`{feature}`"))
+    match language_kind(id, declared, default) {
+        LanguageKind::Planned => ("planned", "—".to_string()),
+        LanguageKind::Default => ("default build", format!("`{feature}`")),
+        LanguageKind::OptIn => ("opt-in feature", format!("`{feature}`")),
     }
 }
 
