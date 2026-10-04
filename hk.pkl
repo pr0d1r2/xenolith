@@ -91,13 +91,18 @@ local fast = new Mapping<String, Step> {
     check = "scripts/hk/run-tool.sh shfmt --indent 2 --diff {{files}}"
     fix = "scripts/hk/run-tool.sh shfmt --indent 2 --write {{files}}"
   }
-  // Runs the WHOLE suite rather than the mirrored file, and the glob says
-  // why: a change to a script must run its own test, but a change to any
-  // test must run beside the others it shares helpers with. The suite is
-  // seconds; splitting it would buy nothing and lose the cross-check.
+  // Every test, rather than the mirrored file, and the glob says why: a
+  // change to a script must run its own test, but a change to any test must
+  // run beside the others it shares helpers with. The suite is seconds;
+  // splitting it would buy nothing and lose the cross-check.
+  //
+  // Every test whose script EXISTS (`scripts:V352`): a RED commit adds a
+  // test before its script (`scripts:C11`), and the whole suite here
+  // refused it (`scripts:B3`). The runner names each test it holds back;
+  // `bats-all` runs the whole suite on push.
   ["bats"] {
     glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
-    check = "scripts/hk/run-tool.sh bats --recursive tests/unit"
+    check = "scripts/hk/bats-ready.sh"
   }
 
   // Nix gates this repo's own toolchain: the flake decides what every other
@@ -320,6 +325,16 @@ local fast = new Mapping<String, Step> {
 /// LAYER TWO: everything above, plus the steps too slow or too whole-tree
 /// to sit on every commit. Runs on push and in CI (`scripts:V22`).
 local all = (fast) {
+  // The WHOLE suite, held-back tests included (`scripts:V352`): by push
+  // the GREEN commit exists, so a test still failing here is a finding.
+  // A step of its own rather than an override of `bats`, so the step
+  // count stays one step per name (`dev:V344`); the ready tests run twice
+  // on push, which costs seconds.
+  ["bats-all"] {
+    glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
+    check = "scripts/hk/run-tool.sh bats --recursive tests/unit"
+  }
+
   // The supply chain, in ONE tool: cargo-audit and osv-scanner ask the
   // advisory question this already answers.
   ["deny"] {
@@ -415,6 +430,15 @@ local all = (fast) {
   ["crate-deps"] {
     glob = List("**/Cargo.toml", "Cargo.lock")
     check = "scripts/guard/crate-deps.sh"
+  }
+  // The metadata every published crate carries (`nix:V112`,
+  // `scripts/guard:T346`): the fields crates.io shows, a docs.rs page,
+  // a packaging list, and docs.rs building every language. Push-side and
+  // whole-repo for the reason `crate-deps` gives; the rule itself is
+  // `scripts/guard/crate-metadata.jq`.
+  ["crate-metadata"] {
+    glob = List("**/Cargo.toml", "scripts/guard/crate-*.jq")
+    check = "scripts/guard/crate-metadata.sh"
   }
 
   // Dogfood (`.:V19`, `.:C19`, `.:T28`): this repo passes its own `xnl check`,

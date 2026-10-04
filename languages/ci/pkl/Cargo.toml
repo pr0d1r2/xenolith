@@ -3,6 +3,8 @@ name = "xenolith-lang-pkl"
 description = "Pkl support for xenolith: hk step sinks holding shell, on the vendored tree-sitter-pkl grammar"
 keywords = ["xenolith", "pkl", "hk", "lint"]
 categories = ["development-tools"]
+documentation = "https://docs.rs/xenolith-lang-pkl"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,7 +14,7 @@ homepage.workspace = true
 authors.workspace = true
 # The vendored C ships in the package, or `cargo test` from crates.io has
 # no grammar to build (`languages:V121`, `tests:V14`).
-include = ["Cargo.toml", "build.rs", "src/**", "tests/**", "vendor/**"]
+include = ["Cargo.toml", "README.md", "build.rs", "src/**", "tests/**", "vendor/**"]
 
 # `languages/api:V32`: the api contract and the grammar's runtime. The
 # grammar itself is not a dependency at all -- `apple/tree-sitter-pkl` is

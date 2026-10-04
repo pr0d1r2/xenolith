@@ -40,7 +40,7 @@ V251: `checks`: `tools` = wrapped `xnl lint` on a generated fixture (∀ host & 
 V109: release ONLY via cargo-release (`release.toml`, `pre-release-hook` = full gate); version bump lands through a PR; tag, publish & push run from `main` (`cargo release hook` first ∵ `tag`/`publish`/`push` skip the hook); ⊥ release scripts.
 V110: CHANGELOG keeps `Unreleased` & a version LADDER — each minor = a stated guarantee, a patch sits off the ladder; ∀ user-visible change adds an `Unreleased` entry in its PR.
 V111: `cargo semver-checks` in the gate ∀ published crate vs last release tag; any break ⇒ minor bump in the same PR; lockstep version across the workspace (`src` C1).
-V112: ∀ published crate: `description`, `license`, `repository`, `homepage`, `documentation` (docs.rs), `readme`, `keywords`, `categories`, `rust-version`, `exclude` set; docs.rs builds root w/ all `lang-*`; checked, ⊥ by review.
+V112: ∀ published crate: `description`, `license`, `repository`, `homepage`, `documentation` (docs.rs), `readme`, `keywords`, `categories`, `rust-version` set, `documentation` = `https://docs.rs/<name>`, `keywords` & `categories` ⊥ empty, & `exclude` ∨ `include` set (`include` = the closed form: names what ships, ⊥ what does not); docs.rs builds root w/ all `lang-*` (`[package.metadata.docs.rs] features`); checked by `scripts/guard/crate-metadata.sh`, ⊥ by review; `publish = false` exempt.
 V113: packaged content proven: `cargo package` ∀ crate & `cargo test` from the unpacked `.crate` passes (per-crate fixtures ship, `tests:V14`).
 V349: ∀ package drv builds named packages only — `-p xenolith` for `xnl`, `-p xenolith-lang-tcl` for its tool — ⊥ the workspace ∴ `xenolith-dev` (`publish = false`, `dev` §C) ⊥ in any `bin/` & ⊥ in the closure (V29); `checks.test` & `checks.clippy` still cover the whole workspace, dev included; the source fileset carries `dev/` so cargo can load the workspace.
 V351: dev-shell `sherd` = pinned crates.io release: `buildRustPackage` over `fetchCrate` (crate's own `Cargo.lock`) in `nix/tools.nix`; version + src hash + `cargoHash` fixed ∴ fixed drv ∴ cachix `pr0d1r2` hit locally, on the node & in CI (C7); bump = version + 2 hashes; ⊥ flake input; dev-only (V29).
@@ -50,13 +50,12 @@ V351: dev-shell `sherd` = pinned crates.io release: `buildRustPackage` over `fet
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T39, T109-T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T39, T109-T110, T112 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T39|.|resolve C20 cycle policy before itok/microlith/sherd adopt xenolith|C20
 T109|.|CHANGELOG w/ ladder (M1 rung, M2+ rungs per C25) & Unreleased rule in gate|V110
 T110|.|semver gate step ∀ workspace crate, skip loudly w/o baseline tag (sibling pattern)|V111
-T111|.|crate metadata ∀ crate + check script + docs.rs `[package.metadata.docs.rs]`|V112
 T112|.|package-suite gate step: unpack each `.crate`, run its tests|V113
 
 ## §B BUGS

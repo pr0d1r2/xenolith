@@ -3,6 +3,8 @@ name = "xenolith-lang-xml"
 description = "XML support for xenolith: text plists whose launchd ProgramArguments hold shell"
 keywords = ["xenolith", "xml", "plist", "launchd", "lint"]
 categories = ["development-tools"]
+documentation = "https://docs.rs/xenolith-lang-xml"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,6 +12,9 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
+# The closed form (`nix:V112`): what ships is named, so a file added beside
+# the crate stays out of the package until it is listed here.
+include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 
 # Three dependencies, the most `languages/api:V32` allows a language
 # crate: the api contract, its own grammar, and the grammar's runtime. The

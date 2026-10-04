@@ -3,6 +3,8 @@ name = "xenolith-lang-nix"
 description = "Nix support for xenolith: rnix-based host sinks that hold shell"
 keywords = ["xenolith", "nix", "shell", "lint", "refactor"]
 categories = ["development-tools"]
+documentation = "https://docs.rs/xenolith-lang-nix"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,6 +12,9 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
+# The closed form (`nix:V112`): what ships is named, so a file added beside
+# the crate stays out of the package until it is listed here.
+include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 
 # Two dependencies, inside what `languages/api:V32` allows a language
 # crate: the api contract and its own grammar. No root crate and no other
