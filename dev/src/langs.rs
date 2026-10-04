@@ -38,8 +38,8 @@ pub fn render(ids: &[&str], declared: &[String], default: &[String], specs: &[St
     let mut s = String::from("| language | in `xnl` | cargo feature | spec |\n|---|---|---|---|\n");
     for id in ids {
         let (state, feature) = status(id, declared, default);
-        let spec =
-            spec_of(id, specs).map_or_else(|| "--".to_string(), |d| format!("[`{d}`]({d}/SPEC.md)"));
+        let spec = spec_of(id, specs)
+            .map_or_else(|| "--".to_string(), |d| format!("[`{d}`]({d}/SPEC.md)"));
         let _ = writeln!(s, "| {id} | {state} | {feature} | {spec} |");
     }
     s
