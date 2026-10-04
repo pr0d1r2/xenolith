@@ -51,10 +51,9 @@ V352: pre-commit `bats` runs only the bats files whose mirrored script (C13) exi
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T348-T349 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | T349 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T348|.|`scripts/hk/bats-ready.sh` + bats: a bats file staged while its mirrored script is ⊥ staged → held back & named (V352, B4); git outside a work tree ⇒ rule off|V352,C11
 T349|.|`scripts/guard/github-settings.sh` + `.jq` + bats: `repos/{repo}` reply → `allow_rebase_merge` true, `allow_squash_merge` & `allow_merge_commit` false; runbook names it|V115
 
 ## §B BUGS
