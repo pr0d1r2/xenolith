@@ -144,7 +144,10 @@ pub(crate) fn shipped(publish: Option<&str>) -> bool {
     // Cargo permits whitespace inside the empty restricted-registry list.
     // Metadata normally serializes this as `[]`, while a manifest may spell
     // it `[ ]`; both mean that the package is not publishable.
-    !value.chars().filter(|c| !c.is_ascii_whitespace()).eq("[]".chars())
+    !value
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .eq("[]".chars())
 }
 
 /// Whether a manifest's package ships, using the same rule as metadata.
