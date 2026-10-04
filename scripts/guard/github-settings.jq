@@ -4,14 +4,28 @@
 #
 #   jq -r --arg section S -f github-settings.jq --args CHECK...
 #
-# `section` names the reply: `protection` (branches/main/protection) or
-# `actions` (actions/permissions/workflow). The positional args are the
-# status checks main must require. Emits one line per mismatch, nothing
-# when the reply matches the intended settings.
+# `section` names the reply: `repo` (repos/{repo}), `protection`
+# (branches/main/protection) or `actions` (actions/permissions/workflow).
+# The positional args are the status checks main must require. Emits one
+# line per mismatch, nothing when the reply matches the intended settings.
 
 def cite: " (scripts:V115).";
 
-if $section == "protection" then
+if $section == "repo" then
+  # Pull requests land by rebase merge only (`scripts/guard:B4`): a squash
+  # collapses a RED and a GREEN commit into one, and a merge commit hides
+  # them behind a second parent. GitHub omits these fields for a token
+  # without admin rights, so a missing one is a finding, never a match.
+  (if .allow_rebase_merge == true then empty
+    else "github-settings: rebase merging is not allowed (or not readable);"
+      + " pull requests land by rebase merge only" + cite end),
+  (if .allow_squash_merge == false then empty
+    else "github-settings: squash merging is allowed (or not readable); a"
+      + " squash collapses RED and GREEN into one commit" + cite end),
+  (if .allow_merge_commit == false then empty
+    else "github-settings: merge commits are allowed (or not readable);"
+      + " pull requests land by rebase merge only" + cite end)
+elif $section == "protection" then
   (if .enforce_admins.enabled == true then empty
     else "github-settings: main's protection does not include administrators"
       + " (enforce_admins)" + cite end),
