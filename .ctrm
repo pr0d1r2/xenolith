@@ -15,5 +15,6 @@
 .context-limits ascii+caveman
 SPEC.md ascii+caveman+math+spec-logic
 tests.rs ascii+caveman+marks+pl+en-aux
+tests/*.rs ascii+caveman+marks+pl+en-aux
 **/tests/*.rs ascii+caveman+marks+pl+en-aux
 docs/THIRD-PARTY-NOTICES.md ascii+caveman+legal
