@@ -395,7 +395,7 @@ pub fn vendored(root: &Path) -> Result<Vec<notices::Vendored>, String> {
         .map(|record| {
             let dir = record.trim_end_matches("/UPSTREAM").to_string();
             let mut files: Vec<String> = walk(&root.join(&dir), &|p| {
-                !p.contains('/') && (p.starts_with("LICENSE") || p.starts_with("NOTICE"))
+                !p.contains('/') && (select::is_notice_name(p))
             });
             files.sort();
             let notice = match files.iter().find(|f| f.starts_with("NOTICE")) {

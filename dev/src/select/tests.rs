@@ -82,26 +82,39 @@ fn no_scope_selects_every_output() {
 #[test]
 fn the_hk_glob_is_the_union_of_every_outputs_inputs() {
     let hk = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../hk.pkl"))
-        .expect("hk.pkl");
+        .unwrap_or_else(|e| panic!("hk.pkl: {e}"));
     let step = hk
         .split("[\"dev-generated\"] {")
         .nth(1)
-        .expect("dev-generated step");
+        .unwrap_or_else(|| panic!("no dev-generated step"));
     let list = step
         .split("glob = List(")
         .nth(1)
         .and_then(|s| s.split(')').next())
-        .expect("glob list");
-    let mut glob: Vec<&str> = list
+        .unwrap_or_else(|| panic!("no glob list"));
+    let glob: Vec<&str> = list
         .split(',')
         .map(|s| s.trim().trim_matches('"'))
         .filter(|s| !s.is_empty())
         .collect();
-    let mut union: Vec<&str> = OUTPUTS.iter().flat_map(|o| o.inputs.iter().copied()).collect();
-    glob.sort_unstable();
+    let mut union: Vec<&str> = OUTPUTS
+        .iter()
+        .flat_map(|o| o.inputs.iter().copied())
+        .collect();
     union.sort_unstable();
     union.dedup();
-    assert_eq!(glob, union);
+    // A literal input a wider glob entry already covers (`Cargo.toml` under
+    // `**/Cargo.toml`) is in the union without its own line.
+    let covered = |input: &str| {
+        glob.iter()
+            .any(|g| *g == input || (!input.contains('*') && matches(g, input)))
+    };
+    for input in &union {
+        assert!(covered(input), "{input} is an input but not in the hk glob");
+    }
+    for g in &glob {
+        assert!(union.contains(g), "{g} is in the hk glob but no input");
+    }
 }
 
 #[test]
@@ -115,7 +128,13 @@ fn a_name_prefix_pattern_matches_any_name_starting_so() {
 
 #[test]
 fn any_licence_or_notice_file_in_a_vendor_dir_selects_notices() {
-    for f in ["LICENSE-MIT", "LICENSE.md", "LICENSE", "NOTICE", "NOTICE.txt"] {
+    for f in [
+        "LICENSE-MIT",
+        "LICENSE.md",
+        "LICENSE",
+        "NOTICE",
+        "NOTICE.txt",
+    ] {
         let p = paths(&[&format!("languages/x/vendor/g/{f}")]);
         assert_eq!(selected(&p), vec!["notices"], "{f}");
     }
@@ -123,7 +142,13 @@ fn any_licence_or_notice_file_in_a_vendor_dir_selects_notices() {
 
 #[test]
 fn the_notice_name_rule_is_the_one_vendored_reads() {
-    for n in ["LICENSE", "LICENSE-MIT", "LICENSE.md", "NOTICE", "NOTICE.txt"] {
+    for n in [
+        "LICENSE",
+        "LICENSE-MIT",
+        "LICENSE.md",
+        "NOTICE",
+        "NOTICE.txt",
+    ] {
         assert!(super::is_notice_name(n), "{n}");
     }
     for n in ["README", "UPSTREAM", "COPYING", "license"] {

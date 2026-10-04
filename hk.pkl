@@ -267,9 +267,8 @@ local fast = new Mapping<String, Step> {
       "nix/package.nix",
       "nix/tools.nix",
       "**/UPSTREAM",
-      "**/LICENSE",
-      "**/LICENSE.txt",
-      "**/NOTICE.txt",
+      "**/LICENSE*",
+      "**/NOTICE*",
       "languages/api/src/**",
       "dev/src/**"
     )

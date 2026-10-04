@@ -57,20 +57,35 @@ pub const OUTPUTS: &[Generated] = &[
             "nix/package.nix",
             "nix/tools.nix",
             "**/UPSTREAM",
-            "**/LICENSE",
-            "**/LICENSE.txt",
-            "**/NOTICE.txt",
+            "**/LICENSE*",
+            "**/NOTICE*",
             "dev/src/**",
         ],
     },
 ];
 
-/// Does one changed path match one declared input? Three shapes and no
-/// more: a literal path, a `dir/**` prefix and a `**/name` suffix.
+/// Does a file name count as a licence or notice file? The one rule behind
+/// both the `**/LICENSE*` and `**/NOTICE*` inputs and what `vendored()`
+/// reads from a `vendor/<g>/` directory (`dev:V348`).
+#[must_use]
+pub fn is_notice_name(name: &str) -> bool {
+    name.starts_with("LICENSE") || name.starts_with("NOTICE")
+}
+
+/// Does one changed path match one declared input? Four shapes and no
+/// more: a literal path, a `dir/**` prefix, a `**/name` suffix and a
+/// `**/stem*` file-name prefix.
 #[must_use]
 pub fn matches(pattern: &str, path: &str) -> bool {
     if let Some(prefix) = pattern.strip_suffix("/**") {
         return path == prefix || path.starts_with(&format!("{prefix}/"));
+    }
+    if let Some(stem) = pattern
+        .strip_prefix("**/")
+        .and_then(|n| n.strip_suffix('*'))
+    {
+        let name = path.rsplit('/').next().unwrap_or(path);
+        return name.starts_with(stem);
     }
     if let Some(name) = pattern.strip_prefix("**/") {
         return path == name || path.ends_with(&format!("/{name}"));
