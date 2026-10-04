@@ -76,3 +76,57 @@ fn a_change_touching_no_input_selects_nothing() {
 fn no_scope_selects_every_output() {
     assert_eq!(selected(&[]).len(), OUTPUTS.len());
 }
+
+/// The hk step's glob is written by hand; this ties it to the outputs'
+/// inputs so a new input cannot be forgotten there (`dev:V348`).
+#[test]
+fn the_hk_glob_is_the_union_of_every_outputs_inputs() {
+    let hk = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../hk.pkl"))
+        .expect("hk.pkl");
+    let step = hk
+        .split("[\"dev-generated\"] {")
+        .nth(1)
+        .expect("dev-generated step");
+    let list = step
+        .split("glob = List(")
+        .nth(1)
+        .and_then(|s| s.split(')').next())
+        .expect("glob list");
+    let mut glob: Vec<&str> = list
+        .split(',')
+        .map(|s| s.trim().trim_matches('"'))
+        .filter(|s| !s.is_empty())
+        .collect();
+    let mut union: Vec<&str> = OUTPUTS.iter().flat_map(|o| o.inputs.iter().copied()).collect();
+    glob.sort_unstable();
+    union.sort_unstable();
+    union.dedup();
+    assert_eq!(glob, union);
+}
+
+#[test]
+fn a_name_prefix_pattern_matches_any_name_starting_so() {
+    assert!(matches("**/LICENSE*", "LICENSE"));
+    assert!(matches("**/LICENSE*", "a/vendor/g/LICENSE-MIT"));
+    assert!(matches("**/LICENSE*", "a/vendor/g/LICENSE.md"));
+    assert!(!matches("**/LICENSE*", "a/vendor/g/LICENSING/x.rs"));
+    assert!(!matches("**/LICENSE*", "a/vendor/g/README"));
+}
+
+#[test]
+fn any_licence_or_notice_file_in_a_vendor_dir_selects_notices() {
+    for f in ["LICENSE-MIT", "LICENSE.md", "LICENSE", "NOTICE", "NOTICE.txt"] {
+        let p = paths(&[&format!("languages/x/vendor/g/{f}")]);
+        assert_eq!(selected(&p), vec!["notices"], "{f}");
+    }
+}
+
+#[test]
+fn the_notice_name_rule_is_the_one_vendored_reads() {
+    for n in ["LICENSE", "LICENSE-MIT", "LICENSE.md", "NOTICE", "NOTICE.txt"] {
+        assert!(super::is_notice_name(n), "{n}");
+    }
+    for n in ["README", "UPSTREAM", "COPYING", "license"] {
+        assert!(!super::is_notice_name(n), "{n}");
+    }
+}
