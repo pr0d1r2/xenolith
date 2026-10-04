@@ -3,6 +3,8 @@ name = "xenolith-lang-just"
 description = "just support for xenolith: recipe bodies holding shell, on a vendored grammar"
 keywords = ["xenolith", "just", "justfile", "lint"]
 categories = ["development-tools"]
+documentation = "https://docs.rs/xenolith-lang-just"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -12,7 +14,7 @@ homepage.workspace = true
 authors.workspace = true
 # The vendored C ships in the package, or `cargo test` from crates.io has
 # no grammar to build (`languages:V121`, `tests:V14`).
-include = ["Cargo.toml", "build.rs", "src/**", "tests/**", "vendor/**"]
+include = ["Cargo.toml", "README.md", "build.rs", "src/**", "tests/**", "vendor/**"]
 
 # `languages/api:V32`: the api contract and the grammar's runtime. The
 # grammar is not a dependency: `tree-sitter-just` 0.2.0 IS on crates.io,
