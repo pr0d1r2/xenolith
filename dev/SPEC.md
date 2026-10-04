@@ -48,6 +48,7 @@ V344: a percentage TRUNCATED to 1 decimal (coverage is platform-dependent; trunc
 V345: a change SELECTS the blocks it can have invalidated: ∀ block declares its INPUTS, hk hands the changed files. heuristic in one direction ∴ 2 layers — scoped @ pre-commit, UNSCOPED @ pre-push & CI where ∀ block is compared.
 V346: honest where the tree is mixed: `unsafe` badge = `forbidden` only when ∀ shipped crate forbids it; a vendored-grammar crate w/ `unsafe_code = "deny"` + FFI (`languages:V121`) is COUNTED in the badge, ⊥ hidden. direct dependencies = distinct non-path `[dependencies]` keys over the SHIPPED manifests (members ∖ `publish = false`), ⊥ the root's keys alone (7 of its 9 are workspace crates).
 V347: `docs/THIRD-PARTY-NOTICES.md` = generated output only (`docs:V108`): ∀ third-party crate in the normal closure of the shipped crates w/ version & license, build-only crates listed apart, ∀ vendored grammar w/ repo, rev, license & NOTICE verbatim, ∀ tool the nix package wraps w/ its nixpkgs license. ⊥ absolute path in the output ∴ same bytes on ∀ checkout.
+V348: the hk step `dev-generated` glob = the UNION of ∀ block INPUTS, tied by a test (⊥ 2 hand-kept lists drifting). a licence/notice file counts by ONE definition (`select::is_notice_name`: name starts w/ `LICENSE` or `NOTICE`), shared by the selector inputs `**/LICENSE*` & `**/NOTICE*` and by `vendored()`.
 
 ## §T TASKS
 
@@ -60,3 +61,4 @@ id|status|task|cites
 ## §B BUGS
 
 id|date|cause|fix
+B1|2026-10-04|hk glob & `select::OUTPUTS` = 2 untested lists; notices inputs missed `LICENSE.md`, `LICENSE-MIT`, `NOTICE` that `vendored()` reads (#31)|V348: union test + shared name definition
