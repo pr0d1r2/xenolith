@@ -1,0 +1,1 @@
+lint | shell | JustRecipe | bash errexit nounset | - | "shellcheck scripts/*.sh\nshfmt --diff scripts"

@@ -1,0 +1,9 @@
+# clippy's own knobs. The lint LEVELS live in Cargo.toml's
+# `[workspace.lints]`, where every crate inherits them; this file holds only
+# the thresholds those lints read.
+
+# The default is 7. A `Site` already carries a sink, a guest, an env, a
+# delimiter and its holes, and the engines pass spans alongside -- so the
+# honest number here is above the default, and raising it deliberately is
+# better than sprinkling allow attributes at each call site.
+too-many-arguments-threshold = 8

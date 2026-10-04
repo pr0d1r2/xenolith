@@ -1,0 +1,10 @@
+# `exec <interp> << <word>`: Tcl feeds the value to stdin, and an
+# interpreter that reads its PROGRAM from stdin runs it
+# (`languages/shells/tcl:V196`). The guest is the interpreter's; expect
+# is a dialect of tcl (`languages/shells/tcl:V195`). A pipeline after the
+# value leaves stdin alone.
+exec python3 << | python | - | - | $src | "$src"
+exec tclsh << | tcl | { | - | - | "puts hi"
+exec expect << | tcl | { | expect | - | "spawn ssh host"
+exec psql << | sql | { | - | - | "select 1;"
+exec sh << | shell | { | sh | - | "a | b"

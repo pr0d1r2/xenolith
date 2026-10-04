@@ -1,0 +1,10 @@
+# Valid Tcl the upstream grammar rejected, failing the whole file
+# (`languages/shells/tcl:B1`): a `$` that starts no variable name, `;`
+# ending a command mid-line, an expression with no spaces, an array read
+# as `set`'s value, `then` and a boolean word in `if`, a `try` handler
+# and a `]` inside quotes. With the local patch the file reads, and its
+# sites with it. The lone `$` in a quoted body is text, not a hole.
+exec sh -c | shell | { | sh | - | "a | b"
+exec bash -c | shell | " | bash | $HOME | "echo $ $HOME"
+exec sh -c | shell | " | sh | $v | "ls $v"
+exec bash -c | shell | { | bash | - | "echo x"

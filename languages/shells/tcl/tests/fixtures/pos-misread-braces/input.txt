@@ -1,0 +1,3 @@
+set n [exec sh -c {ls $(pwd) | wc -l}]
+exec bash -c {for f in *; do echo "$f"; done}
+exec sh -c {awk '{print $1}' notes}

@@ -1,0 +1,3 @@
+clean | ok | sh ./scripts/just/clean.sh | "rm -rf dist || true\nrm -rf target || true\nmkdir dist"
+quiet | ok | @sh ./scripts/just/quiet.sh | "echo building\ncargo build || true"
+mixed | refused | @ only in part

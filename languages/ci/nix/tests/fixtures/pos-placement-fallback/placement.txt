@@ -1,0 +1,3 @@
+# No attribute segment left once the builder is dropped: the name falls
+# back to `<host_stem>-<sink>` (`languages/api/src/site:V43`).
+writeShellScript | {host_stem}-write-shell-script | {host_dir}/{host_stem}

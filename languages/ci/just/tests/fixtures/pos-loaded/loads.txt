@@ -1,0 +1,3 @@
+./scripts/just/build.sh | shell | @sh ./scripts/just/build.sh
+scripts/test.sh | shell | bash scripts/test.sh {{args}}
+scripts/zsh-only.zsh | shell | zsh scripts/zsh-only.zsh

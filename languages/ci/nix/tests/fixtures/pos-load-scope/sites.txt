@@ -1,0 +1,5 @@
+# `languages/ci/nix:V53`, `languages/ci/nix:V170`: the `let` binds `nix-shebang`,
+# so the lens laws take these sites round through `readWithoutStrict`,
+# where every fixture without the binding goes through `readFile`.
+systemd.services.backup.script | '' | bash errexit | - | "\n    mkdir -p /var/backup\n    tar czf /var/backup/home.tgz /home\n  "
+devShells.default.shellHook | '' | bash | - | "\n      echo entering\n      export APP_ENV=dev\n    "

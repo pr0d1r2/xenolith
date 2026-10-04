@@ -1,0 +1,3 @@
+docs | shell | JustRecipe | sh errexit nounset | - | "cd docs\nmdbook build"
+env | shell | JustRecipe | sh errexit nounset | - | "export RUST_LOG=debug\ncargo run"
+last | shell | JustRecipe | sh errexit nounset | - | "cargo build\ncd target"

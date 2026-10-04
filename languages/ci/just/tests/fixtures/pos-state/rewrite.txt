@@ -1,0 +1,3 @@
+docs | refused | changes shell state
+env | refused | changes shell state
+last | ok | sh ./scripts/just/last.sh | "cargo build\ncd target"

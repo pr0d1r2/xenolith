@@ -1,0 +1,2 @@
+# The load that makes `a` a non-site is what `loads` reports.
+./a.sh | shell | builtins.readFile ./a.sh

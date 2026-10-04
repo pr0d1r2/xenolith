@@ -1,0 +1,31 @@
+amends "package://github.com/jdx/hk/releases/download/v1.2.0/hk@1.2.0#/Config.pkl"
+
+local linters = new Mapping<String, Step> {
+  ["shellcheck"] {
+    glob = List("**/*.sh")
+    check = """
+      if [ -n "$CI" ]; then
+        shellcheck --format=gcc {{files}}
+      else
+        shellcheck {{files}}
+      fi
+      """
+    fix = #"""
+      for f in {{files}}; do
+        sed -i 's/\t/  /g' "$f"
+      done
+      """#
+  }
+  ["typos"] {
+    glob = List("**/*")
+    check_list_files = """
+      typos --files | grep -v '^vendor/'
+      """
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    steps = linters
+  }
+}

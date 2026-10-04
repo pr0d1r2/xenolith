@@ -1,0 +1,8 @@
+version = 1
+
+# The just host's fixtures hold embedded shell ON PURPOSE: each positive case
+# is a site the host must report (`tests:V15`). Scanning them would flag the
+# very inputs the crate's tests assert on (`.:V19`, `.:T28`).
+[[exclude]]
+glob = "tests/fixtures"
+reason = "just host fixtures embed shell by design; the crate's own tests read them"

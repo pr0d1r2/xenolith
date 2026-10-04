@@ -1,0 +1,3 @@
+build | shell | JustRecipe | sh errexit nounset | - | "sh ./scripts/just/build.sh"
+test | shell | JustRecipe | sh errexit nounset | {{args}} | "bash scripts/test.sh {{args}}\nzsh scripts/zsh-only.zsh"
+script | shell | JustShebangRecipe | bash | - | "#!/usr/bin/env bash\nbash scripts/inside.sh"

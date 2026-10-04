@@ -1,0 +1,15 @@
+tclsh check.tcl <<EOF
+input for check.tcl
+EOF
+
+tclsh -c 'puts hi' <<EOF
+tclsh has no -c: neither the argument nor this heredoc is a program
+EOF
+
+expect -f login.exp <<EOF
+input for login.exp
+EOF
+
+wish app.tcl <<'EOF'
+input for app.tcl
+EOF

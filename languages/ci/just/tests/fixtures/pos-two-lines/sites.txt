@@ -1,0 +1,1 @@
+release | shell | JustRecipe | sh errexit nounset | - | "cargo build --release\ncp target/release/app dist/"

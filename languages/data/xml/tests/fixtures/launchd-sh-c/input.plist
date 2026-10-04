@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- A launchd job that runs a shell script kept inline: argv[2] of
+    `sh -c` is the site (languages/data/xml:V189). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.example.backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>cd "$HOME/data" || exit 1
+for f in *.db; do
+  cp "$f" "$HOME/backup/$f"
+done</string>
+  </array>
+  <key>StartInterval</key>
+  <integer>3600</integer>
+</dict>
+</plist>

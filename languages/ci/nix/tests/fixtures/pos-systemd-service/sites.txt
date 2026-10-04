@@ -1,0 +1,6 @@
+# NixOS service `preStart`, `script`, `postStart` run under
+# `makeJobScript`'s `#! runtimeShell -e`. `description` beside them is
+# inert data (`languages/api/src/site:V38`).
+systemd.services.backup.preStart | '' | bash errexit | - | "\n      mkdir -p /var/backup\n    "
+systemd.services.backup.script | '' | bash errexit | ${pkgs.coreutils} | "\n      tar czf /var/backup/home.tgz /home\n      ${pkgs.coreutils}/bin/sync\n    "
+systemd.services.backup.postStart | " | bash errexit | - | "echo started"

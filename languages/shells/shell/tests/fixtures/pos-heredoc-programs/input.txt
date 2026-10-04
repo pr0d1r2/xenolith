@@ -1,0 +1,26 @@
+set -euo pipefail
+
+python3 <<'PY'
+import sys
+print(sys.argv)
+PY
+
+ruby <<RB
+puts "#{ENV['HOME']} $HOME"
+RB
+
+psql "$DATABASE_URL" <<SQL
+select count(*) from users where name = '${name}';
+SQL
+
+node - <<'JS'
+console.log(process.argv.length)
+JS
+
+perl -w <<'PL'
+print "hi\n";
+PL
+
+bash <<'SH'
+ls | wc -l
+SH

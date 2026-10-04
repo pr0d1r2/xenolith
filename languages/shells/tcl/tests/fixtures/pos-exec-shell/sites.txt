@@ -1,0 +1,11 @@
+# `exec <shell> -c <word>` (`languages/shells/tcl:V196`): the dialect is
+# the interpreter, the options are the ones ITS argv sets. A braced word
+# is verbatim; a quoted one holds Tcl's `$var` and `[cmd]` as holes; a
+# bare word has no delimiter. `exec bash -c {ls}` is a site too -- that
+# it stays inline is the shell guest's verdict, not the host's.
+exec sh -c | shell | { | sh | - | "a | b"
+exec bash -c | shell | { | bash | - | "ls"
+exec bash -c | shell | { | bash errexit nounset | - | "ls | wc -l"
+exec sh -c | shell | " | sh | $HOME, [pwd] | "echo $HOME [pwd]"
+exec zsh -c | shell | { | zsh errexit | - | "print hi"
+exec dash -c | shell | - | dash | - | "ls"

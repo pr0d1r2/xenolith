@@ -1,0 +1,26 @@
+# zizmor's ignore ledger -- the debt, written down rather than absorbed.
+#
+# The gate runs `--persona=pedantic`, which is stricter than the findings
+# this repository is obliged to fix: pedantic reports smells, and a smell is
+# a claim about how a file will age rather than about how it behaves today.
+# Running it anyway is the point; an entry below is the price of not
+# conforming, stated once and in the open.
+#
+# WHAT AN ENTRY MEANS: the finding is real, it is understood, and it is not
+# being fixed for a reason that outlives whoever wrote it down. It does NOT
+# mean the finding is wrong -- a false positive belongs upstream as a bug
+# report, not here.
+#
+# EVERY ENTRY CARRIES ITS EXIT (`scripts:V114`): the condition that would
+# retire it. An ignore with no stated exit is indistinguishable from one
+# nobody revisits, which is how a debt register becomes a wall of noise.
+#
+# LINE NUMBERS ARE PART OF THE MATCH, so an entry that drifts stops
+# suppressing and the finding returns. That forces a re-read whenever the
+# surrounding job moves.
+#
+# EMPTY, and by measurement rather than by omission: `zizmor
+# --persona=pedantic` reports nothing on `.github/workflows/ci.yml` as of
+# 2026-09-20. The file exists so the first exemption has to be written
+# somewhere that already explains what writing one costs.
+rules: {}

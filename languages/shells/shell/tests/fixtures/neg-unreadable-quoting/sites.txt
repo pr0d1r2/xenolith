@@ -1,0 +1,4 @@
+# A `-c` argument is a site when it is ONE quoted string the host can
+# read back exactly (`languages/shells/shell:V139`): single-quoted, or
+# double-quoted with no backslash. Not `$'…'`, not a bare word, not a
+# concatenation -- and not a `-c` that belongs to a script's own argv.

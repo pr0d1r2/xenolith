@@ -1,0 +1,4 @@
+# expect's `spawn <shell> -c <word>` hands a shell its program exactly
+# as `exec` does (`languages/shells/tcl:V196`).
+spawn sh -c | shell | { | sh | - | "a | b"
+spawn bash -c | shell | { | bash errexit | - | "tail -n 5 log | grep x"

@@ -1,0 +1,146 @@
+# The workspace and the root crate in one manifest: `xenolith` is both the
+# library consumers call and the package that owns the `xnl` binary
+# (`src:C1`), and a separate virtual-manifest root would add a directory
+# level that exists only to hold a file.
+
+[workspace]
+# Language crates join as they land (`languages:C24`). The list is explicit
+# rather than a glob: a glob makes a half-written crate a member the moment
+# its directory appears, and `cargo test` then fails for a reason that has
+# nothing to do with the change being made.
+#
+# `dev` is the one member that is never published (`publish = false`): the
+# tooling that regenerates this repository's README blocks and notices
+# (`dev` §G). The nix package builds `-p xenolith`, so it ships nowhere
+# (`nix:V349`).
+members = [
+  "dev",
+  "languages/api",
+  "languages/ci/just",
+  "languages/ci/nix",
+  "languages/ci/pkl",
+  "languages/data/xml",
+  "languages/shebang",
+  "languages/shells/shell",
+  "languages/shells/tcl",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+# Edition 2024 and the rustc pinned in nixpkgs-lock, stated rather than
+# discovered (`src:C2`, `src:V18`). No rust-toolchain.toml, no rust-overlay:
+# the flake already decides the toolchain, and a second declaration is a
+# second thing to drift.
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+repository = "https://github.com/pr0d1r2/xenolith"
+homepage = "https://github.com/pr0d1r2/xenolith"
+authors = ["Marcin Nowicki"]
+
+# One lint policy for every crate in the workspace, inherited via
+# `lints.workspace = true` (`src:C5`).
+[workspace.lints.clippy]
+# A panic in a linter is a linter that stops mid-tree and reports nothing
+# about the files it had not reached. These are DENY rather than warn
+# because `-D warnings` already makes warnings fatal in the gate -- naming
+# them here states the rule where a reader looks for it.
+unwrap_used = "deny"
+expect_used = "deny"
+# The tool's whole subject is text spans; an off-by-one in slicing is the
+# defect class most likely to be silent.
+indexing_slicing = "deny"
+pedantic = { level = "warn", priority = -1 }
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[package]
+name = "xenolith"
+description = "One language per file: find embedded foreign code, extract it, verify every load resolves"
+keywords = ["lint", "refactor", "shell", "nix", "static-analysis"]
+categories = ["development-tools", "command-line-utilities"]
+documentation = "https://docs.rs/xenolith"
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+# The closed form (`nix:V112`): this manifest sits at the repository root, so
+# without a list the package would carry the whole repository -- the gate,
+# the flake, the specs and every script. Tests read only `src/` and
+# `Cargo.toml`.
+include = ["Cargo.toml", "README.md", "LICENSE", "CHANGELOG.md", "src/**", "tests/*.rs"]
+
+# docs.rs builds the default features unless told otherwise; naming every
+# language keeps a future non-default one documented (`nix:V112`).
+[package.metadata.docs.rs]
+features = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl", "lang-xml"]
+
+[lib]
+name = "xenolith"
+path = "src/lib.rs"
+
+# `xnl` is the xenolith consonant skeleton, the `rg` shape (`src:C1`).
+[[bin]]
+name = "xnl"
+path = "src/main.rs"
+
+# Three dependencies, each justified here (`src:C5`); the network crates are
+# banned outright in deny.toml (`src:V12`).
+[dependencies]
+# The contract every language crate implements. The root crate holds the
+# registry and the engines, so it depends on the api and on each language
+# crate -- never the reverse (`languages/api:V32`).
+xenolith-lang-api = { path = "languages/api", version = "0.1.0" }
+# JSON output (`src/cli` §I). serde_json rather than a hand-rolled writer:
+# escaping is the part everyone gets wrong, and its default map is a
+# BTreeMap, so keys come out sorted and the bytes are stable without a
+# second sort pass (`src:V11`). The derive half of serde is NOT a
+# dependency: the values here name foreign types like `DelimKind`, and a
+# derive would need a wrapper type per foreign type to say what this file
+# says in one match.
+serde_json = "1"
+# `xenolith.toml` (`src/config:C16`). A TOML parser is not something to
+# hand-roll: quoting, dotted keys, inline tables and arrays of tables are
+# all load-bearing in the schema. Default features off: `parse` reads,
+# `serde` is required by `toml::Table` itself (serde_core only -- still
+# no derive), and `display` (the writer) is not needed to read a config.
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
+# Each language is an OPTIONAL dependency behind its own `lang-*` feature
+# (`src:C1`, `nix:C8`), so a consumer can compile a binary carrying only
+# the grammars they use -- a tree-sitter grammar is the largest thing in
+# this closure, and `xnl` with two languages should not ship eighteen.
+xenolith-lang-just = { path = "languages/ci/just", version = "0.1.0", optional = true }
+xenolith-lang-nix = { path = "languages/ci/nix", version = "0.1.0", optional = true }
+xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.1.0", optional = true }
+xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", optional = true }
+xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.1.0", optional = true }
+xenolith-lang-xml = { path = "languages/data/xml", version = "0.1.0", optional = true }
+
+# `default` = every language, so `xnl` works out of the box and a subset
+# is an explicit `default-features = false` choice (`src:C1`). A feature
+# is COMPILE time -- the grammar is absent from the binary -- while
+# `xenolith.toml` `[langs]` is the runtime toggle over what was compiled
+# in; the two are different questions and neither substitutes for the
+# other.
+#
+# `cargo hack --each-feature` builds and tests each subset in the gate
+# (`src:V30`), because a module that reaches across a feature gate
+# compiles fine in the default build and breaks only in a consumer's.
+[features]
+default = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl", "lang-xml"]
+lang-just = ["dep:xenolith-lang-just"]
+lang-nix = ["dep:xenolith-lang-nix"]
+lang-pkl = ["dep:xenolith-lang-pkl"]
+lang-shell = ["dep:xenolith-lang-shell"]
+lang-tcl = ["dep:xenolith-lang-tcl"]
+lang-xml = ["dep:xenolith-lang-xml"]
+
+[lints]
+workspace = true

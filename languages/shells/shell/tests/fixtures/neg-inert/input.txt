@@ -1,0 +1,7 @@
+# python3 <<EOF in a comment is not a heredoc
+# bash -c 'a | b' in a comment is not a command
+echo 'python3 -c "print(1)"'
+echo "bash -c 'ls | wc -l'"
+printf '%s\n' "ruby -e 'puts 1'"
+usage="perl -e 'print 1'"
+echo "$usage"

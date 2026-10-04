@@ -1,0 +1,19 @@
+Vendored grammar record (languages:V121).
+
+repo:     https://github.com/apple/tree-sitter-pkl
+tag:      v0.21.0
+rev:      5893fb5dc832ea51a9bff3f84462528c766ecd7d
+license:  Apache-2.0 (LICENSE.txt, NOTICE.txt beside this file, verbatim)
+abi:      tree-sitter LANGUAGE_VERSION 15
+
+Files, copied verbatim from the rev above and never edited here:
+
+  src/parser.c
+  src/scanner.c
+  src/tree_sitter/alloc.h
+  src/tree_sitter/array.h
+  src/tree_sitter/parser.h
+
+Why vendored: the grammar is not published on crates.io, and a git
+dependency cannot be published and breaks the offline build. A refresh is
+its own commit naming the new rev.

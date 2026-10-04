@@ -1,0 +1,2 @@
+# Comments, expression strings, backticks, bodiless recipes, a `[script]`
+# recipe and an unknown shebang: none is a site.

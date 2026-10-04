@@ -1,0 +1,62 @@
+# chain ceilings (tokens) per sherd node; `sherd budget`/`validate` & `itok check` gate them.
+# 5000 = working ceiling agreed 2026-09-19; raise only in own commit w/ Why (scripts:V26).
+# BRIDGE 2026-09-21: the 4 `languages/api/src*` rows sit above 5000. Their
+# chains are 5 nodes deep (root + languages + api + src + self) & the
+# kinship amendment (`languages:V130`-`V133`) added ~1050 tok to every one.
+# Headroom ~12% over measured, ⊥ round numbers: a ceiling a hair above
+# current turns each legitimate row into a raise. `languages:T137` landed
+# 2026-09-27 & cut these chains ~260 tok, ⊥ the ~1k hoped: sherd loads
+# §G §C §I §V §T of each node, ⊥ §F/§N, so a shorter sibling list was never
+# in the chain (`languages:V129`). measured 2026-09-27: api/src 5161, site
+# 5970, lens 6306, holes 6037 -- each < 12% under its ceiling ∴ KEPT as is.
+# RETIRED when each measures ≤ 5000 (api's own rows or `languages` rows
+# spanning families shed to where they are used, `.:C22`).
+# RETIRED 2026-09-27: the 2026-09-26 bridges of `src/config`, `src/extract`,
+# `src/cli` & `languages/api` -- back to 5000 once `src` shed its engine rows
+# to `src/{check,discover,registry}` & `languages` its family rows to hubs.
+SPEC.md                  5000
+languages                5000
+languages/api            5000
+languages/data/awk       5000
+languages/data/jq        5000
+languages/ci/just        5000
+languages/ci/nix         5000
+languages/ci/pkl         5000
+languages/data/python    5000
+languages/shells/shell   5000
+languages/data/sql       5000
+nix                      5000
+scripts                  5000
+scripts/guard            5000
+src                      5000
+src/config               5000
+src/extract              5000
+src/graph                5000
+src/lint                 5000
+tests                    5000
+languages/ci/yaml        5000
+languages/ci/dockerfile  5000
+languages/shebang        5000
+languages/rust           5000
+languages/ruby           5000
+languages/web/html       5000
+src/cli                  5000
+docs                     5000
+languages/api/src        5600
+languages/api/src/site   6500
+languages/api/src/lens   6600
+languages/api/src/holes  6300
+languages/web/js         5000
+languages/web/css        5000
+languages/data/perl      5000
+languages/shells         5000
+languages/ci             5000
+languages/data           5000
+languages/web            5000
+languages/shells/bats    5000
+src/check                5000
+src/discover             5000
+src/registry             5000
+languages/data/xml       5000
+languages/shells/tcl     5000
+dev                      5000

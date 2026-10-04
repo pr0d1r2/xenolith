@@ -1,0 +1,2 @@
+# A dev shell's `shellHook`: bash, and no options imposed on it.
+shellHook | '' | bash | - | "\n    export RUST_BACKTRACE=1\n    echo \"entered dev shell\"\n  "

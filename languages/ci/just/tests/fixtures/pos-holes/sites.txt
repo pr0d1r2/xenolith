@@ -1,0 +1,2 @@
+test | shell | JustRecipe | sh errexit nounset | {{target}}, {{ if target == "all" { "everything" } else { target } }} | "cargo test {{target}}\necho done {{ if target == \"all\" { \"everything\" } else { target } }}"
+braces | shell | JustRecipe | sh errexit nounset | - | "echo x{{y}}\necho z"

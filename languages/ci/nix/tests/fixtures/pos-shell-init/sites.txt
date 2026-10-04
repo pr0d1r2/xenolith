@@ -1,0 +1,6 @@
+# `languages/ci/nix:T159`: home-manager's shell init options are sourced
+# into that program's interactive shell -- zsh or bash -- which sets no
+# options on them. The program is the segment before the option, through
+# nested sets and through a function the set is handed to (`mkIf`).
+programs.zsh.initContent | '' | zsh | - | "\n      bindkey -e\n      autoload -U compinit && compinit\n    "
+programs.bash.bashrcExtra | '' | bash | - | "\n      export PATH=\"$HOME/.local/bin:$PATH\"\n    "

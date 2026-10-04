@@ -1,0 +1,4 @@
+# Extraction of a trivial body is never asked by the engine, but the lens
+# still holds for it.
+default | ok | sh ./scripts/just/default.sh | "just --list"
+build | ok | sh ./scripts/just/build.sh | "cargo build --release"

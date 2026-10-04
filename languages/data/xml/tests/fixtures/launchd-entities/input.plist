@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The body the shell receives is the DECODED text: entities and
+    character references resolved, CDATA verbatim
+    (languages/data/xml §I). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.example.report</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-c</string>
+    <string>test -d /tmp/r &amp;&amp; ls /tmp/r | wc -l &gt; /tmp/r.count
+[ "$(cat /tmp/r.count)" -lt 3 ] &amp;&amp; echo &#x6c;ow<![CDATA[ && echo "<done>"]]></string>
+    <string>report</string>
+  </array>
+</dict>
+</plist>

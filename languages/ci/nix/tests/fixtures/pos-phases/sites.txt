@@ -1,0 +1,5 @@
+# stdenv `*Phase` strings run under setup.sh's `set -eu -o pipefail`.
+# The phase NAMES listed in `phases` are data, not sites.
+buildPhase | '' | bash errexit nounset pipefail | - | "\n    make all\n  "
+installPhase | '' | bash errexit nounset pipefail | - | "\n    install -Dm755 demo $out/bin/demo\n  "
+checkPhase | " | bash errexit nounset pipefail | - | "make test"

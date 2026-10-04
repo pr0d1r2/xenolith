@@ -1,0 +1,34 @@
+[package]
+name = "xenolith-shebang"
+description = "Parse, strip and wrap shebang lines for any guest language, matching nix-shebang"
+keywords = ["shebang", "shell", "script", "xenolith"]
+categories = ["development-tools", "parsing"]
+documentation = "https://docs.rs/xenolith-shebang"
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+# The closed form (`nix:V112`): what ships is named, so a file added beside
+# the crate stays out of the package until it is listed here.
+include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
+
+# No dependencies and no features (`languages/shebang` §G). This crate is
+# the one thing `xenolith-lang-api` may depend on
+# (`languages/api:V32`), so anything that lands here lands in every
+# language crate's tree.
+[dependencies]
+
+# Test-only. The shared vectors arrive as JSON from nix-shebang and a
+# hand-rolled reader for them would be a second parser to get wrong -- in
+# the one file whose job is proving this port matches. Dev-dependencies do
+# not reach a consumer's build, and `cargo hack --no-dev-deps` checks the
+# crate without them.
+[dev-dependencies]
+serde_json = "1"
+
+[lints]
+workspace = true

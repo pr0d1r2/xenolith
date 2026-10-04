@@ -1,0 +1,50 @@
+# Byte-level house style, stated once for every editor that reads it. The
+# gate checks these same properties (`hk.pkl`: trailing-whitespace,
+# final-newline, line-endings), so this file is the DECLARATION and hk is
+# the enforcement -- an editor that honours it simply never trips them.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.rs]
+# rustfmt is the authority for Rust layout (`scripts:V22`), so the
+# indent width is UNSET here rather than stated twice. Measured: rustfmt
+# indents a wrapped string continuation to the opening quote, which is
+# not a multiple of four, and editorconfig-checker then rejects a file
+# rustfmt considers formatted -- two formatters over one file is drift
+# with extra steps. The line cap stays, because both agree on 100.
+indent_size = unset
+max_line_length = 100
+
+[*.sh]
+switch_case_indent = true
+# shfmt is run with `-i 2`, so the two agree by construction.
+indent_size = 2
+
+[*.md]
+# A hard-wrapped SPEC.md row would change meaning, and trailing double-space
+# is markdown's line break -- so markdown opts out of the trim.
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[**/vendor/**]
+# Verbatim upstream (`languages:V121`): a vendored grammar's C and license
+# files are copied byte for byte at a named rev, and an editor that
+# "fixes" their whitespace forks them while they still claim to be the
+# release. Every property is UNSET so no editor touches their bytes; hk's
+# byte-level steps exclude the same directories (`hk.pkl`, `verbatim`).
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+max_line_length = unset

@@ -1,0 +1,537 @@
+/// xenolith's gate, defined ONCE (`scripts:V122`).
+///
+/// Every op below is one plain command a human can paste (`scripts:C9`). hk
+/// decides WHEN a step runs -- which files changed, which hook, in what
+/// order -- and never hides WHAT runs, so a verdict never rests on the
+/// runner's own logic. Where a step needs more than the tool call itself,
+/// the extra lives in `scripts/hk/*.sh` or in the tool's own output
+/// (`scripts:C21`), never in an inline `|| { echo ...; }`: shell inlined
+/// here is shell that shellcheck, shfmt and bats never see -- which is the
+/// exact defect this project exists to find in other people's files.
+///
+/// CI calls this same set (`hk check --all`) rather than restating it, so a
+/// step exists in one place and a local pass means what a CI pass means.
+///
+/// The schema is VENDORED at `pkl/Config.pkl` rather than fetched from a
+/// `package://` URL at eval time: offline is the default, not a flag
+/// (`.:C3`), and a gate that needs a network is a gate that goes soft on a
+/// plane. The file is upstream hk's, verbatim, and `typos` excludes it so a
+/// "correction" cannot silently fork it from the pinned release.
+amends "pkl/Config.pkl"
+
+/// Success is silence. Output that always appears is output nobody reads,
+/// which is how a real failure hides in noise everyone learned to scroll
+/// past.
+///
+/// `fail_fast` locally because the loop is cheap, so the FIRST failure is
+/// the most useful thing to surface; CI inverts it, where a round trip
+/// costs minutes and a complete list beats an early one.
+fail_fast = true
+
+env {
+  ["HK_HIDE_WHEN_DONE"] = "true"
+}
+
+/// Verbatim upstream: a vendored grammar's generated C and its license
+/// files, copied byte for byte at a named rev (`languages:V121`). The
+/// byte-level hygiene steps that judge choices upstream made -- file size,
+/// indent, final newline -- exclude it, because the only way to pass them
+/// there is to edit the files, and an edited "verbatim" copy is a fork
+/// that still claims to be the release it names. Narrow on purpose:
+/// `vendor/` directories only, and only those steps. The content checks
+/// (secrets, conflict markers, spelling, line endings) still read it.
+local verbatim = List("**/vendor/**")
+
+/// LAYER ONE: what runs on every commit. Scoped by glob, so a SPEC-only
+/// commit never waits on a compiler and a shell-only commit never waits on
+/// cargo.
+///
+/// `depends` chains the cargo steps deliberately. Cargo takes a lock on the
+/// target directory, so two cargo jobs launched in parallel do not run in
+/// parallel -- the second blocks on "Blocking waiting for file lock on
+/// build directory", which READS AS A HANG. Chaining makes the
+/// serialization explicit and leaves the non-cargo checks free to run
+/// concurrently.
+///
+/// No crate exists yet: the spec federates before the code (`.:C22`). The
+/// cargo steps are written now and match nothing, so the first `src/`
+/// commit arrives into a gate that already compiles, clippies and tests it
+/// -- rather than into one somebody has to remember to extend.
+local fast = new Mapping<String, Step> {
+  ["fmt"] {
+    glob = List("**/*.rs")
+    check = "cargo fmt --check"
+    fix = "cargo fmt"
+  }
+  ["clippy"] {
+    glob = List("**/*.rs")
+    depends = List("fmt")
+    check = "cargo clippy --workspace --all-targets --all-features -- -D warnings"
+  }
+  ["test"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "tests/fixtures/**/*")
+    depends = List("clippy")
+    check = "cargo test --workspace --all-features"
+  }
+
+  // The shell in this repo is not incidental: every guardrail is a shell
+  // script, and embedded shell is the tool's own first subject. So the
+  // shell trio gates `scripts/` and `.github/scripts/` exactly as cargo
+  // gates `src/` (`scripts:C13`).
+  //
+  // `.envrc` is in the shellcheck glob on purpose -- it is shell that runs
+  // on every directory entry, and it is the file that brings the whole
+  // toolchain in.
+  ["shellcheck"] {
+    glob = List("**/*.sh", ".envrc")
+    check = "scripts/hk/run-tool.sh shellcheck --shell=bash {{files}}"
+  }
+  ["shfmt"] {
+    glob = List("**/*.sh")
+    check = "scripts/hk/run-tool.sh shfmt --indent 2 --diff {{files}}"
+    fix = "scripts/hk/run-tool.sh shfmt --indent 2 --write {{files}}"
+  }
+  // Every test, rather than the mirrored file, and the glob says why: a
+  // change to a script must run its own test, but a change to any test must
+  // run beside the others it shares helpers with. The suite is seconds;
+  // splitting it would buy nothing and lose the cross-check.
+  //
+  // Every test whose script EXISTS (`scripts:V352`): a RED commit adds a
+  // test before its script (`scripts:C11`), and the whole suite here
+  // refused it (`scripts:B3`). The runner names each test it holds back;
+  // `bats-all` runs the whole suite on push.
+  ["bats"] {
+    glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
+    check = "scripts/hk/bats-ready.sh"
+  }
+
+  // Nix gates this repo's own toolchain: the flake decides what every other
+  // step runs with, so drift here is drift everywhere. statix and deadnix
+  // catch what a formatter cannot -- a dead `let` binding evaluates fine
+  // forever, and an anti-pattern stays legal nix.
+  ["nixfmt"] {
+    glob = List("**/*.nix")
+    check = "scripts/hk/run-tool.sh nixfmt --check {{files}}"
+    fix = "scripts/hk/run-tool.sh nixfmt {{files}}"
+  }
+  ["statix"] {
+    glob = List("**/*.nix")
+    // statix takes ONE target, not a file list, so this step is
+    // whole-tree by construction. That is cheap here and it is also more
+    // honest: an anti-pattern in an untouched file is still in the tree.
+    check = "scripts/hk/run-tool.sh statix check ."
+    fix = "scripts/hk/run-tool.sh statix fix ."
+  }
+  ["deadnix"] {
+    glob = List("**/*.nix")
+    check = "scripts/hk/run-tool.sh deadnix --fail {{files}}"
+    fix = "scripts/hk/run-tool.sh deadnix --edit {{files}}"
+  }
+
+  // The workflow is the ONE file no other local step exercises: a mistake
+  // in it is found by pushing. actionlint CHECKS its syntax and types;
+  // zizmor AUDITS its security posture. Neither replaces the other --
+  // actionlint knows nothing about token scope, zizmor does no type
+  // checking at all (`scripts:V114`).
+  ["actionlint"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "scripts/hk/run-tool.sh actionlint {{files}}"
+  }
+  ["zizmor"] {
+    glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+    check = "scripts/hk/run-tool.sh zizmor --no-progress --persona=pedantic -c .github/zizmor.yml {{files}}"
+  }
+
+  ["taplo"] {
+    glob = List("**/*.toml")
+    // taplo logs two INFO lines about its own config discovery on every
+    // run. Success is silence, and a line that always appears is a line
+    // nobody reads -- so its logger is turned down rather than its
+    // findings, which arrive on their own channel.
+    env {
+      ["RUST_LOG"] = "error"
+    }
+    check = "scripts/hk/run-tool.sh taplo format --check --diff {{files}}"
+    fix = "scripts/hk/run-tool.sh taplo format {{files}}"
+  }
+  ["typos"] {
+    glob = List("**/*")
+    check = "scripts/hk/run-tool.sh typos --force-exclude {{files}}"
+    fix = "scripts/hk/run-tool.sh typos --force-exclude --write-changes {{files}}"
+  }
+  // `.editorconfig` states the byte-level house style; this is what makes
+  // it a rule rather than a suggestion an editor may or may not honour.
+  ["editorconfig"] {
+    glob = List("**/*")
+    exclude = verbatim
+    check = "scripts/hk/run-tool.sh editorconfig-checker {{files}}"
+  }
+
+  // The SPEC toolchain (`scripts:C21`). microlith owns the format: `mth
+  // fmt` is whitespace-only and proves that before writing, `mth check` is
+  // the structural rule set. Both take ONE path per run, hence the
+  // per-file runner (`scripts/hk/run-per-file.sh`) -- handed the whole
+  // changed set they exit 2 with a usage error, which reads like a broken
+  // gate rather than a finding.
+  //
+  // Thirty-five SPEC.md files and no code yet: the spec IS the artifact
+  // here (`.:C22`), so these are the steps that run on nearly every
+  // commit.
+  ["spec-fmt"] {
+    glob = List("**/SPEC.md")
+    check = "scripts/hk/run-per-file.sh mth fmt --check -- {{files}}"
+    fix = "scripts/hk/run-per-file.sh mth fmt -- {{files}}"
+  }
+  ["spec-check"] {
+    glob = List("**/SPEC.md")
+    depends = List("spec-fmt")
+    check = "scripts/hk/run-per-file.sh mth check -- {{files}}"
+  }
+
+  // itok counts the tokens a spec chain costs and compares them with the
+  // ceilings in `.context-limits` (`scripts:V26`). Whole-repo rather than
+  // file-scoped: the number that matters is what a CHAIN costs, and every
+  // chain pays the root -- so a row added to the root SPEC.md is billed
+  // thirty-four times and no per-file view would show it.
+  //
+  // A ceiling raise belongs in its own commit with its reason, because the
+  // spec is re-read on every session that touches this repo: every byte is
+  // a recurring cost, and raising the number trains the reflex instead of
+  // fixing the growth.
+  ["spec-tokens"] {
+    glob = List("**/SPEC.md", ".context-limits")
+    check = "scripts/hk/run-tool.sh itok check"
+  }
+
+  // sherd owns the FEDERATION: the spec here is a DAG of node specs
+  // (`.:C22`), not one document, and these four steps check the four ways
+  // that DAG can be wrong (`scripts:V27`).
+  //
+  //   validate -- the node set and its state file agree
+  //   sync     -- every §N table matches the §F above it; §N is GENERATED
+  //               and hand-editing it IS the drift
+  //   check    -- structural rules: id monotonicity, row order, citations
+  //   budget   -- every chain against its ceiling
+  //
+  // Four steps rather than one, because four different things go wrong and
+  // a single pass/fail would name none of them.
+  ["federation"] {
+    glob = List("**/SPEC.md", ".sherd-state")
+    check = "scripts/hk/run-tool.sh sherd validate"
+  }
+  ["nav"] {
+    glob = List("**/SPEC.md")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd sync --check"
+    fix = "scripts/hk/run-tool.sh sherd sync"
+  }
+  ["spec-structure"] {
+    glob = List("**/SPEC.md")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd check"
+  }
+  ["budget"] {
+    glob = List("**/SPEC.md", ".context-limits", ".sherd-state")
+    depends = List("federation")
+    check = "scripts/hk/run-tool.sh sherd budget"
+  }
+
+  // The README's generated blocks (badges, languages) and the third-party
+  // notices, compared with the files that own each fact (`dev:T342`,
+  // `dev:V340`). GENERATED by `xenolith-dev` -- this repo's own unpublished
+  // workspace member -- rather than typed: a number in prose is true the day
+  // it is typed and quietly wrong after, and the generator that prevents it
+  // is code, so it is gated and tested like the rest.
+  //
+  // LAYER ONE, scoped: hk hands the changed files and `xenolith-dev` narrows
+  // to the outputs those files feed (`dev:V345`), so a commit touching
+  // `.coverage` compares the badges and not the notices. The glob is the
+  // union of every output's inputs; `dev-generated-full` below is the
+  // unscoped layer that catches what a too-narrow map would let through.
+  // After `test`, because it is a cargo build and cargo locks the target
+  // directory.
+  ["dev-generated"] {
+    glob = List(
+      "README.md",
+      "docs/THIRD-PARTY-NOTICES.md",
+      "**/Cargo.toml",
+      "Cargo.lock",
+      "hk.pkl",
+      ".coverage",
+      ".lint-debt",
+      "flake.lock",
+      ".github/workflows/ci.yml",
+      "**/SPEC.md",
+      "nix/package.nix",
+      "nix/tools.nix",
+      "**/UPSTREAM",
+      "**/LICENSE",
+      "**/LICENSE.txt",
+      "**/NOTICE.txt",
+      "languages/api/src/**",
+      "dev/src/**"
+    )
+    depends = List("test")
+    check = "cargo run -q -p xenolith-dev -- --check {{files}}"
+    fix = "cargo run -q -p xenolith-dev -- --fix {{files}}"
+  }
+
+  // The cheap hygiene family, all from `hk util`: no extra binary, no
+  // version to pin, and each does exactly one thing its name states.
+  ["trailing-whitespace"] {
+    glob = List("**/*")
+    check = "hk util trailing-whitespace {{files}}"
+    fix = "hk util trailing-whitespace --fix {{files}}"
+  }
+  ["final-newline"] {
+    glob = List("**/*")
+    exclude = verbatim
+    check = "hk util end-of-file-fixer {{files}}"
+    fix = "hk util end-of-file-fixer --fix {{files}}"
+  }
+  ["line-endings"] {
+    glob = List("**/*")
+    check = "hk util mixed-line-ending {{files}}"
+    fix = "hk util mixed-line-ending --fix {{files}}"
+  }
+  ["no-large-files"] {
+    glob = List("**/*")
+    exclude = verbatim
+    check = "hk util check-added-large-files {{files}}"
+  }
+  ["no-merge-conflict"] {
+    glob = List("**/*")
+    check = "hk util check-merge-conflict --assume-in-merge {{files}}"
+  }
+
+  // Secrets, in TWO steps rather than one, because they answer different
+  // questions. `detect-private-key` does exactly what its name says and
+  // nothing else -- an `AWS_SECRET_ACCESS_KEY=` line walks straight past
+  // it. ripsecrets covers the token shapes it cannot see.
+  //
+  // This matters more here than in most repos: the history itself is
+  // audited before the first public push (`scripts/guard:V117`), because a
+  // secret in git history outlives its deletion.
+  ["no-private-key"] {
+    glob = List("**/*")
+    check = "hk util detect-private-key {{files}}"
+  }
+  ["ripsecrets"] {
+    glob = List("**/*")
+    check = "scripts/hk/run-tool.sh ripsecrets {{files}}"
+  }
+}
+
+/// LAYER TWO: everything above, plus the steps too slow or too whole-tree
+/// to sit on every commit. Runs on push and in CI (`scripts:V22`).
+local all = (fast) {
+  // The WHOLE suite, held-back tests included (`scripts:V352`): by push
+  // the GREEN commit exists, so a test still failing here is a finding.
+  // A step of its own rather than an override of `bats`, so the step
+  // count stays one step per name (`dev:V344`); the ready tests run twice
+  // on push, which costs seconds.
+  ["bats-all"] {
+    glob = List("scripts/**/*.sh", ".github/scripts/**/*.sh", "tests/unit/**/*.bats")
+    check = "scripts/hk/run-tool.sh bats --recursive tests/unit"
+  }
+
+  // The supply chain, in ONE tool: cargo-audit and osv-scanner ask the
+  // advisory question this already answers.
+  ["deny"] {
+    glob = List("**/Cargo.toml", "Cargo.lock", "deny.toml")
+    depends = List("test")
+    check = "cargo deny check"
+  }
+  // Every language is a cargo feature (`nix:C8`), so the feature
+  // POWERSET is a real build surface: a module that reaches across a
+  // feature gate compiles fine in the default build and breaks only in a
+  // consumer's subset build (`src:V30`).
+  //
+  // TWO steps, because cargo-hack refuses `--no-dev-deps` together with
+  // `test` and the two questions are different. `test` proves each
+  // subset actually works; `--no-dev-deps check` proves the subset
+  // compiles without dev-dependencies, which is what catches a dev-dep
+  // quietly enabling a feature the real build does not have.
+  ["hack-test"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    depends = List("test")
+    check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature test"
+  }
+  ["hack-no-dev-deps"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    depends = List("hack-test")
+    check = "scripts/hk/run-tool.sh cargo-hack hack --workspace --each-feature --no-dev-deps check"
+  }
+  // The two ratchets (`scripts:V28`, `scripts:C14`): each CALLS sherd
+  // rather than re-deriving its rule here, so the number and the rule that
+  // reads it live in one place. Both run the toolchain themselves --
+  // `cargo llvm-cov` for the floor, clippy without `-D` for the debt -- so
+  // they sit at the end of the cargo chain rather than beside it, where
+  // they would only wait on the build directory's lock.
+  //
+  // `fix` may move each number one way only: `--record` RAISES the
+  // coverage floor and LOWERS the debt ceilings, and refuses the other
+  // direction. A drop in coverage or a rise in debt is written into the
+  // file by hand, with its reason (`.coverage`, `.lint-debt`).
+  ["coverage"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "Cargo.lock", "tests/fixtures/**/*", ".coverage")
+    depends = List("hack-no-dev-deps")
+    check = "scripts/hk/run-tool.sh sherd coverage --check"
+    fix = "scripts/hk/run-tool.sh sherd coverage --record"
+  }
+  ["lint-debt"] {
+    glob = List("**/*.rs", "**/Cargo.toml", "clippy.toml", ".lint-debt")
+    depends = List("coverage")
+    check = "scripts/hk/run-tool.sh sherd debt --check"
+    fix = "scripts/hk/run-tool.sh sherd debt --record"
+  }
+  // The mirror rule is a property of the BRANCH, not of every commit on
+  // it (`scripts/guard:B1`). TDD requires a RED test commit before the
+  // script it covers (`scripts/guard:C11`), so between those two commits
+  // an orphan test is not a defect -- it is the method working. Checking
+  // it on pre-commit made every RED commit impossible; checking it on
+  // push catches the same decay a few minutes later, by which time the
+  // GREEN commit exists.
+  //
+  // Whole-repo rather than file-scoped: the rule is about the SET of
+  // files, and the change that breaks it -- a rename or a deletion -- is
+  // not a changed file the step would be handed.
+  ["bats-mirror"] {
+    glob = List("**/*.sh", "**/*.bats")
+    check = "scripts/guard/bats-mirror.sh"
+  }
+  // Its Rust twin (`scripts/guard:V140`, `src:C139`): every `.rs` with
+  // logic has a `tests.rs` beside it wired by `#[cfg(test)] mod tests;`,
+  // and every `tests.rs` has its module. Push-side for the same reason
+  // (`scripts/guard:B1`): the RED mirror lands a commit before the module
+  // that wires it.
+  ["rust-mirror"] {
+    glob = List("**/*.rs", "**/Cargo.toml")
+    check = "scripts/guard/rust-mirror.sh"
+  }
+  // Every sherd node dir holds its own `xenolith.toml` (`.:V90`,
+  // `src/config:V88`), so a node checked on its own reads what its
+  // authors wrote rather than falling back to the defaults. Whole-repo
+  // and push-side like the mirrors: the rule is about the SET of node
+  // dirs, and the change that breaks it -- a new SPEC.md -- lands a node
+  // whose config may follow in the next commit.
+  ["node-config"] {
+    glob = List("**/SPEC.md", "**/xenolith.toml")
+    check = "scripts/guard/node-config.sh"
+  }
+
+  // The workspace's dependency shape (`languages/api:V32`,
+  // `scripts/guard:T47`): the api depends on `xenolith-shebang` alone and
+  // declares no feature, and a language crate reaches the workspace only
+  // through the api, with a grammar of its own. Read from `cargo metadata`
+  // rather than from review; whole-repo and push-side like the guards
+  // above, because the rule is about the SET of manifests and the change
+  // that breaks it can be one line in any of them.
+  ["crate-deps"] {
+    glob = List("**/Cargo.toml", "Cargo.lock")
+    check = "scripts/guard/crate-deps.sh"
+  }
+  // The metadata every published crate carries (`nix:V112`,
+  // `scripts/guard:T346`): the fields crates.io shows, a docs.rs page,
+  // a packaging list, and docs.rs building every language. Push-side and
+  // whole-repo for the reason `crate-deps` gives; the rule itself is
+  // `scripts/guard/crate-metadata.jq`.
+  ["crate-metadata"] {
+    glob = List("**/Cargo.toml", "scripts/guard/crate-*.jq")
+    check = "scripts/guard/crate-metadata.sh"
+  }
+
+  // Dogfood (`.:V19`, `.:C19`, `.:T28`): this repo passes its own `xnl check`,
+  // built from the tree under test so a change to the engine is judged by
+  // itself. Whole-repo and push-side like the guards above: a nested
+  // `xenolith.toml` can change the verdict for files the push never touched.
+  // `graph` and `lint` join when their engines land (`src/graph:T21`,
+  // `src/lint:T24`).
+  ["dogfood"] {
+    glob = List("**/*.nix", "**/*.pkl", "**/*.sh", "**/*.rs", "**/xenolith.toml")
+    check = "cargo run --quiet --bin xnl -- check"
+  }
+
+  // No private repo name in a tracked file (`scripts/guard:V23`,
+  // `scripts/guard:C17`). Whole-repo and push-side: the denylist can
+  // gain an entry at any time, and the question it answers is about the
+  // whole tree about to be published, not the files in one commit.
+  //
+  // It exits 0 with a loud line when `.private-names` is absent -- the
+  // list is gitignored by necessity, so CI and a fresh clone have none.
+  // The backstop that does not depend on a local file is the history
+  // audit before the first public push (`scripts/guard:V117`).
+  ["private-names"] {
+    glob = List("**/*")
+    check = "scripts/guard/private-names.sh"
+  }
+
+  // The TDD order (`scripts/guard:C11`), checked over the range a push
+  // would publish. Push-side by nature: ordering is a property of
+  // history, and mid-branch the sequence is not finished yet.
+  //
+  // The glob is every file, because the range -- not the changed set --
+  // is what this reads; a push whose last commit touches only a doc can
+  // still be publishing a GREEN commit with no RED before it.
+  ["tdd-order"] {
+    glob = List("**/*")
+    check = "scripts/guard/tdd-order.sh"
+  }
+
+  // LAYER TWO of the generated outputs (`dev:V345`): the same checker with
+  // NO scope, so every block and the notices are compared against their
+  // owners whatever the push changed. The input map `dev-generated` narrows
+  // by is a heuristic; this is where a too-narrow one is caught. `**/*` on
+  // purpose: it must run even when nothing the narrow glob names changed.
+  ["dev-generated-full"] {
+    glob = List("**/*")
+    depends = List("test")
+    check = "cargo run -q -p xenolith-dev -- --check"
+    fix = "cargo run -q -p xenolith-dev -- --fix"
+  }
+
+  // Relative links break when a file MOVES and nothing else notices.
+  // `--offline` so the gate never reaches the network (`.:C3`): someone
+  // else's 404 must not fail your push, but a path that stopped resolving
+  // must.
+  ["links"] {
+    glob = List("**/*.md")
+    check = "scripts/hk/run-tool.sh lychee --offline --no-progress ."
+  }
+}
+
+hooks {
+  /// `stash = "git"` is correctness, not speed: without it a partially
+  /// staged file (`git add -p`) is checked as it looks in the WORKTREE,
+  /// giving a verdict about code that is not being committed.
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = fast
+  }
+  /// The message gate. Its step is not in `fast` or `all`: those run over
+  /// FILES, and a commit message is not a file in the tree -- git hands it
+  /// to this hook and to nothing else (`scripts:V122`, a step exists once,
+  /// in the one hook that can run it).
+  ///
+  /// The checker is `xnl`-free on purpose (`scripts/guard:V20`): it has to
+  /// work before this repo's own tool exists, which is now.
+  ["commit-msg"] {
+    steps {
+      ["commit-msg"] {
+        check = #"scripts/guard/commit-msg.sh "$(git rev-parse --git-path COMMIT_EDITMSG)""#
+      }
+    }
+  }
+  ["pre-push"] {
+    steps = all
+  }
+  /// The entry point for CI and for a full run by hand: `hk check --all`.
+  ["check"] {
+    steps = all
+  }
+  ["fix"] {
+    fix = true
+    steps = all
+  }
+}

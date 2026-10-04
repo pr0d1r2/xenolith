@@ -1,0 +1,49 @@
+[package]
+name = "xenolith-dev"
+description = "Development-only tooling for the xenolith repository -- never published"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+# THE POINT OF THIS CRATE (`dev` §C). `xenolith-dev` maintains files in THIS
+# repository -- the README's generated blocks and the third-party notices --
+# and is meaningless to anyone who installs `xnl`. A second `[[bin]]` in the
+# root package would ship in its tarball and land on a consumer's PATH; an
+# unpublished workspace member cannot, and needs no `cfg` gate or `exclude`
+# entry kept in step to stay out. The nix package builds `-p xenolith` only,
+# so it stays out of the closure too (`nix:V349`).
+publish = false
+
+[lib]
+name = "xenolith_dev"
+path = "src/lib.rs"
+
+# A shim over `xenolith_dev::main`, as `src/main.rs` is over `cli::main`
+# (`src:C139`): logic here would have no mirror to be tested in.
+[[bin]]
+name = "xenolith-dev"
+path = "src/main.rs"
+
+# Two dependencies, and neither adds a crate to `Cargo.lock` (`dev` §C).
+[dependencies]
+# The language ids, from their owner: the Languages block lists
+# `LangId::ALL` rather than a second list typed here (`dev:V340`). The api,
+# not the root crate: the ids are all this reads, and the root crate would
+# bring every grammar into a tool that parses none.
+xenolith-lang-api = { path = "../languages/api", version = "0.1.0" }
+# `cargo metadata` and the nix tool table both answer in JSON, and the
+# notices are rendered from both (`dev:V347`). Already in the lock as the
+# root crate's JSON writer.
+serde_json = "1"
+
+[lints]
+workspace = true
+
+# `cargo-release` never tags, bumps or publishes this crate on its own
+# account (`release.toml`, `nix:V349`); `publish = false` alone keeps it off
+# crates.io but not out of the release's crate list.
+[package.metadata.release]
+release = false

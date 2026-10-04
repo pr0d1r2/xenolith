@@ -1,0 +1,3 @@
+# `text` of `writeShellApplication`, under its default `bashOptions`.
+# `name` in the same set is data.
+packages.deploy.writeShellApplication.text | '' | bash errexit nounset pipefail | - | "\n      rsync -a ./public/ \"$1\"\n    "

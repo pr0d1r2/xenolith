@@ -1,0 +1,24 @@
+# Line coverage of the workspace, ratcheted: this number may go UP, never
+# down (`scripts:V28`, `scripts:C14`). `sherd coverage --check` runs
+# `cargo llvm-cov --workspace --all-features --summary-only` and compares
+# its TOTAL line percentage with the `lines` row below; `sherd coverage
+# --record` raises the row to a new measurement and refuses to lower it.
+#
+# MEASURED 2026-09-27 at adoption (`scripts:T36`): 97.25% lines, 95.99%
+# regions, 95.65% functions, over every crate in the workspace -- the
+# language crates included, unlike `.lint-debt`, whose ratio reads `src/`
+# alone. Two runs of the same tree reported 97.25 both times, so the floor
+# starts AT the measurement: a floor below it would let the first real
+# drop through unannounced.
+#
+# A drop is recorded by hand, here, with its reason -- never by editing the
+# number alone. A percentage cannot tell a test that asserts from one that
+# merely executes; a test written to move this number and asserting
+# nothing is the drop it hides, not a fix for it.
+# DROP 2026-09-27, 97.25 -> 96.75, recorded by hand: the 97.25 floor was
+# measured on the guards branch, whose base predates four waves that landed
+# beside it the same day (just threshold, lint parsers & `--sites`, extract
+# `--relocate` & `inline`, nix packaging). No test stopped asserting; the
+# floor was never measured on the merged tree. Measured there: 96.75. The
+# gap is owed back by tests, not by this number (the bug-fix wave after this).
+lines 97.96

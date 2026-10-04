@@ -1,0 +1,358 @@
+//! Unit tests for `cli` (`src:C139`): the dispatch `xnl` runs, driven
+//! with in-memory streams instead of a spawned process.
+//!
+//! `tests/skeleton.rs` spawns the real binary and checks the process
+//! boundary; these check every branch of the dispatch and of `refuse`,
+//! including which STREAM each message lands on -- a refusal on stdout
+//! corrupts a caller parsing JSON (`src/cli` §I) -- and what happens
+//! when a stream cannot be written. The parser has its own mirror
+//! (`src/cli/args/tests.rs`), and so does `langs`
+//! (`src/cli/langs/tests.rs`); what is pinned here is that the dispatch
+//! routes each verb where it belongs and refuses, with exit 2, every verb
+//! whose engine has not landed (`src/cli:V24`).
+
+use std::io::{self, Write};
+
+use super::{EXIT_USAGE, refuse, run};
+
+/// A stream that refuses every write, like a closed pipe.
+struct Closed;
+
+impl Write for Closed {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(io::Error::from(io::ErrorKind::BrokenPipe))
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Err(io::Error::from(io::ErrorKind::BrokenPipe))
+    }
+}
+
+/// Run with `args`, returning the exit code, stdout and stderr.
+fn xnl(args: &[&str]) -> (u8, String, String) {
+    let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = run(&args, &mut out, &mut err);
+    (
+        code,
+        String::from_utf8_lossy(&out).into_owned(),
+        String::from_utf8_lossy(&err).into_owned(),
+    )
+}
+
+/// Run with `args`, expect a refusal, and return stderr.
+fn refused(args: &[&str]) -> String {
+    let (code, out, err) = xnl(args);
+    assert_eq!(code, EXIT_USAGE, "{args:?}: {err}");
+    assert!(out.is_empty(), "{args:?}: {out:?}");
+    assert!(err.ends_with('\n'), "{args:?}: {err:?}");
+    err
+}
+
+#[test]
+fn the_usage_exit_code_is_two() {
+    // `src/cli:V24`: 0 ok, 1 violation, 2 usage. 1 is for findings, so a
+    // refusal must never be it.
+    assert_eq!(EXIT_USAGE, 2);
+}
+
+// ---------------------------------------------------------------------
+// --version
+// ---------------------------------------------------------------------
+
+#[test]
+fn version_prints_the_library_version_on_stdout() {
+    let (code, out, err) = xnl(&["--version"]);
+    assert_eq!(code, 0);
+    assert_eq!(out, format!("xnl {}\n", crate::VERSION));
+    assert!(err.is_empty(), "{err:?}");
+}
+
+#[test]
+fn dash_capital_v_is_the_short_form() {
+    assert_eq!(xnl(&["-V"]), xnl(&["--version"]));
+}
+
+#[test]
+fn dash_lowercase_v_is_not_version() {
+    // `-v` is `--verbose` in most tools; answering it as version would
+    // make a typo succeed.
+    let err = refused(&["-v"]);
+    assert!(err.contains("`-v`"), "{err:?}");
+}
+
+#[test]
+fn version_looks_only_at_the_first_argument() {
+    let (code, out, _) = xnl(&["--version", "check"]);
+    assert_eq!(code, 0);
+    assert!(out.starts_with("xnl "));
+}
+
+#[test]
+fn version_after_a_verb_is_an_unknown_flag_of_that_verb() {
+    let err = refused(&["check", "--version"]);
+    assert!(err.contains("`--version`"), "{err:?}");
+    assert!(err.contains("check"), "{err:?}");
+}
+
+#[test]
+fn version_to_a_closed_stdout_does_not_panic() {
+    // Nothing can report a failed stdout write, and panicking would put
+    // a panic message where no caller asked for one.
+    let args = vec!["--version".to_owned()];
+    let mut err = Vec::new();
+    assert_eq!(run(&args, &mut Closed, &mut err), 0);
+    assert!(err.is_empty());
+}
+
+// ---------------------------------------------------------------------
+// usage
+// ---------------------------------------------------------------------
+
+#[test]
+fn no_arguments_prints_the_usage_on_stderr() {
+    let err = refused(&[]);
+    assert!(err.starts_with("usage: xnl "), "{err:?}");
+    for word in [
+        "check",
+        "extract",
+        "graph",
+        "inline",
+        "lint",
+        "langs",
+        "migrate",
+        "--write",
+        "--relocate",
+        "--format",
+        "--verbose",
+        "--strict-hosts",
+        "--version",
+    ] {
+        assert!(err.contains(word), "usage lacks {word}: {err}");
+    }
+}
+
+#[test]
+fn an_unknown_word_or_flag_is_refused_by_name() {
+    for word in ["--help", "frobnicate", "-", ""] {
+        let err = refused(&[word]);
+        assert!(err.starts_with("xnl: "), "{err:?}");
+        assert!(err.contains(&format!("`{word}`")), "{err:?}");
+    }
+}
+
+#[test]
+fn a_usage_error_is_followed_by_the_usage() {
+    // The line that says what was wrong comes FIRST, so a terminal
+    // showing only the top of the message shows the mistake.
+    let err = refused(&["check", "--frobnicate"]);
+    let first = err.lines().next().unwrap_or_default();
+    assert!(first.contains("`--frobnicate`"), "{err:?}");
+    assert!(err.contains("usage: xnl "), "{err:?}");
+}
+
+#[test]
+fn flags_are_parsed_before_a_verb_is_refused() {
+    // A bad flag on a verb without an engine is still a bad flag: the
+    // user learns about the typo today, not the day the engine lands.
+    let err = refused(&["check", "--format", "xml"]);
+    assert!(err.contains("`xml`"), "{err:?}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+}
+
+// ---------------------------------------------------------------------
+// relocate and inline reach their engines
+// ---------------------------------------------------------------------
+
+#[test]
+fn relocate_and_inline_are_routed_to_their_engines_not_refused() {
+    // `src/extract:T101`, `src/extract:T102`: each arm runs its engine. A
+    // named path that does not exist is the engine's refusal
+    // (`src/discover:V57`), naming the verb and the path.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    for (args, verb) in [
+        (
+            &["extract", "--relocate", "nope.nix:3"][..],
+            "extract --relocate",
+        ),
+        (
+            &["extract", "--relocate", "--write", "nope.nix"][..],
+            "extract --relocate",
+        ),
+        (&["inline", "nope.sh"][..], "inline"),
+        (&["inline", "--write", "nope.sh"][..], "inline"),
+    ] {
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        let code = super::run_in(&root, args, &mut out, &mut err);
+        let err = String::from_utf8_lossy(&err);
+        assert_eq!(code, EXIT_USAGE, "{args:?}: {err}");
+        assert!(
+            err.starts_with(&format!("xnl: {verb}: ")),
+            "{args:?}: {err:?}"
+        );
+        assert!(err.contains("nope."), "{args:?}: {err:?}");
+        assert!(!err.contains("not implemented"), "{args:?}: {err:?}");
+        assert!(out.is_empty());
+    }
+}
+
+#[test]
+fn check_is_routed_to_its_engine_not_refused() {
+    // `src/check:T153`: the arm runs the engine. A named path that does not
+    // exist is the engine's refusal (`src/discover:V57`), not the not-yet one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["check", "nope.nix"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
+fn extract_is_routed_to_its_engine_not_refused() {
+    // `src/extract:T22`: the arm runs the extract engine. A named path
+    // that does not exist is discovery's refusal (`src/discover:V57`), not the
+    // not-yet one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["extract", "nope.nix:3"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.nix"), "{err:?}");
+}
+
+#[test]
+fn graph_is_routed_to_its_engine_not_refused() {
+    // `src/graph:T21`: the arm runs the graph engine. A named path that
+    // does not exist is discovery's refusal (`src/discover:V57`), not the not-yet
+    // one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["graph", "nope.pkl"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.pkl"), "{err:?}");
+}
+
+#[test]
+fn lint_is_routed_to_its_engine_not_refused() {
+    // `src/lint:T24`: the arm runs the lint engine. A named path that
+    // does not exist is discovery's refusal (`src/discover:V57`), not the not-yet
+    // one.
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["lint", "nope.sh"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, EXIT_USAGE, "{err}");
+    assert!(!err.contains("not implemented"), "{err:?}");
+    assert!(err.contains("nope.sh"), "{err:?}");
+}
+
+#[test]
+fn migrate_is_routed_to_its_engine_not_refused() {
+    // `src/cli:T97`: with no legacy list at the root there is nothing to
+    // migrate, which is success and silence (`src/cli` §I).
+    let sandbox = crate::discover::Sandbox::new();
+    let root = sandbox.plain("r");
+    let mut out = Vec::new();
+    let mut err = Vec::new();
+    let code = super::run_in(&root, &["migrate"], &mut out, &mut err);
+    let err = String::from_utf8_lossy(&err);
+    assert_eq!(code, 0, "{err}");
+    assert!(out.is_empty(), "{out:?}");
+    assert!(err.is_empty(), "{err:?}");
+}
+
+#[test]
+fn sarif_is_refused_naming_its_own_task() {
+    for verb in ["check", "graph", "lint"] {
+        let err = refused(&[verb, "--format", "sarif"]);
+        assert!(err.contains("sarif"), "{verb}: {err:?}");
+        assert!(err.contains("src/cli:T103"), "{verb}: {err:?}");
+    }
+}
+
+#[test]
+fn a_refusal_to_a_closed_stderr_leaves_stdout_empty() {
+    // A format still refused, so nothing scans the tree the tests run in.
+    let args = vec![
+        "check".to_owned(),
+        "--format".to_owned(),
+        "sarif".to_owned(),
+    ];
+    let mut out = Vec::new();
+    assert_eq!(run(&args, &mut out, &mut Closed), EXIT_USAGE);
+    assert!(out.is_empty());
+}
+
+// ---------------------------------------------------------------------
+// langs
+// ---------------------------------------------------------------------
+
+#[test]
+fn langs_lists_every_language_on_stdout_and_exits_zero() {
+    let (code, out, err) = xnl(&["langs"]);
+    assert_eq!(code, 0, "{err}");
+    assert!(err.is_empty(), "{err:?}");
+    for id in xenolith_lang_api::LangId::ALL {
+        assert!(
+            out.lines().any(|line| line.starts_with(id.as_str())),
+            "{id} missing from {out}"
+        );
+    }
+}
+
+#[test]
+fn langs_json_is_the_envelope_with_langs() {
+    let (code, out, err) = xnl(&["langs", "--format", "json", "--verbose"]);
+    assert_eq!(code, 0, "{err}");
+    let value: serde_json::Value =
+        serde_json::from_str(&out).unwrap_or_else(|e| panic!("{e}: {out}"));
+    assert_eq!(
+        value.get("schema").and_then(serde_json::Value::as_u64),
+        Some(u64::from(crate::model::SCHEMA))
+    );
+    assert!(
+        value.get("langs").is_some_and(serde_json::Value::is_array),
+        "{value}"
+    );
+}
+
+#[test]
+fn langs_to_a_closed_stdout_does_not_panic() {
+    let args = vec!["langs".to_owned()];
+    let mut err = Vec::new();
+    assert_eq!(run(&args, &mut Closed, &mut err), 0);
+    assert!(err.is_empty());
+}
+
+// ---------------------------------------------------------------------
+// refuse
+// ---------------------------------------------------------------------
+
+#[test]
+fn refuse_writes_the_message_and_a_newline() {
+    let mut err = Vec::new();
+    assert_eq!(refuse(&mut err, "no."), EXIT_USAGE);
+    assert_eq!(err, b"no.\n");
+}
+
+#[test]
+fn refuse_to_a_closed_stderr_still_exits_two() {
+    // A clean exit 2 beats a panic on the stream that just failed.
+    assert_eq!(refuse(&mut Closed, "no."), EXIT_USAGE);
+}

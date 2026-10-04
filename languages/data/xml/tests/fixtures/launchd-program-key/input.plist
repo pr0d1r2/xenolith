@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- With a `Program` key launchd runs THAT, and argv[0] is only the name
+    the process sees: `/bin/sh -c` here is not what runs, so no site
+    (languages/data/xml:V189). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.example.wrapped</string>
+  <key>Program</key>
+  <string>/usr/local/bin/wrapper</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>echo one; echo two</string>
+  </array>
+</dict>
+</plist>

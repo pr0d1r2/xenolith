@@ -1,0 +1,8 @@
+# `languages/ci/nix:T155`: a sink value built with `+` is shell in EVERY
+# string operand, however many there are, and through the parentheses a
+# positional builder argument needs. A string reached through a function
+# call (`optionalString`) is that function's argument, not an operand of
+# the concatenation, and is not a site.
+shell.shellHook | '' | bash | - | "\n      [ -f .env ] || cp .env.example .env\n    "
+shell.shellHook | " | bash | - | "export A=1"
+greet.writeShellScript | '' | bash | - | "\n      echo hi\n    "

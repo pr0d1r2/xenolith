@@ -1,0 +1,27 @@
+cat <<EOF
+print("text for cat, whatever it looks like")
+EOF
+
+jq '.name' <<'JSON'
+{"name": "stdin of jq is data"}
+JSON
+
+awk '{ print $1 }' <<EOF
+stdin of awk is data
+EOF
+
+python3 script.py <<EOF
+input for script.py
+EOF
+
+python3 -m json.tool <<'JSON'
+{"a": 1}
+JSON
+
+psql -c 'select 1' <<EOF
+psql reads no stdin once -c is given
+EOF
+
+bash scripts/x.sh <<EOF
+input for x.sh
+EOF

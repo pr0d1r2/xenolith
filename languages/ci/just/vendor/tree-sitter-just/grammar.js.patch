@@ -1,0 +1,137 @@
+--- a/grammar.js
++++ b/grammar.js
+@@ -87,6 +87,8 @@
+         $.import,
+         $.module,
+         $.setting,
++        // LOCAL PATCH (xenolith): just 1.51 `unexport NAME`.
++        $.unexport,
+       ),
+
+     // alias         : 'alias' NAME ':=' NAME
+@@ -99,8 +101,19 @@
+         field("right", $.identifier),
+       ),
+     // assignment    : NAME ':=' expression _eol
++    // LOCAL PATCH (xenolith): just 1.51 attributes on an assignment
++    // (`[private]`), plain or exported, and the `eager` modifier. `eager`
++    // and `unexport` are read as identifiers, not keywords: a keyword
++    // would stop `eager := "x"`, which just accepts, from parsing.
+     assignment: ($) =>
+       seq(
++        repeat($.attribute),
++        optional(field("modifier", $.identifier)),
++        $._assignment_body,
++      ),
++
++    _assignment_body: ($) =>
++      seq(
+         field("left", $.identifier),
+         ":=",
+         field("right", $.expression),
+@@ -108,7 +121,20 @@
+       ),
+
+     // export        : 'export' assignment
+-    export: ($) => seq("export", $.assignment),
++    export: ($) =>
++      seq(
++        repeat($.attribute),
++        "export",
++        alias($._assignment_body, $.assignment),
++      ),
++
++    // LOCAL PATCH (xenolith): unexport    : 'unexport' NAME
++    unexport: ($) =>
++      seq(
++        field("keyword", $.identifier),
++        field("name", $.identifier),
++        $._newline,
++      ),
+
+     // import        : 'import' '?'? string?
+     import: ($) => seq("import", optional("?"), $.string),
+@@ -154,6 +180,10 @@
+         $.if_expression,
+         prec.left(2, seq($._expression_recurse, "+", $._expression_recurse)),
+         prec.left(1, seq($._expression_recurse, "/", $._expression_recurse)),
++        // LOCAL PATCH (xenolith): just 1.51 `&&` and `||`, looser than `+`
++        // and `/`, `||` loosest.
++        prec.left(0, seq($._expression_recurse, "&&", $._expression_recurse)),
++        prec.left(-1, seq($._expression_recurse, "||", $._expression_recurse)),
+         $.value,
+       ),
+
+@@ -181,11 +211,18 @@
+     //               | expression '=~' expression
+     condition: ($) =>
+       choice(
++        $._comparison,
++        // verify whether this is valid
++        $.expression,
++      ),
++
++    // LOCAL PATCH (xenolith): the comparisons of `condition`, split out so
++    // `assert` can take one without the bare-expression ambiguity.
++    _comparison: ($) =>
++      choice(
+         seq($.expression, "==", $.expression),
+         seq($.expression, "!=", $.expression),
+         seq($.expression, "=~", choice($.regex_literal, $.expression)),
+-        // verify whether this is valid
+-        $.expression,
+       ),
+
+     // Capture this special for injections
+@@ -213,7 +250,16 @@
+       seq(
+         field("name", $.identifier),
+         "(",
+-        optional(field("arguments", $.sequence)),
++        optional(
++          field(
++            "arguments",
++            choice(
++              $.sequence,
++              // LOCAL PATCH (xenolith): `assert(CONDITION, EXPRESSION)`.
++              seq(alias($._comparison, $.condition), ",", $.expression),
++            ),
++          ),
++        ),
+         ")",
+       ),
+
+@@ -344,8 +390,33 @@
+         $._string,
+         // _raw_string, can't be written as a separate inline for osm reason
+         /'[^']*'/,
++        // LOCAL PATCH (xenolith): just 1.51 prefixed strings, the prefix
++        // inside the one `string` node. `x` shell-expands the string; `f`
++        // makes it a format string, its `{{…}}` interpolations and its
++        // `{{{{` a literal `{{`.
++        seq('x"""', repeat(choice($.escape_sequence, /[^\\]?[^\\"]+/)), '"""'),
++        seq("x'''", repeat(/./), "'''"),
++        seq('x"', repeat(choice($.escape_sequence, /[^\\"]+/)), '"'),
++        /x'[^']*'/,
++        seq(
++          'f"""',
++          repeat(
++            choice($._format_part, $.escape_sequence, /[^\\{]?[^\\"{]+/),
++          ),
++          '"""',
++        ),
++        seq("f'''", repeat(choice($._format_part, /[^{\n]/)), "'''"),
++        seq(
++          'f"',
++          repeat(choice($._format_part, $.escape_sequence, /[^\\"{]+/)),
++          '"',
++        ),
++        seq("f'", repeat(choice($._format_part, /[^'{]+/)), "'"),
+       ),
+
++    // LOCAL PATCH (xenolith): what a format string holds besides its text.
++    _format_part: ($) => choice($.interpolation, "{{{{", "{"),
++
+     _raw_string_indented: (_) => seq("'''", repeat(/./), "'''"),
+     _string: ($) => seq('"', repeat(choice($.escape_sequence, /[^\\"]+/)), '"'),
+     // We need try two separate munches so neither escape sequences nor

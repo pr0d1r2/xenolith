@@ -1,0 +1,48 @@
+Vendored grammar record (languages:V121).
+
+repo:     https://github.com/tree-sitter-grammars/tree-sitter-tcl
+version:  1.1.0 (package.json; upstream publishes no tags)
+rev:      850a72ab6436e06645b33b11cfa60cbdb04b1f01
+license:  MIT (LICENSE beside this file, verbatim)
+abi:      tree-sitter LANGUAGE_VERSION 15
+fetched:  2026-09-27
+
+Files copied verbatim from the rev above and never edited here:
+
+  LICENSE
+  src/tree_sitter/alloc.h
+  src/tree_sitter/array.h
+  src/tree_sitter/parser.h
+
+LOCAL PATCH (2026-09-27, languages/shells/tcl:B1). Upstream at this rev
+rejects valid Tcl, and no upstream branch (main, fixes, update) accepts
+it either (measured 2026-09-27). xenolith.patch, beside this file, is the
+whole local change to upstream's grammar.js and src/scanner.c:
+
+  - `;` never concatenates a word (scanner.c): `puts hi; set x 1`
+  - `(` never concatenates either, so an index attaches to its name
+    (scanner.c): `set x $y(z)`, `set a(x) $b(y)`
+  - a lone `$` and a `]` are literal inside "...": `expect "$ "`
+  - `number` has no sign and an expr function name is an identifier,
+    listed below the booleans: `expr {1+2}`, `expr {true && false}`
+  - expr functions take 0..n comma-separated args: `max(1,2)`, `rand()`
+  - `if`/`elseif` take the noise word `then`; `catch` its options var;
+    `try` any number of `on <code>` / `trap <pattern>` handlers
+
+Files regenerated or patched here:
+
+  src/parser.c   generated from the patched grammar.js
+  src/scanner.c  upstream's, with the scanner hunk of xenolith.patch
+
+To reproduce: check out the rev above, `patch -p1 < xenolith.patch`,
+then `tree-sitter generate` with tree-sitter-cli 0.25.3 (build
+2a835ee029dca1c325e6f1c01dbce40396f6123e, the one upstream's own
+parser.c names). That CLI regenerates upstream's unpatched parser.c byte
+for byte, so the diff in src/parser.c is the patch and nothing else.
+Upstream's own test corpus passes after the patch (24 of 24).
+
+Why vendored: the grammar is not published on crates.io (404, measured
+2026-09-27, languages/shells/tcl:R194), and a git dependency cannot be
+published and breaks the offline build. A refresh is its own commit naming
+the new rev, and re-applies xenolith.patch or drops the hunks upstream
+took.

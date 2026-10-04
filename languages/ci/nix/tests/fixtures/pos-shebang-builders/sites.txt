@@ -1,0 +1,5 @@
+# `languages/ci/nix:T160`: the whole text handed to `writeScript` or
+# `writeText` holds the language its shebang names, as T157 reads a whole
+# attribute value. The builder names itself in the sink path.
+hook.writeScript | '' | sh | - | "\n    #!/bin/sh\n    git diff --quiet HEAD@{1} -- flake.lock || nix flake check\n  "
+report.writeText | '' | - | - | "\n    #!/usr/bin/env python3\n    import sys\n    print(sys.argv)\n  "

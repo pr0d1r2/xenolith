@@ -1,0 +1,29 @@
+set -euo pipefail
+
+tclsh <<'TCL'
+puts [info patchlevel]
+TCL
+
+tclsh /dev/stdin "$f" <<'TCL'
+puts [lindex $argv 0]
+TCL
+
+tclsh8.6 - <<TCL
+puts $HOME
+TCL
+
+wish <<'TK'
+button .b -text hi
+TK
+
+expect <<'EXP'
+spawn ssh host
+expect "word:"
+send "x\r"
+EXP
+
+expect -c 'spawn true; expect eof'
+
+expect -c 'exit 0' <<EOF
+this heredoc is data: the program came from -c
+EOF

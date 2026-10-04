@@ -1,0 +1,6 @@
+# Script positions at any depth: a `namespace eval` body, a `proc` body,
+# `if`, `foreach`, `catch` and `while` bodies, a `[cmd]` inside a quoted
+# word -- the places Tcl runs code.
+exec sh -c | shell | { | sh | - | "ls | wc -l"
+exec bash -c | shell | { | bash | - | "echo one; echo two"
+exec sh -c | shell | { | sh | - | "a && b"

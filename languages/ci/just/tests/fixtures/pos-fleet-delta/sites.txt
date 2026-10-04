@@ -1,0 +1,5 @@
+# Every recipe is a site; the verdict is the shell guest's, measured with
+# `xnl check` 2026-09-27: only `check` is flagged (`sequence`).
+build | shell | JustRecipe | sh errexit nounset | - | "cargo build --release"
+check | shell | JustRecipe | sh errexit nounset | - | "bash scripts/lint.sh\nbats tests/unit"
+hello | shell | JustShebangRecipe | bash | - | "#!/usr/bin/env bash\necho hello"

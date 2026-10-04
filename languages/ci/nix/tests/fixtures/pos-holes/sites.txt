@@ -1,0 +1,4 @@
+# Holes are the grammar's interpolation nodes. `''${` is nix's escape for
+# a literal `${` and is NOT a hole; the string inside the second hole is
+# nix code, not a site of its own.
+systemd.services.hello.script | '' | bash errexit | ${pkgs.hello}, ${lib.optionalString debug "set -x"} | "\n    ${pkgs.hello}/bin/hello --greeting \"''${GREETING:-hi}\"\n    ${lib.optionalString debug \"set -x\"}\n  "

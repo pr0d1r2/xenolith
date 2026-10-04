@@ -1,0 +1,26 @@
+amends "pkl/Config.pkl"
+
+/// A step written in a doc comment is documentation:
+///
+///   ["example"] { check = """
+///     if true; then echo yes; fi
+///     """ }
+// check = """
+//   for f in *; do echo "$f"; done
+//   """
+
+/// Top level `check`, not inside a step entry: not a hk step sink.
+local check = """
+  while true; do sleep 1; done
+  """
+
+local steps = new Mapping<String, Step> {
+  ["notes"] {
+    glob = List("**/*.md")
+    // Not a sink property: a multi-line string that happens to hold shell.
+    message = """
+      if [ -x hook ]; then ./hook; fi
+      """
+    check = "markdownlint {{files}}"
+  }
+}

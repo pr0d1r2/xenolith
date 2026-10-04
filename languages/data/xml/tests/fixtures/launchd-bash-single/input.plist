@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- `bash -c` holding ONE simple command: still a site, which the shell
+    guest judges trivial (languages/shells/shell:V3), so never flagged. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.example.sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>exec /usr/local/bin/sync-tool --quiet</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

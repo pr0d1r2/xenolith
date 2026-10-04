@@ -1,0 +1,11 @@
+# exec sh -c {a | b}
+puts {exec sh -c {a | b}}
+set doc {exec bash -c {ls | wc -l}}
+puts "exec sh -c ls"
+set pipe [open "|sh -c {a | b}"]
+exec -ignorestderr sh -c {a | b}
+exec $shell -c {a | b}
+exec [auto_execok sh] -c {a | b}
+exec sh $flag {a | b}
+exec sh script.sh {a | b}
+exec ssh -c aes128-ctr host

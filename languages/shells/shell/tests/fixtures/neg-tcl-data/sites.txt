@@ -1,0 +1,3 @@
+# A tcl interpreter given a script reads its heredoc as input, and
+# `tclsh -c` is not a program flag (`languages/shells/shell:V139`,
+# `languages/shells/tcl:V197`).

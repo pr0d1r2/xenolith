@@ -1,0 +1,5 @@
+env python3 -c 'print(1)'
+sudo bash -c 'ls | wc -l'
+"$PYTHON" -c 'print(1)'
+command python3 -c 'print(1)'
+exec bash -c 'ls | wc -l'

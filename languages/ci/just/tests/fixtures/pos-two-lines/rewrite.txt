@@ -1,0 +1,3 @@
+# The lines merge under the prelude `set -eu` (`sh -cu` plus just's stop
+# at the first failing line), and the recipe keeps one load line.
+release | ok | sh ./scripts/just/release.sh | "cargo build --release\ncp target/release/app dist/"
