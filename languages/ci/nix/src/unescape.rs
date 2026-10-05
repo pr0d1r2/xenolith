@@ -1,7 +1,7 @@
 //! Nix string bodies as the guest reads them
 //! (`languages/api/src/lens:V39`, `languages/ci/nix:T158`).
 //!
-//! What bash runs is not the bytes between the quotes. For a `''…''`
+//! What bash runs is not the bytes between the quotes. For a `''...''`
 //! string nix first drops an opening line of spaces, then strips the
 //! common indentation of the content lines, then drops a closing line of
 //! spaces; its `''` escapes decode along the way. A heredoc terminator
@@ -47,7 +47,7 @@ pub(crate) fn unescape(kind: &DelimKind, raw: &str) -> Result<String> {
     }
 }
 
-/// The body of a `''…''` string, dedented and decoded.
+/// The body of a `''...''` string, dedented and decoded.
 pub(crate) fn indented(raw: &str) -> String {
     let parts = lex_indented(drop_opening_line(raw));
     strip_indent(&parts, min_indent(&parts))
@@ -197,7 +197,7 @@ pub(crate) fn strip_indent(parts: &[Part], indent: Option<usize>) -> String {
     out
 }
 
-/// The body of a `"…"` string, its backslash escapes decoded: `\n`,
+/// The body of a `"..."` string, its backslash escapes decoded: `\n`,
 /// `\r`, `\t` as the control characters, anything else as itself. No
 /// indentation is stripped from a double-quoted string.
 pub(crate) fn double_quoted(raw: &str) -> String {

@@ -303,7 +303,7 @@ fn target(path: &str, line: Option<usize>) -> Target {
 
 #[test]
 fn extract_needs_at_least_one_path() {
-    // `src/cli` §I: `<path>[:line]…`, one or more. An extract over "the
+    // `src/cli` §I: `<path>[:line]...`, one or more. An extract over "the
     // whole tree" is a rewrite of the whole tree, which is too big a
     // thing to happen by forgetting an argument.
     let message = usage(&["extract"]);
@@ -337,7 +337,7 @@ fn extract_takes_write_and_relocate() {
 
 #[test]
 fn inline_takes_extracts_and_write() {
-    // `src/cli` §I: `xnl inline [--write] <extract>…`; an operand is a
+    // `src/cli` §I: `xnl inline [--write] <extract>...`; an operand is a
     // file, never `<path>:<line>` -- an extract has one load to go back to.
     assert_eq!(
         ok(&["inline", "a/x.sh", "b:1"]).verb,

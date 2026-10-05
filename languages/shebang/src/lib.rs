@@ -210,7 +210,7 @@ pub fn strip_strict<'a>(text: &'a str, prelude: &Prelude) -> &'a str {
     }
 }
 
-/// `text` without its shebang and without ANY leading `set -…` line.
+/// `text` without its shebang and without ANY leading `set -...` line.
 ///
 /// Wider than [`strip_strict`], which matches one exact line. This is for
 /// reading a file whose strict line was written by hand -- `set -eu`,

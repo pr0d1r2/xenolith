@@ -17,8 +17,8 @@ use crate::discover::{Sandbox, write as put};
 // fakes
 // ---------------------------------------------------------------------
 
-/// A line-based host. `<sink>=<guest>: <body>` is a site (`{{…}}` in a
-/// body is a hole); `<sink>< <argv…>` is a load of its last word; a
+/// A line-based host. `<sink>=<guest>: <body>` is a site (`{{...}}` in a
+/// body is a hole); `<sink>< <argv...>` is a load of its last word; a
 /// line `!` does not parse. Each flavour claims its own extension and
 /// breaks one law on purpose.
 struct Toy {
@@ -300,7 +300,7 @@ impl Guest for Sh {
         Ok(names)
     }
 
-    /// `"$NAME"` at each marker, unless the marker sits inside `'…'`.
+    /// `"$NAME"` at each marker, unless the marker sits inside `'...'`.
     fn params(&self, body: &str, params: &[Param]) -> Result<Bound> {
         let mut out = body.to_owned();
         for param in params {

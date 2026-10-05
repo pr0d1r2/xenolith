@@ -2,7 +2,7 @@
 //!
 //! A launchd job is a property list whose top dict names what to run. With
 //! `ProgramArguments` and no `Program` key, argv[0] IS the executable, so
-//! an array reading `<sh|bash|zsh|dash> -c <script> …` runs `<script>` as
+//! an array reading `<sh|bash|zsh|dash> -c <script> ...` runs `<script>` as
 //! a shell program -- the argv form of `languages/shells/shell:V139`, and
 //! the one shape this module turns into a site. Its env is read from ITS
 //! argv: the dialect is argv[0]'s basename, and with `-c` alone as
@@ -112,7 +112,7 @@ fn entries<'t>(dict: Node<'t>, src: &str) -> Option<Vec<(String, Node<'t>)>> {
 }
 
 /// The script element of a `ProgramArguments` array, and argv[0]'s
-/// basename, when the array reads `<shell> -c <script> …`.
+/// basename, when the array reads `<shell> -c <script> ...`.
 fn script<'t>(array: Node<'t>, src: &str) -> Option<(Node<'t>, String)> {
     let argv = children(array);
     if argv.iter().any(|arg| name(*arg, src) != Some("string")) {

@@ -19,7 +19,7 @@ const DEFAULT: Limits<'static> = Limits {
     prefix: "",
 };
 
-/// `x = ''<body>'';` with every `${…}` in the body a hole.
+/// `x = ''<body>'';` with every `${...}` in the body a hole.
 fn bound(body: &str) -> Outcome {
     let src = format!("x = ''{body}'';");
     let start = "x = ''".len();

@@ -4,7 +4,7 @@
 //! step in it carries commands in `check`, `fix`, `shell`, `check_diff`
 //! and `check_list_files` (`languages/ci/pkl` §I). Those five properties,
 //! inside a step entry, inside a hk config, are the sink. The same
-//! `"""…"""` anywhere else -- a doc comment, a `message`, a top-level
+//! `"""..."""` anywhere else -- a doc comment, a `message`, a top-level
 //! `local`, a module that is not a hk config -- is inert data
 //! (`languages:V2`, `languages/api/src/site:V38`), and each of those has
 //! a negative fixture here (`tests:V15`).
@@ -84,7 +84,7 @@ fn every_script_in_a_hk_step_sink_is_a_site() {
     );
     for site in &found {
         assert_eq!(site.guest, LangId::Shell, "{}", site.sink);
-        assert!(site.holes.is_empty(), "{} has no `\\(…)`", site.sink);
+        assert!(site.holes.is_empty(), "{} has no `\\(...)`", site.sink);
     }
 }
 

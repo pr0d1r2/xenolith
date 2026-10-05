@@ -27,11 +27,11 @@ fn each_language_is_default_opt_in_or_planned() {
         out,
         "| language | in `xnl` | cargo feature | spec |\n\
          |---|---|---|---|\n\
-         | awk | planned | — | [`languages/data/awk`](languages/data/awk/SPEC.md) |\n\
+         | awk | planned | -- | [`languages/data/awk`](languages/data/awk/SPEC.md) |\n\
          | just | opt-in feature | `lang-just` | [`languages/ci/just`](languages/ci/just/\
          SPEC.md) |\n\
          | nix | default build | `lang-nix` | [`languages/ci/nix`](languages/ci/nix/SPEC.md) |\n\
-         | yaml | planned | — | — |\n"
+         | yaml | planned | -- | -- |\n"
     );
 }
 
@@ -45,6 +45,6 @@ fn a_family_less_language_resolves_and_a_namesake_elsewhere_does_not() {
         &[],
         &owned(&["tests/rust/SPEC.md", "languages/rust/SPEC.md"]),
     );
-    assert!(out.contains("| rust | planned | — | [`languages/rust`](languages/rust/SPEC.md) |"));
+    assert!(out.contains("| rust | planned | -- | [`languages/rust`](languages/rust/SPEC.md) |"));
     assert!(!out.contains("tests/rust"));
 }

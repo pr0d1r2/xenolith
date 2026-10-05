@@ -1,5 +1,5 @@
-//! HOLES as params: host interpolations inside a body -- nix `${…}`, pkl
-//! `\(…)` -- become named env params of the extract, or the site stays a
+//! HOLES as params: host interpolations inside a body -- nix `${...}`, pkl
+//! `\(...)` -- become named env params of the extract, or the site stays a
 //! judgement call (`languages/api/src/holes:V40`).
 //!
 //! An extract cannot carry host syntax: `${pkgs.foo}` copied into a `.sh`
@@ -87,7 +87,7 @@ pub enum Refusal {
         max: u64,
     },
     /// A hole sits where the guest does not expand a reference: inside
-    /// `'…'`, a heredoc, a comment.
+    /// `'...'`, a heredoc, a comment.
     Unexpanded {
         /// The param that would have stood there.
         name: String,
@@ -290,7 +290,7 @@ pub fn reserved(name: &str) -> bool {
 /// The final names of `holes`, in order (`languages/api/src/holes:V40`):
 /// `prefix` first; a name that is [`reserved`] or in `taken` (the vars
 /// the body already reads or assigns) gets `_PARAM`; one an earlier hole
-/// has, or still clashing, counts up `_2`, `_3`, ….
+/// has, or still clashing, counts up `_2`, `_3`, ....
 #[must_use]
 pub fn names(holes: &[Hole], prefix: &str, taken: &[String]) -> Vec<String> {
     let mut out: Vec<String> = Vec::with_capacity(holes.len());

@@ -28,7 +28,7 @@ sib|languages/api/src/holes|param naming, param refs, hole advice
 V34: lens laws ∀ host, ∀ site `s` of fixture `x`, `y = rewrite(x, s, guest.invoke(p), p)`: (a) `inline(y, load, unescape(s.delim, s.delim.body))` ≡ `x` normalized whitespace (`src/extract:V4`); (b) `sites(y)` ∌ `s`; (c) `loads(y)` ∋ load of `p`; (d) `rewrite` on host w/ ⊥ sites = identity (`src/extract:V5`); (e) inverse of `languages/api/src/holes:V40`: `inline` reads (NAME, hole) pairs from load & puts hole text back at each ref (`param_refs` \| host form) ∴ (a) holds for sites w/ holes (`y` = `rewrite_bound`). enforced by `laws::check` ∀ language crate, ⊥ per-crate hand tests.
 V39: body text for guest = `unescape(delim, raw)`; law V34(a) holds through `unescape`/`escape` round-trip; ∀ `DelimKind` ∃ fixture w/ indent + escape cases.
 V63: extract file = `shebang::wrap(body, prelude)`; inline from disk = `shebang::strip_strict(file, &guest.prelude(&site.env))` ∴ V34(a) holds over file ON DISK, ⊥ only in-memory body. ∀ guest property: `strip_strict(wrap(body, p), p) == body`; vectors shared w/ nix-shebang.
-V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base — default HOST FILE dir (`./sub/x.sh`), else `Host::runtime_base` | rule `base` (`src/extract:V45`); ⊥ cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
+V66: load path in `rewrite` & `LoadRef.path` relative to site's runtime base -- default HOST FILE dir (`./sub/x.sh`), else `Host::runtime_base` | rule `base` (`src/extract:V45`); ⊥ cwd relative. placement paths (`src/extract:V46`) stay repo-root relative; engine converts.
 
 ## §T TASKS
 

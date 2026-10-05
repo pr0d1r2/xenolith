@@ -2,7 +2,7 @@
 //! in force there.
 //!
 //! A site is a delimiter AND a sink context (`languages/api/src/site:V38`).
-//! The same `''…''` under a nix `description` attribute is inert data, not
+//! The same `''...''` under a nix `description` attribute is inert data, not
 //! a site -- which is why none of this is discoverable by scanning for
 //! quotes, and every span here comes from a grammar node.
 
@@ -25,8 +25,8 @@ pub struct Site {
     pub env: GuestEnv,
     /// The delimiter bounding the guest code.
     pub delim: Delim,
-    /// Host interpolations INSIDE the body: nix `${…}`, pkl `\(…)`, yaml
-    /// `${{ }}`, just `{{…}}`. They are the reason extraction is not
+    /// Host interpolations INSIDE the body: nix `${...}`, pkl `\(...)`, yaml
+    /// `${{ }}`, just `{{...}}`. They are the reason extraction is not
     /// always mechanical -- an extracted file cannot carry host syntax, so
     /// each hole becomes a named parameter or the extraction becomes a
     /// judgement call (`languages/api/src/holes:V40`).
@@ -77,9 +77,9 @@ pub struct Delim {
 /// (`languages/api/src/lens:V39`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelimKind {
-    /// Nix indented string, `''…''`.
+    /// Nix indented string, `''...''`.
     NixIndented,
-    /// Nix double-quoted string, `"…"`.
+    /// Nix double-quoted string, `"..."`.
     NixString,
     /// Shell heredoc, `<<TAG`, `<<-TAG` or `<<~TAG`.
     Heredoc {
@@ -91,7 +91,7 @@ pub enum DelimKind {
         /// Whether leading tabs or indent are stripped (`<<-`, `<<~`).
         strip_indent: bool,
     },
-    /// Pkl multi-line string, `"""…"""`, optionally with `#` guards.
+    /// Pkl multi-line string, `"""..."""`, optionally with `#` guards.
     PklMultiline {
         /// Number of `#` characters guarding the quotes, zero for plain
         /// `"""`.
@@ -109,9 +109,9 @@ pub enum DelimKind {
         /// The tag name, lowercased.
         tag: String,
     },
-    /// Rust raw string, `r"…"` or `r#"…"#`.
+    /// Rust raw string, `r"..."` or `r#"..."#`.
     RustRawString {
-        /// Number of `#` characters, zero for `r"…"`.
+        /// Number of `#` characters, zero for `r"..."`.
         pounds: usize,
     },
     /// Ruby heredoc, `<<~TAG` and friends.
@@ -121,8 +121,8 @@ pub enum DelimKind {
         /// Whether indentation is squiggly-stripped (`<<~`).
         squiggly: bool,
     },
-    /// A command string passed as one argv element: `bash -c '…'`,
-    /// `perl -e '…'`.
+    /// A command string passed as one argv element: `bash -c '...'`,
+    /// `perl -e '...'`.
     ArgvString,
     /// A just recipe body, bounded by indentation.
     JustRecipe,

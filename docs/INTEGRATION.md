@@ -1,11 +1,11 @@
 # Integration
 
 How a change gets from an edit to `main`, what checks it at each point, and
-why the order is what it is — then how to wire `xnl` into a gate of your own.
+why the order is what it is -- then how to wire `xnl` into a gate of your own.
 
 The short version: **the gate is a set of git hooks that also run on CI.**
 Every check runs on your machine before the push, and CI runs the same steps
-from the same definition — not a parallel pipeline that can disagree with
+from the same definition -- not a parallel pipeline that can disagree with
 your laptop.
 
 ## One definition, three callers
@@ -81,7 +81,7 @@ of every generated output, and `lychee --offline`.
 
 **CI** runs `nix develop --command hk check --all --check --no-fail-fast` on
 `ubuntu-latest`, `ubuntu-24.04-arm` and `macos-latest`, then `nix flake
-check`, which builds the package and its checks — the test suite and clippy
+check`, which builds the package and its checks -- the test suite and clippy
 over the package's own source set, the closure, the language subset and the
 wrapped linters. On `main` it pushes what it built to the binary cache.
 
@@ -98,7 +98,7 @@ split above. Which **files** they see is separate:
 
 A step runs only when a file in scope also matches its `glob`. The
 whole-tree guards glob `**/*` or read the tree themselves, because the change
-that breaks them — a rename, a deletion, a new `SPEC.md` — is not always a
+that breaks them -- a rename, a deletion, a new `SPEC.md` -- is not always a
 changed file they would be handed.
 
 ## The steps that guard claims, not code
@@ -119,7 +119,7 @@ sentence written somewhere else in this repository is still **true**.
 `dev-generated` is scoped: `xenolith-dev` narrows to the outputs the staged
 files feed, so a commit touching `.coverage` compares the badges and not the
 notices. That map is a heuristic, and a heuristic that is too narrow lets a
-stale output through — so `dev-generated-full` runs the same checker again on
+stale output through -- so `dev-generated-full` runs the same checker again on
 push with **no** scope, where every output is compared against its owners.
 Cheap and approximate at the near end, complete at the far one
 (`dev:V345`).
@@ -127,7 +127,7 @@ Cheap and approximate at the near end, complete at the far one
 ## Why the steps are chained
 
 Cargo takes a lock on the target directory, so two cargo jobs launched in
-parallel do not run in parallel — the second blocks on *"Blocking waiting for
+parallel do not run in parallel -- the second blocks on *"Blocking waiting for
 file lock on build directory"*, which reads as a hang. `depends` makes that
 serialization explicit and leaves hk free to run everything else
 concurrently:
@@ -155,10 +155,10 @@ an early one.
 
 ## Where spec-driven development fits
 
-The spec is not documentation sitting beside the gate — it is an **input to
+The spec is not documentation sitting beside the gate -- it is an **input to
 it**. Its own steps read the `SPEC.md` tree: `mth fmt` and `mth check` for
 the format, `itok check` for token cost, and `sherd validate`, `sync
---check`, `check` and `budget` for the federation — and `dev-generated`
+--check`, `check` and `budget` for the federation -- and `dev-generated`
 counts its nodes for the badge.
 
 ```text
@@ -219,7 +219,7 @@ hk decides *when* things run. It never hides *what* runs; `hk check --all
 Configured in [`release.toml`](../release.toml) and run by `cargo-release`,
 never by a script (`nix:V109`). Dry-run is its default, so any command
 without `--execute` verifies and changes nothing. The version **bump** goes
-through a pull request like any other change — the version edit without
+through a pull request like any other change -- the version edit without
 cargo-release's commit, then the CHANGELOG by hand (`nix:V110`):
 
 ```sh
@@ -237,16 +237,16 @@ cargo release push --workspace --execute
 
 `--workspace` is required: the root manifest is also a package, so without
 it cargo-release selects `xenolith` alone and `publish` refuses, because the
-crates it depends on were never selected (`nix:B4`). `tag` runs without it —
+crates it depends on were never selected (`nix:B4`). `tag` runs without it --
 one `v<x.y.z>` tag marks the lockstep version.
 
 `hook` runs first because `tag`, `publish` and `push` do **not** run
-`pre-release-hook` — only the full flow and `cargo release hook` do. Start at
+`pre-release-hook` -- only the full flow and `cargo release hook` do. Start at
 `tag` and you publish whatever the tree happens to hold.
 
 The workspace is released in lockstep: every crate carries the one
 `[workspace.package] version`, one `v<x.y.z>` tag marks it, and cargo-release
-publishes in dependency order — `xenolith-shebang`, `xenolith-lang-api`, the
+publishes in dependency order -- `xenolith-shebang`, `xenolith-lang-api`, the
 language crates, then `xenolith`. `xenolith-dev` is never released.
 
 A new crate name is rate-limited by crates.io: a burst of 5, then about one
@@ -273,7 +273,7 @@ A step in your `hk.pkl`:
 }
 ```
 
-hk runs `fix` wherever fixing is on — `hk fix`, or a hook with `fix = true` —
+hk runs `fix` wherever fixing is on -- `hk fix`, or a hook with `fix = true` --
 so leave the line out if extraction should always be a deliberate step. A
 file no host claims is skipped, so the step needs no glob; add one to keep it
 from being scheduled on commits that touch no host.
@@ -294,7 +294,7 @@ same line `xnl check` prints; a clean one goes through.
 
 `nix flake check` can run `xnl` over your source the way this repository's
 own `checks.dogfood` does: one command in Nix, with the script in a file of
-its own — which is the rule `xnl` enforces.
+its own -- which is the rule `xnl` enforces.
 
 ```nix
 checks.${system}.xenolith = pkgs.runCommand "xenolith-check" {
@@ -321,7 +321,7 @@ directory, and walks the tree itself when the source is no repository.
 
 `--trust-config` guards the commands `xnl` would run and nothing else. A CI
 job that checks pull requests from forks must take its workflow and its hk or
-lefthook configuration from the **base branch** — otherwise the contributor
+lefthook configuration from the **base branch** -- otherwise the contributor
 chooses what the job runs. [`SECURITY.md`](SECURITY.md) has the rest.
 
 ## Two rules that shape all of this
@@ -329,7 +329,7 @@ chooses what the job runs. [`SECURITY.md`](SECURITY.md) has the rest.
 **Never bypass.** `--no-verify`, lowering a floor, raising a ceiling,
 deleting a test, or adding `#[allow]` to silence clippy all ship the defect
 with the alarm switched off. If the check itself is wrong, that is a spec
-change — say so in [`SPEC.md`](../SPEC.md), in its own commit.
+change -- say so in [`SPEC.md`](../SPEC.md), in its own commit.
 
 **A generated number is never typed.** The badges, the Languages table and
 the notices come from `xenolith-dev`; a number in prose is true the day it is
@@ -343,7 +343,8 @@ same failure as a gap you cannot.
 
 | gap | where it goes |
 |---|---|
-| no `semver` gate step yet — there is no release tag to diff against | `nix:T110` |
+| no `semver` gate step yet -- there is no release tag to diff against | `nix:T110` |
+| `.ctrm` is reviewed evidence, but `ctrm check` is not yet a gate step; pinning its release in the Nix toolchain is deferred until the next gate-tool update | issue #38 |
 | crate metadata for every crate, checked rather than reviewed | `nix:T111` |
 | each `.crate` run from its unpacked tarball, not only compiled | `nix:T112` |
 | the `Unreleased` rule of the changelog has no runner yet | `nix:T109` |
@@ -352,7 +353,7 @@ same failure as a gap you cannot.
 
 ## Deeper
 
-[`hk.pkl`](../hk.pkl) is the definition and is heavily commented — every step
+[`hk.pkl`](../hk.pkl) is the definition and is heavily commented -- every step
 says why it exists. [`AGENTS.md`](../AGENTS.md) is the working guide,
 [`CONTRIBUTING.md`](CONTRIBUTING.md) the arrival path, and
 [`SPEC.md`](../SPEC.md) holds the invariants this all enforces.

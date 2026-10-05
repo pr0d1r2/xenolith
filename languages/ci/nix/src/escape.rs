@@ -6,7 +6,7 @@
 //! which is why every `''` this module emits is one nix's lexer takes as
 //! an escape and nothing else.
 //!
-//! A `''…''` body is written one line per line, each behind the indent it
+//! A `''...''` body is written one line per line, each behind the indent it
 //! is given, and the dedent nix applies takes exactly that indent off
 //! again. Three shapes would not survive that, and each gets one escaped
 //! space `''\ `, which nix counts as content (`crate::unescape`):
@@ -38,7 +38,7 @@ pub(crate) fn escape(kind: &DelimKind, body: &str) -> Result<String> {
     }
 }
 
-/// The inside of a `''…''` string reading back as `body`: an opening line
+/// The inside of a `''...''` string reading back as `body`: an opening line
 /// break, every non-empty line behind `indent`, and -- when the body ends
 /// in a line break or is empty -- a closing line of `close`.
 pub(crate) fn indented(body: &str, indent: &str, close: &str) -> String {
@@ -79,7 +79,7 @@ fn lead_line(lines: &[&str]) -> Option<usize> {
         .then_some(first)
 }
 
-/// One line of a `''…''` body, encoded. `lead` escapes its first space,
+/// One line of a `''...''` body, encoded. `lead` escapes its first space,
 /// `trailing` its last; `closes` says the closing `''` follows it.
 fn indented_line(line: &str, lead: bool, trailing: bool, closes: bool) -> String {
     let chars: Vec<char> = line.chars().collect();
@@ -115,7 +115,7 @@ fn indented_line(line: &str, lead: bool, trailing: bool, closes: bool) -> String
     out
 }
 
-/// The inside of a `"…"` string reading back as `body`: `\`, `"` and `${`
+/// The inside of a `"..."` string reading back as `body`: `\`, `"` and `${`
 /// escaped, line breaks written as `\n` so the string stays on one line.
 pub(crate) fn double_quoted(body: &str) -> String {
     let mut out = String::with_capacity(body.len());

@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `xenolith-lang-ruby` (feature `lang-ruby`): tree-sitter-ruby; host: tagged heredocs, backticks, `system("…")`.
+crate `xenolith-lang-ruby` (feature `lang-ruby`): tree-sitter-ruby; host: tagged heredocs, backticks, `system("...")`.
 
 ## §N NAV
 
@@ -20,7 +20,7 @@ sib|languages/rust|rust parser, rust host sinks
 
 ## §I INTERFACES
 
-- sinks: squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("…")` w/ control syntax · sql \| shell \| js · `File.read(…)` / `Rails.root.join` ?.
+- sinks: squiggly heredoc tagged `SQL`/`SH`/`JS`, backticks, `system("...")` w/ control syntax · sql \| shell \| js · `File.read(...)` / `Rails.root.join` ?.
 - placement prototype ? (T86 evaluates): ruby → `File.read(File.join(__dir__, "sql", "<name>.sql"))`.
 
 ## §V INVARIANTS

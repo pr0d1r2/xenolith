@@ -103,7 +103,7 @@ fn a_leading_line_with_text_is_never_stepped_over_as_dropped() {
 // ---------------------------------------------------------------------
 
 /// `src` with one site whose body is the text between the first `[`
-/// and the following `]`, holes at each `{…}` inside it.
+/// and the following `]`, holes at each `{...}` inside it.
 fn site_in(src: &str) -> Site {
     let open = src.find('[').unwrap_or_default();
     let close = src[open..].find(']').map_or(src.len(), |i| open + i);
@@ -249,7 +249,7 @@ impl Guest for FakeGuest {
     }
 }
 
-/// A host claiming `*.hx`: a site is `[…]`, unescape upper-cases.
+/// A host claiming `*.hx`: a site is `[...]`, unescape upper-cases.
 struct UpperHost;
 
 impl Host for UpperHost {

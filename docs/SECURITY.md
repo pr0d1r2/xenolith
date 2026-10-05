@@ -10,7 +10,7 @@ Report privately, not in a public issue.
 - Or email **pr0d1r2@gmail.com** with `xenolith security` in the subject.
 
 Include what you ran, what happened, and the file that triggered it. A
-reproducing file is worth more than a description of one — if it comes from a
+reproducing file is worth more than a description of one -- if it comes from a
 private codebase, cut it down to the smallest file that still shows the
 problem, or describe its shape instead.
 
@@ -43,7 +43,7 @@ That combination is what is worth attacking, and what is worth reporting:
 1. **A config file reaching a command.** `xenolith.toml` can name commands:
   `[lint.<guest>] checks` and `fixers`, and `[lint] all`. A config file is
   part of the repository being checked, so it may come from someone you do
-  not trust — a pull request, a vendored directory, a nested
+  not trust -- a pull request, a vendored directory, a nested
   `xenolith.toml` deep in the tree. `xnl lint` therefore runs
   config-defined commands **only** under `--trust-config`; without it each
   is skipped with an `untrusted-command` warning naming it, and the
@@ -62,8 +62,8 @@ That combination is what is worth attacking, and what is worth reporting:
 4. **Text injected into a host.** The path of an extract, and the path
   written into the host's load line, may contain only `A-Z a-z 0-9 . _ / -`
   and may not start with `-`; anything else is refused with exit 2. Those
-  paths are pasted into host syntax — a Nix path, an hk step string, a
-  justfile recipe — so a crafted file that makes an extraction inject text
+  paths are pasted into host syntax -- a Nix path, an hk step string, a
+  justfile recipe -- so a crafted file that makes an extraction inject text
   into the host, or change what the host runs beyond moving the embed, is in
   scope.
 5. **A crash or hang on hostile input.** The parsers are tree-sitter
@@ -75,7 +75,7 @@ That combination is what is worth attacking, and what is worth reporting:
 `xnl` would run. It does nothing about the other files in a repository that
 are also commands: `hk.pkl` steps, justfile recipes, the CI workflow itself.
 When CI checks a pull request from a fork, the job must take its workflow and
-its `hk` configuration from the **base branch**, not from the pull request —
+its `hk` configuration from the **base branch**, not from the pull request --
 otherwise the contributor chooses what the job runs, and `--trust-config`
 protects nothing. A job that holds secrets or a token with write access must
 never run a fork's configuration. This repository's own CI runs on

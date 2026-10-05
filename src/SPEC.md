@@ -7,7 +7,7 @@ root crate: lib + `xnl` bin: core model, CLI, verbs; cross-language engines extr
 ## §F FEDERATION
 
 dir|owns|⊥owns|tokens
-config|`xenolith.toml` parse & validation|applying config — each verb's node|-
+config|`xenolith.toml` parse & validation|applying config -- each verb's node|-
 extract|embed → own file, host rewrite, diff \| `--write`|detection (`languages`), load resolution (`graph`)|-
 graph|host → extract load edges, dangling & orphan|writing files (`extract`)|-
 lint|per-language linter map & invocation|deciding what is an extract (`graph`, `config`)|-
@@ -30,7 +30,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §C CONSTRAINTS
 
-- C1: Rust cargo workspace; repo & root crate = `xenolith` (lib + bin `xnl` = `xenolith` consonant skeleton, `rg` shape; `xnl` free as crate, nixpkgs & brew binary — checked 2026-09-19); lib exposed for consumers. root crate depends on ∀ language crate, `default` = ∀ `lang-*` ∴ `xnl` works out of box, trim via `default-features = false`; feature = compile-time (grammar ∉ binary), `xenolith.toml` `[langs]` = runtime toggle over compiled-in set. ∀ workspace crate (api, ∀ `xenolith-lang-*`, root) published to crates.io, lockstep version. MIT.
+- C1: Rust cargo workspace; repo & root crate = `xenolith` (lib + bin `xnl` = `xenolith` consonant skeleton, `rg` shape; `xnl` free as crate, nixpkgs & brew binary -- checked 2026-09-19); lib exposed for consumers. root crate depends on ∀ language crate, `default` = ∀ `lang-*` ∴ `xnl` works out of box, trim via `default-features = false`; feature = compile-time (grammar ∉ binary), `xenolith.toml` `[langs]` = runtime toggle over compiled-in set. ∀ workspace crate (api, ∀ `xenolith-lang-*`, root) published to crates.io, lockstep version. MIT.
 - C2: edition `2024`, `rust-version = "1.95"` ≡ rustc in pinned nixpkgs. ⊥ rust-overlay, ⊥ fenix, ⊥ `rust-toolchain.toml`.
 - C5: deps minimal & justified per crate in `Cargo.toml` comment. `cargo-deny` gate (licenses, advisories, duplicates). `clippy` `unwrap_used`/`expect_used` = deny.
 - C139: 1-to-1 Rust unit tests ∀ tracked `.rs` w/ logic (∃ fn body ∴ pure-wiring `lib.rs` exempt; ∀ crate, as C5; twin of `scripts:C13`): `#[cfg(test)] mod tests;` → `<d>/<m>.rs` & `<d>/<m>/mod.rs` ↔ `<d>/<m>/tests.rs`, `<d>/lib.rs` ↔ `<d>/tests.rs`; inline `mod tests {}` ⊥ counts. `main.rs` ⊥ own mirror (= lib's) ∴ ! shim, `fn main` → lib only. `tests/` integration allowed, ⊥ satisfies. closed exemption list & checker: `scripts/guard:V140`.

@@ -1,0 +1,20 @@
+# Character policy for the repository. Every grant below is intentional: the
+# comment records why a file type needs more than the ASCII floor.
+* ascii
+
+*.c ascii+legal
+*.exempt ascii+caveman
+*.md ascii+caveman
+*.txt ascii+legal+caveman
+*.pkl ascii+box+caveman
+*.bats ascii+caveman
+*.nix ascii+caveman
+*.plist ascii+caveman
+*.sh ascii+caveman
+*.toml ascii+caveman
+.context-limits ascii+caveman
+SPEC.md ascii+caveman+math+spec-logic
+tests.rs ascii+caveman+marks+pl+en-aux
+tests/*.rs ascii+caveman+marks+pl+en-aux
+**/tests/*.rs ascii+caveman+marks+pl+en-aux
+docs/THIRD-PARTY-NOTICES.md ascii+caveman+legal

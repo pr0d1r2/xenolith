@@ -11,7 +11,7 @@ fn strings(items: &[&str]) -> Vec<String> {
 }
 
 /// The one string of `src`, which starts with its opening delimiter and
-/// ends with its closing one, as a site, holes at every `${…}` the test
+/// ends with its closing one, as a site, holes at every `${...}` the test
 /// names by text.
 fn site(src: &str, kind: DelimKind, holes: &[&str]) -> Site {
     let quote = if kind == DelimKind::NixIndented { 2 } else { 1 };
@@ -80,7 +80,7 @@ fn replace_strings_scans_left_to_right_and_never_rescans_what_it_wrote() {
 
 #[test]
 fn a_pattern_is_the_name_between_at_signs_and_only_a_plain_name() {
-    // A name goes inside a `"…"` nix string as it is, so it may hold
+    // A name goes inside a `"..."` nix string as it is, so it may hold
     // nothing that string would read as an escape or a hole.
     assert_eq!(pattern("FOO_BIN"), Some("__FOO_BIN__".to_owned()));
     assert_eq!(pattern("x9"), Some("__x9__".to_owned()));

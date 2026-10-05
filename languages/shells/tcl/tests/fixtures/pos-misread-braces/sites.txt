@@ -1,5 +1,5 @@
 # tree-sitter-tcl parses every braced word as a script and reports
-# errors on shell's `$(…)`, `do … done` and awk's braces inside it. Tcl
+# errors on shell's `$(...)`, `do ... done` and awk's braces inside it. Tcl
 # reads a braced argument literally, so those errors are the grammar
 # misreading data: contained in the site's braces, they do not fail the
 # file (`languages:V78` applies to errors outside them).

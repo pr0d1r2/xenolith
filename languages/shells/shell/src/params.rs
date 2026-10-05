@@ -3,15 +3,15 @@
 //! reference to its env param, and finding those references again.
 //!
 //! Every answer comes from the tree-sitter-bash AST, never from quote
-//! counting: whether `XNL_HOLE_0_` sits in `'…'`, a heredoc or a plain
+//! counting: whether `XNL_HOLE_0_` sits in `'...'`, a heredoc or a plain
 //! word is exactly what the grammar already resolved
 //! (`languages/api/src/site:V38`).
 //!
 //! The expanding contexts are an ALLOWLIST, conservative on purpose: a
 //! marker must be a plain word -- a command, an argument, an assignment
-//! value, a redirect target -- or the text of a `"…"` string. Anywhere
-//! else a reference is either read literally (`'…'`, a heredoc, a
-//! comment) or means something else once quoted (`$((…))`, a `case`
+//! value, a redirect target -- or the text of a `"..."` string. Anywhere
+//! else a reference is either read literally (`'...'`, a heredoc, a
+//! comment) or means something else once quoted (`$((...))`, a `case`
 //! pattern, `[[ ]]`), and the hole stays a judgement.
 
 use tree_sitter::{Node, Parser, Tree};
@@ -22,7 +22,7 @@ use xenolith_lang_api::{Error, LangId, Result, Span};
 mod tests;
 
 /// Ancestors under which no marker becomes a reference: literal text,
-/// arithmetic, patterns, and `${…}` operands.
+/// arithmetic, patterns, and `${...}` operands.
 const LITERAL: &[&str] = &[
     "raw_string",
     "ansi_c_string",
@@ -64,7 +64,7 @@ const WORDISH: &[&str] = &[
 enum Form {
     /// A plain word: `"$NAME"`.
     Word,
-    /// Inside `"…"`: `${NAME}`.
+    /// Inside `"..."`: `${NAME}`.
     Quoted,
 }
 
@@ -198,7 +198,7 @@ fn form(root: Node<'_>, body: &str, start: usize, end: usize) -> Option<Form> {
     Some(form)
 }
 
-/// Whether `node` is a `"…"` string and not bash's `$"…"`, whose text is
+/// Whether `node` is a `"..."` string and not bash's `$"..."`, whose text is
 /// a message-catalog key: the grammar reads the `$` as a word of its own,
 /// so the byte before the quote tells them apart.
 fn plain_string(node: Node<'_>, body: &str) -> bool {

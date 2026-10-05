@@ -1,4 +1,4 @@
-# `{{…}}` is just's interpolation, a hole (`languages/api/src/holes:V40`).
+# `{{...}}` is just's interpolation, a hole (`languages/api/src/holes:V40`).
 # How a load passes one is not decided yet, so extraction refuses them.
 # `x{{{{y}}` is a literal `x{{y}}` to just, whatever the grammar reads in
 # it (`languages/ci/just:B2`): no hole, and it merges as the text it is.

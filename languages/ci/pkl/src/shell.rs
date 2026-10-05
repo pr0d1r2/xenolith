@@ -70,7 +70,7 @@ pub(crate) fn hk_default() -> GuestEnv {
 }
 
 /// The env of a hk `shell` command line: `<sh|bash|zsh> [-<letters>|-o
-/// <name>]… -c`, the interpreter by its basename, or `None` for anything
+/// <name>]... -c`, the interpreter by its basename, or `None` for anything
 /// else.
 pub(crate) fn read(command: &str) -> Option<GuestEnv> {
     let words: Vec<&str> = command.split_whitespace().collect();

@@ -5,8 +5,8 @@ what must hold and what to build next.
 [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) explains the same loop at more
 length; this page is the checklist.
 
-xenolith finds code of one language embedded in a file of another — a shell
-script in a Nix attribute, in a justfile recipe, in an hk step — and moves it
+xenolith finds code of one language embedded in a file of another -- a shell
+script in a Nix attribute, in a justfile recipe, in an hk step -- and moves it
 into its own file, rewriting the host to run that file. The binary is `xnl`.
 The README says what works today.
 
@@ -17,8 +17,8 @@ hk check --all
 ```
 
 That is the whole gate, defined once in [`hk.pkl`](hk.pkl) and run the same
-way by the git hooks and by CI. Entering the dev shell — `nix develop`, or
-`direnv allow` — provides every tool and installs the hooks; do not install
+way by the git hooks and by CI. Entering the dev shell -- `nix develop`, or
+`direnv allow` -- provides every tool and installs the hooks; do not install
 tools some other way, the flake pins them. The hooks REFUSE when `hk` is not
 on `PATH` rather than skipping: a gate that cannot run has not passed.
 
@@ -52,7 +52,7 @@ hk check --all --check -S clippy    # one step
 ```
 
 Every step is one plain command. If `hk` is not to hand, read the command out
-of `hk.pkl` and run it directly — the gate never depends on hk to be
+of `hk.pkl` and run it directly -- the gate never depends on hk to be
 reproducible.
 
 ## Reading a SPEC.md
@@ -77,7 +77,7 @@ namespaced, backticked form `` `src/cli:V24` ``.
 ## Writing a SPEC.md
 
 - The spec is the source of truth; the code follows it. When code and spec
-  disagree, that is a bug in one of them — say which, do not quietly pick.
+  disagree, that is a bug in one of them -- say which, do not quietly pick.
 - Where the spec is silent, make the most conservative choice and write it
   down as a spec change, in its own commit, **before** the test that depends
   on it.
@@ -98,9 +98,9 @@ namespaced, backticked form `` `src/cli:V24` ``.
 
 Every change to behaviour is a RED commit followed by a GREEN one:
 
-1. `test:` — the failing test, fixture or bats file, and nothing else.
-2. `feat:` or `fix:` — the code that makes it pass.
-3. `refactor:` — optional, behaviour unchanged.
+1. `test:` -- the failing test, fixture or bats file, and nothing else.
+2. `feat:` or `fix:` -- the code that makes it pass.
+3. `refactor:` -- optional, behaviour unchanged.
 
 `scripts/guard/tdd-order.sh` checks the order in history. Keep the mirrors
 whole: every Rust file with logic has a sibling `tests.rs` wired with
@@ -122,7 +122,7 @@ the owner, then `cargo run -q -p xenolith-dev -- --fix` (or `hk fix`).
 - A body that explains the change in prose, with a line starting `Why:` that
   cites the spec id it serves. The commit-msg hook refuses a body without
   one.
-- Never name a private repository — in code, fixtures, docs or commit
+- Never name a private repository -- in code, fixtures, docs or commit
   messages. Fixtures are synthetic or anonymised.
 
 ## Pull requests
