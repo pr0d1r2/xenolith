@@ -74,6 +74,13 @@ local fast = new Mapping<String, Step> {
     check = "cargo test --workspace --all-features"
   }
 
+  // The official evaluator must accept the gate configuration, not only hk's
+  // lenient built-in parser.
+  ["pkl"] {
+    glob = List("hk.pkl")
+    check = "pkl eval hk.pkl"
+  }
+
   // The shell in this repo is not incidental: every guardrail is a shell
   // script, and embedded shell is the tool's own first subject. So the
   // shell trio gates `scripts/` and `.github/scripts/` exactly as cargo
