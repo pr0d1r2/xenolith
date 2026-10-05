@@ -86,6 +86,10 @@ in
     # nixpkgs' hk trails the releases `hk.pkl` is written against.
     pkgs.hk
 
+    # The official evaluator for the Pkl gate configuration. The gate must
+    # reject syntax that hk's built-in parser accepts only leniently.
+    pkgs.pkl
+
     # bats runs the mirrored tests (`scripts:C13`).
     pkgs.bats
 
