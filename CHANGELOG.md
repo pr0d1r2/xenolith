@@ -32,6 +32,8 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
+- Add the `x86_64-darwin` package output for Intel Mac consumers.
+
 ## [0.1.0] - 2026-09-27
 
 The first public release: one language per file, checked, extracted and

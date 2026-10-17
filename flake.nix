@@ -77,11 +77,11 @@
       ...
     }:
     let
-      # Four systems are DECLARED, three are tier-1 (`nix:C7`). Today the list
-      # is the tier-1 three; `x86_64-darwin` joins when something builds for
-      # it, because a system nobody builds is a claim nobody checks.
+      # Four systems are declared, three are tier-1 (`nix:C7`). Intel Darwin
+      # remains declared for consumers even though CI builds the other three.
       systems = [
         "aarch64-darwin"
+        "x86_64-darwin"
         "x86_64-linux"
         "aarch64-linux"
       ];
