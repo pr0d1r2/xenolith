@@ -62,7 +62,7 @@ pub const HOST_PARSE_ERROR: &str = "host-parse-error";
 pub const UNCLAIMED: &str = "host-unsupported";
 
 /// What stands in for a host interpolation (a hole) when a body is
-/// handed to its guest. A hole is HOST syntax -- nix `${…}`, pkl `\(…)` --
+/// handed to its guest. A hole is HOST syntax -- nix `${...}`, pkl `\(...)` --
 /// and the guest's grammar would read it as its own, or fail on it; one
 /// plain word keeps the body's shape (a word stays a word, a command
 /// stays a command). It is in place before the host's `unescape` runs

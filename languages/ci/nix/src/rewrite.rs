@@ -16,15 +16,15 @@
 //!
 //! What `rewrite` refuses, it refuses by name:
 //!
-//! - holes, in `rewrite`: a `${…}` copied into a shell file is shell, not
+//! - holes, in `rewrite`: a `${...}` copied into a shell file is shell, not
 //!   nix. `rewrite_bound` takes them, with the params bind named, into a
 //!   `replaceStrings` load (`languages/ci/nix:V174`, `crate::bound`);
 //! - a systemd exec line: its load is `toShellScript`
 //!   (`languages/ci/nix:V69`), which is `languages/ci/nix:T71`;
 //! - a guest other than shell: `readWithoutStrict` and `loads` both
 //!   speak shell extracts only;
-//! - a `"…"` string holding a line break: `inline` writes that body back
-//!   as `''…''`, and the host would not come back as it was;
+//! - a `"..."` string holding a line break: `inline` writes that body back
+//!   as `''...''`, and the host would not come back as it was;
 //! - under `readWithoutStrict`, a body whose first line is
 //!   `set -euo pipefail`: nix-shebang's `stripStrict` drops that line
 //!   under a shebang whether the prelude wrote it or the body did, and
@@ -142,12 +142,12 @@ fn find(root: &SyntaxNode, site: &Site) -> Result<(SyntaxNode, sinks::Sink)> {
         })
 }
 
-/// Refuses a `"…"` body holding a line break: `inline` writes it back as
-/// `''…''`, so the host would not come back as it was
+/// Refuses a `"..."` body holding a line break: `inline` writes it back as
+/// `''...''`, so the host would not come back as it was
 /// (`languages/api/src/lens:V34` (a)).
 fn one_line(site: &Site, body: &str) -> Result<()> {
     if site.delim.kind == DelimKind::NixString && body.contains('\n') {
-        return Err(refuse("rewrite of a `\"…\"` string holding a line break"));
+        return Err(refuse("rewrite of a `\"...\"` string holding a line break"));
     }
     Ok(())
 }
@@ -202,9 +202,9 @@ fn place(src: &str, string: &SyntaxNode, call: &str, path: &Path) -> Result<Stri
     Ok(out)
 }
 
-/// `src` with `load` replaced by a string holding `body`: `''…''` for a
+/// `src` with `load` replaced by a string holding `body`: `''...''` for a
 /// body with a line break, indented one step past the load's line, and
-/// `"…"` for one without.
+/// `"..."` for one without.
 ///
 /// # Errors
 ///
@@ -289,7 +289,7 @@ fn path_literal(path: &Path) -> Option<String> {
 /// Whether a function application standing where `node` stands needs
 /// parentheses to stay one expression. Only slots that bind looser than
 /// application say no: an attribute value, an operand of a binary
-/// operator, the inside of parentheses or of `${…}`, a `let`, `if`,
+/// operator, the inside of parentheses or of `${...}`, a `let`, `if`,
 /// `with`, `assert` or lambda body, the file itself. Everything else --
 /// an argument, a list element, a select -- says yes.
 fn needs_parens(node: &SyntaxNode) -> bool {

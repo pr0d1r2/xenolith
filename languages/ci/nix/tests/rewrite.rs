@@ -151,7 +151,7 @@ fn a_binop_operand_needs_no_parentheses() {
 
 #[test]
 fn a_site_with_holes_is_refused_without_params() {
-    // Copying `${…}` into the extract verbatim would run it as shell
+    // Copying `${...}` into the extract verbatim would run it as shell
     // (`languages/api/src/holes:V40`): holes go through `rewrite_bound`
     // with the params bind named, or not at all (`languages/ci/nix:V174`).
     let src = "{ pkgs }: { shellHook = ''\n  ${pkgs.hello}/bin/hello\n  b\n''; }";
@@ -355,12 +355,12 @@ fn a_hole_free_site_through_rewrite_bound_is_plain_rewrite() {
 
 #[test]
 fn a_double_quoted_body_holding_a_line_break_is_refused() {
-    // `inline` writes a body with a line break as `''…''`, so the host
+    // `inline` writes a body with a line break as `''...''`, so the host
     // would not come back as it was (`languages/api/src/lens:V34` (a)).
     let src = "{ pkgs }: { a.text = \"#!${pkgs.bash}/bin/bash\\nexec true\\n\"; }";
     let refusal = Err(Error::unsupported(
         LangId::Nix,
-        "rewrite of a `\"…\"` string holding a line break",
+        "rewrite of a `\"...\"` string holding a line break",
     ));
     assert_eq!(bound(src, "./x.sh").map(|r| r.src), refusal);
     let plain = "{ systemd.services.a.script = \"a\\nb\"; }";

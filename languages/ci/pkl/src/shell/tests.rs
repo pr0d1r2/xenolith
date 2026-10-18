@@ -35,7 +35,7 @@ fn all<'t>(node: Node<'t>, kind: &str) -> Vec<Node<'t>> {
     out
 }
 
-/// The entry `["key"] { … }` and its body.
+/// The entry `["key"] { ... }` and its body.
 fn entry<'t>(tree: &'t Tree, src: &str, key: &str) -> (Node<'t>, Node<'t>) {
     let quoted = format!("\"{key}\"");
     all(tree.root_node(), "objectEntry")

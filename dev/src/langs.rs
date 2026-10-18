@@ -17,7 +17,7 @@ mod tests;
 fn status(id: &str, declared: &[String], default: &[String]) -> (&'static str, String) {
     let feature = format!("lang-{id}");
     match language_kind(id, declared, default) {
-        LanguageKind::Planned => ("planned", "—".to_string()),
+        LanguageKind::Planned => ("planned", "--".to_string()),
         LanguageKind::Default => ("default build", format!("`{feature}`")),
         LanguageKind::OptIn => ("opt-in feature", format!("`{feature}`")),
     }
@@ -38,8 +38,8 @@ pub fn render(ids: &[&str], declared: &[String], default: &[String], specs: &[St
     let mut s = String::from("| language | in `xnl` | cargo feature | spec |\n|---|---|---|---|\n");
     for id in ids {
         let (state, feature) = status(id, declared, default);
-        let spec =
-            spec_of(id, specs).map_or_else(|| "—".to_string(), |d| format!("[`{d}`]({d}/SPEC.md)"));
+        let spec = spec_of(id, specs)
+            .map_or_else(|| "--".to_string(), |d| format!("[`{d}`]({d}/SPEC.md)"));
         let _ = writeln!(s, "| {id} | {state} | {feature} | {spec} |");
     }
     s

@@ -99,7 +99,7 @@ fn a_word_gets_the_quoted_reference() {
 
 #[test]
 fn inside_double_quotes_the_reference_is_braced_and_bare() {
-    // `"$FOO"` inside `"…"` would close and reopen the string -- the same
+    // `"$FOO"` inside `"..."` would close and reopen the string -- the same
     // word, but not what anyone writes. `${FOO}` also stops a following
     // name character from joining the variable name.
     for (body, want) in [

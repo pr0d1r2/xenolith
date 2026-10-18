@@ -1,5 +1,5 @@
 //! Reading a load back (`src/extract:V270`), over the toy host of
-//! `src/extract/tests.rs`: `<sink>< <argv…>` is a load of its last
+//! `src/extract/tests.rs`: `<sink>< <argv...>` is a load of its last
 //! word, `<sink>=<guest>: <body>` a site, placed at
 //! `<host dir>/<host stem>/<sink>.sh`; the `sh` guest's prelude is
 //! `#!/usr/bin/env sh` alone and `&&` makes a body non-trivial.

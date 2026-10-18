@@ -115,7 +115,7 @@ fn located<'t>(
         .collect()
 }
 
-/// The load a recipe line holds: `[@]<interpreter> <script> [args…]`, the
+/// The load a recipe line holds: `[@]<interpreter> <script> [args...]`, the
 /// script a plain relative path with a shell extension.
 fn load(line: Node<'_>, src: &str) -> Option<LoadRef> {
     let prefix = recipe::prefix(line, src);
@@ -182,7 +182,7 @@ fn extract(src: &str, site: &Site, invoke: &Invoke) -> Result<lens::Rewrite> {
     }
     if !site.holes.is_empty() {
         return Err(refuse(
-            "rewrite of a recipe with {{…}} holes: pass each as an argument by hand",
+            "rewrite of a recipe with {{...}} holes: pass each as an argument by hand",
         ));
     }
     let Some(shell) = shell::line_shell(&settings) else {
@@ -262,7 +262,7 @@ impl Host for JustHost {
     }
 
     /// Every recipe line that runs a script: `[@]<sh|bash|zsh> <path>
-    /// [args…]`, in a line body and not continued.
+    /// [args...]`, in a line body and not continued.
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
         let tree = recipe::parse(src)?;
         let mut out = Vec::new();
@@ -301,7 +301,7 @@ impl Host for JustHost {
     ) -> Result<lens::Rewrite> {
         if !params.is_empty() {
             return Err(refuse(
-                "rewrite of a recipe with {{…}} holes: pass each as an argument by hand",
+                "rewrite of a recipe with {{...}} holes: pass each as an argument by hand",
             ));
         }
         extract(src, site, invoke)

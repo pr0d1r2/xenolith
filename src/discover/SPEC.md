@@ -20,7 +20,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 
 ## §V INVARIANTS
 V57: `xnl check|graph|lint` w/ ⊥ paths → candidates = `git ls-files` (tracked only ∴ `.gitignore` honoured); ⊥ git repo & ⊥ paths → exit 2 usage. named dir w/ 0 candidates → exit 2; candidate = regular file \| symlink (FIFO, socket, device ⊥ listed; named → exit 2); named paths normalised (root-relative, ⊥ `.`, `x/..` folded only past a real dir) before dedup.
-V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & discovery ⊥ follows symlinked dirs — a tracked symlink may point outside the repo, & the same bytes would be reported twice under 2 paths. named explicitly → exit 2 saying so (`src/extract:V71`, `src/graph:V72` are the write & graph halves).
+V128: candidate that IS a symlink ⊥ scanned (warning `symlink-skipped`), & discovery ⊥ follows symlinked dirs -- a tracked symlink may point outside the repo, & the same bytes would be reported twice under 2 paths. named explicitly → exit 2 saying so (`src/extract:V71`, `src/graph:V72` are the write & graph halves).
 
 ## §T TASKS
 

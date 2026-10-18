@@ -405,7 +405,7 @@ fn a_host_rewrites_a_hole_free_site_through_rewrite_bound_by_default() {
 #[test]
 fn a_host_that_never_learned_holes_refuses_params_by_name() {
     // `languages/api:V37`: a host whose load cannot pass a hole must say
-    // so. Rewriting as if there were none would leave `${…}` behind in
+    // so. Rewriting as if there were none would leave `${...}` behind in
     // the extract -- the one thing `languages/api/src/holes:V40` forbids.
     let host: &dyn Host = &FakeHost;
     let param = holes::Param {

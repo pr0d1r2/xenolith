@@ -1,7 +1,7 @@
 //! Nix support for xenolith.
 //!
 //! Nix is where this tool's subject is densest: NixOS modules, dev shells
-//! and derivations all hand bash a string, and a multi-line `''…''` of
+//! and derivations all hand bash a string, and a multi-line `''...''` of
 //! shell is the most common embed in a flake-shaped repo. This crate is
 //! the HOST side of that -- which strings are sinks, where their
 //! delimiters sit, what bash options nix wraps them in
@@ -115,8 +115,8 @@ impl Host for NixHost {
         rewrite::rewrite_bound(src, site, path, body, params)
     }
 
-    /// Either load becomes a string holding `body`: `''…''` indented under
-    /// the load's line when the body has a line break, `"…"` when not; a
+    /// Either load becomes a string holding `body`: `''...''` indented under
+    /// the load's line when the body has a line break, `"..."` when not; a
     /// `replaceStrings` load's holes go back where its patterns are.
     fn inline(&self, src: &str, load: &LoadRef, body: &str) -> Result<String> {
         rewrite::inline(src, load, body)

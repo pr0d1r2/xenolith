@@ -20,7 +20,7 @@ sib|languages/shells/tcl|tcl grammar (expect dialect), `exec`/`spawn` sinks, gue
 - host `checks` shellcheck + shfmt, `fixers` shfmt: sh-family only (V310).
 - sinks: heredoc to interpreter (`python`, `ruby`, `psql`, `tclsh`\|`wish`\|`expect`), `-c`/`-e` args (`python -c`, `ruby -e`, `node -e`, `perl -e`, `sh -c`, `bash -c`, `expect -c`), awk/jq program > threshold ? → guest python \| ruby \| sql \| js \| perl \| tcl (`languages/shells/tcl:V197`) \| awk \| jq; load: `python scripts/x.py`, `jq -f x.jq`, `awk -f x.awk`.
 - `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` always, diff marks it `Judgment`.
-- placement ? (T86): bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/…"` (V3).
+- placement ? (T86): bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/..."` (V3).
 
 ## §V INVARIANTS
 
@@ -29,7 +29,7 @@ V51: shell guest defaults: `prelude(env)` = `#!/usr/bin/env <dialect>` + `set`/`
 V82: dialects `sh`, `bash`, `zsh` (`dash`/`ksh` ? as sh-family): `env.dialect` from context (`sh -c`, `bash -c`, `zsh -c`, shebang, GH `shell:`, nix systemd `script`) & `env.options` = effective `set -o`/`setopt` state; prelude reproduces both. zsh-only construct → `Judgment` (V138).
 V137: shell `claims` ⊥ `*.bats` (`languages:V130`, `languages/shells/bats:V134`). measured 2026-09-21: tree-sitter-bash PARSES `@test "x" { run echo hi }` as command + brace group ∴ claimed `*.bats` = script offered for extraction: confident & wrong.
 V138: zsh-only syntax (`${(f)x}`, `() { print hi }`, `*(.)`) ⊥ parsed by tree-sitter-bash ∴ classifier → `Judgment` `zsh construct unsupported` (`languages/shells:V132`), ⊥ `Err`, ⊥ `host-parse-error`: valid zsh, the gap is OURS.
-V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` stdin = data; tcl: `-`\|`/dev/stdin` = stdin); `-c`/`-e` arg `'…'` \| `"…"` w/o `\`; env ← ITS argv, ⊥ enclosing `set`.
+V139: site ⇐ plain interpreter name; heredoc iff ⊥ program arg (`jq`/`awk` stdin = data; tcl: `-`\|`/dev/stdin` = stdin); `-c`/`-e` arg `'...'` \| `"..."` w/o `\`; env ← ITS argv, ⊥ enclosing `set`.
 V310: `claims` ⊥ shebang interpreter `zsh`, before ext: tree-sitter-bash ⊥ reads zsh & `Host::checks` ⊥ sees the file ∴ zsh = extract only → `zsh -n` (`src/lint` §I). 2026-09-27: shellcheck 0.11.0 SC1071; shfmt 3.13.1 `-ln zsh` rejects 424/1229 zsh 5.9.1 `functions/*` (`zsh -n` ok), breaks 6/805; nixpkgs ∌ zsh linter.
 
 ## §T TASKS

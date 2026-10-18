@@ -1,15 +1,15 @@
-//! Holes carried by text (`languages/ci/nix:V174`): a site whose `${…}`
+//! Holes carried by text (`languages/ci/nix:V174`): a site whose `${...}`
 //! holes `holes::bind` named as params loads through
 //!
 //! ```nix
-//! builtins.replaceStrings [ "__NAME__" … ] [ "<hole>" … ] (<V53 load>)
+//! builtins.replaceStrings [ "__NAME__" ... ] [ "<hole>" ... ] (<V53 load>)
 //! ```
 //!
 //! and its extract holds `__NAME__` wherever a hole was. The load is a
 //! string operation over what `readFile` read -- no derivation is built
 //! to evaluate it, unlike `replaceVars` (import from derivation), and
 //! each hole's string context, the store paths it names, stays on the
-//! result. What nix runs is the text the `''…''` string evaluated to,
+//! result. What nix runs is the text the `''...''` string evaluated to,
 //! so the site's semantics are unchanged: a hole in single quotes or a
 //! heredoc is substituted as text there, as it was interpolated before.
 //!
@@ -36,7 +36,7 @@ const fn refuse(operation: &'static str) -> Error {
 }
 
 /// `__NAME__`, or `None` for a name that is not a plain word: it goes
-/// between the quotes of a `"…"` string as written, and into the extract
+/// between the quotes of a `"..."` string as written, and into the extract
 /// as one shell word. Not nix's usual `@NAME@`: tree-sitter-bash cannot
 /// read `@NAME@` as a command name, and a hole is most often one
 /// (`${pkgs.hello}/bin/hello`), so `xnl check` would call the extract
@@ -81,7 +81,7 @@ pub(crate) fn replace_strings(s: &str, from: &[String], to: &[String]) -> String
     out
 }
 
-/// The load text: `builtins.replaceStrings [ "__A__" … ] [ "${a}" … ]
+/// The load text: `builtins.replaceStrings [ "__A__" ... ] [ "${a}" ... ]
 /// <load>`, `load` already parenthesised.
 pub(crate) fn call(pairs: &[(String, String)], load: &str) -> String {
     let list = |items: Vec<&str>| {
@@ -145,7 +145,7 @@ pub(crate) fn body(src: &str, delim: &Delim, holes: &[Hole], names: &[String]) -
 
 /// Whether every hole of `site` inside its body is one of `holes`' own
 /// occurrences -- a hole `collect` skipped would stay in the body as
-/// `${…}`, host syntax in the extract (`languages/api/src/holes:V40`).
+/// `${...}`, host syntax in the extract (`languages/api/src/holes:V40`).
 fn covered(site: &Site, holes: &[Hole]) -> bool {
     let body = site.delim.body;
     site.holes
@@ -187,7 +187,7 @@ pub(crate) fn bind(
     Ok((text, pairs))
 }
 
-/// The pairs a `"…"` string of `inline`'s making reads back as, with the
+/// The pairs a `"..."` string of `inline`'s making reads back as, with the
 /// holes it holds: `raw` must be the body `body` returns for them.
 ///
 /// # Errors
@@ -245,9 +245,9 @@ pub(crate) fn wrapper(load: &SyntaxNode) -> Option<SyntaxNode> {
 /// The (pattern, hole) pairs of a call `rewrite_bound` writes, and the
 /// load inside it, or `None` for any other expression: `outer` must be
 /// `builtins.replaceStrings <patterns> <holes> (<apply>)`, with as many
-/// `"__NAME__"` patterns as holes, and each hole a `"…"` string holding
-/// one `${…}` and at most a path tail after it -- the text that means
-/// the same inside a `''…''` string, where `inline` puts it back.
+/// `"__NAME__"` patterns as holes, and each hole a `"..."` string holding
+/// one `${...}` and at most a path tail after it -- the text that means
+/// the same inside a `''...''` string, where `inline` puts it back.
 pub(crate) fn parts(outer: &SyntaxNode) -> Option<(Vec<(String, String)>, SyntaxNode)> {
     if outer.kind() != SyntaxKind::NODE_APPLY {
         return None;
@@ -303,14 +303,14 @@ fn list(node: &SyntaxNode, read: impl Fn(&SyntaxNode) -> Option<String>) -> Opti
     node.children().map(|item| read(&item)).collect()
 }
 
-/// The content of a `"…"` string with no hole and no escape.
+/// The content of a `"..."` string with no hole and no escape.
 fn plain(string: &SyntaxNode) -> Option<String> {
     let raw = quoted(string)?;
     let simple = !raw.contains('\\') && !raw.contains("${");
     simple.then_some(raw)
 }
 
-/// The inside of a `"…"` string node, as written.
+/// The inside of a `"..."` string node, as written.
 fn quoted(string: &SyntaxNode) -> Option<String> {
     if string.kind() != SyntaxKind::NODE_STRING {
         return None;
@@ -320,8 +320,8 @@ fn quoted(string: &SyntaxNode) -> Option<String> {
     Some(raw.to_owned())
 }
 
-/// A hole as `rewrite_bound` writes one: a `"…"` string that is one
-/// `${…}` right after its quote, then at most a path tail.
+/// A hole as `rewrite_bound` writes one: a `"..."` string that is one
+/// `${...}` right after its quote, then at most a path tail.
 fn hole(string: &SyntaxNode) -> Option<String> {
     let raw = quoted(string)?;
     let mut holes = string

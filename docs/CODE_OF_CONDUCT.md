@@ -10,7 +10,7 @@ expected to carry evidence.** "This rule flags valid input" invites the file
 that shows it; "this extraction changes behaviour" invites the host before
 and after. It is a repository built around the idea that a claim about a file
 should be checked against the file, and the same standard applies to the
-arguments made about it — by maintainers exactly as much as by contributors.
+arguments made about it -- by maintainers exactly as much as by contributors.
 Pushing back on an unsupported claim, including one of ours, is participation
 rather than rudeness.
 
@@ -56,7 +56,7 @@ consent. If the report concerns the maintainer, say so in the subject and it
 will be handled with that in mind.
 
 Responses aim at restoring a workable environment rather than at punishment,
-and scale with what is needed — usually a clarification, sometimes an edit, and
+and scale with what is needed -- usually a clarification, sometimes an edit, and
 where participation cannot continue constructively, its withdrawal. If you
 think a call was wrong, say so; that is covered by the first section like
 anything else.

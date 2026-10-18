@@ -5,19 +5,19 @@
 //!
 //! 1. the module `amends` hk's `Config.pkl` -- it is a hk config, so the
 //!    property names below mean what hk says they mean;
-//! 2. the property sits directly in a step ENTRY, `["name"] { … }`,
+//! 2. the property sits directly in a step ENTRY, `["name"] { ... }`,
 //!    whose key is a plain string -- that name is the step, and the
 //!    report points back to it;
 //! 3. the property is one of hk's command properties, [`SINKS`]
 //!    (`languages/ci/pkl` §I).
 //!
-//! Drop any layer and a `"""…"""` is inert data (`languages:V2`): the
+//! Drop any layer and a `"""..."""` is inert data (`languages:V2`): the
 //! same shell in a `message`, in a top-level `local`, in a module that is
 //! not a hk config, or in a comment -- which the grammar never hands us
 //! as a string at all.
 //!
-//! The delimiter is the pkl multi-line string, `"""…"""` or `#"""…"""#`
-//! (`languages/api/src/site` §I). A single-line `"…"` has no delimiter
+//! The delimiter is the pkl multi-line string, `"""..."""` or `#"""..."""#`
+//! (`languages/api/src/site` §I). A single-line `"..."` has no delimiter
 //! kind in the api, so it is never a site here; it is where a LOAD lives,
 //! `sh ./scripts/hk/<name>.sh {{files}}` -- run by the interpreter the
 //! extract's prelude names, `sh` under hk's default step shell
@@ -60,7 +60,7 @@ struct Sink<'t> {
     step: String,
     property: String,
     value: Node<'t>,
-    /// The step's `["name"] { … }` entry and its body, where hk's shell
+    /// The step's `["name"] { ... }` entry and its body, where hk's shell
     /// for it is read (`languages/ci/pkl:V172`).
     entry: Node<'t>,
     body: Node<'t>,
@@ -99,7 +99,7 @@ pub(crate) fn plain_string<'s>(node: Node<'_>, src: &'s str) -> Option<&'s str> 
 }
 
 /// Layer 1: whether the module amends hk's `Config.pkl` -- a package URI
-/// (`…/hk@1.2.0#/Config.pkl`) or a vendored copy (`pkl/Config.pkl`).
+/// (`.../hk@1.2.0#/Config.pkl`) or a vendored copy (`pkl/Config.pkl`).
 fn is_hk_config(root: Node<'_>, src: &str) -> bool {
     let mut cursor = root.walk();
     let Some(header) = root
@@ -130,7 +130,7 @@ fn as_sink<'t>(property: Node<'t>, src: &str) -> Option<Sink<'t>> {
     let [name, .., value] = named.as_slice() else {
         return None;
     };
-    // `local check = …` inside a step is a private helper, not the step's
+    // `local check = ...` inside a step is a private helper, not the step's
     // command.
     if name.kind() != "identifier" || !SINKS.contains(&text(*name, src)) {
         return None;
@@ -302,7 +302,7 @@ impl Host for PklHost {
                 format!("no site `{}` at bytes {:?}", site.sink, site.delim.open),
             ));
         }
-        // A `\(…)` is pkl: in the script it would be text. Holes go through
+        // A `\(...)` is pkl: in the script it would be text. Holes go through
         // `rewrite_bound`, and this host has no load that passes a param
         // yet, so the api's default refuses them (`languages/ci/pkl:V171`,
         // `languages/api/src/holes:V40`).

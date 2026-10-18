@@ -20,7 +20,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 
 ## §I INTERFACES
 
-- json (`xnl graph --format json`): envelope (`src/cli` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", …}, {"rule": "dangling-load", …}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
+- json (`xnl graph --format json`): envelope (`src/cli` §I) + `edges`: `{"schema": 1, "edges": [{"host": "nixos/foo.nix", "sink": "systemd.services.foo.script", "line": 12, "col": 5, "extract": "nixos/foo/foo-script.sh", "guest": "shell", "params": ["FOO_BIN"]}], "violations": [{"rule": "orphan-extract", ...}, {"rule": "dangling-load", ...}], "warnings": []}`; orphans & dangling ONLY as violations, ⊥ separate arrays.
 - lib: `xenolith::graph(&Path, &Config, &graph::Options) -> Result<Graph, GraphError>`; `Graph` = `edges` sorted (host, line, col, extract) + `Report`; `GraphError` = exit 2 (discovery, nested config, unclaimed strict, outside root).
 - roots (V50): rule `path` → text before first `{`; `[extract] root` iff `layout` ∈ `mirror` \| `central` (layouts placing under it); `Placement.dir` ∀ site the run sees, `{host_dir}` `{host_stem}` rendered, cut as rule `path`, taken as dir; `Unsupported` \| empty \| `..` \| absolute → ⊥ root (⊥ whole repo).
 - extract (V7) = candidate under a root that a compiled-in guest reads (shebang, else extension: `src/lint` §I targets), ⊥ excluded; other files under roots (SPEC.md, `xenolith.toml`) ⊥ orphan. unclaimed = ⊥ host claims ∧ ⊥ guest reads (`src/check:V13`).

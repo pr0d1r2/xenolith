@@ -1,4 +1,4 @@
-//! `xenolith-tcl-syntax FILE…`: Tcl's `info complete` over files, the
+//! `xenolith-tcl-syntax FILE...`: Tcl's `info complete` over files, the
 //! tcl host's check (`languages/shells/tcl:V198`). A shim: the logic and
 //! its tests live in the library's `syntax` module.
 

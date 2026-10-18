@@ -15,7 +15,7 @@ self|scripts/guard|repo guardrail scripts hk calls
 
 - C11: TDD. RED commit (`test:` failing `#[test]` | fixture | bats) → GREEN commit (`feat:`|`fix:`) → REFACTOR commit (`refactor:`) ?. test commit ! precede impl commit.
 - C12: atomic commits. 1 logical change / commit. Conventional Commits. body ! carry agent reasoning (`Why:` + cite `§V.n`|`§T.n`) → audit trail.
-- C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` — verified PUBLIC 2026-09-18; `nix-shebang` — verified PUBLIC 2026-09-19) may be named. unknown = private. fixtures synthetic | anonymised.
+- C17: ⊥ private repo named in source, fixtures, docs, commit msgs. public repos (`nix-hk`, `nixpkgs-lock`, `itok`, `microlith`, `sherd` -- verified PUBLIC 2026-09-18; `nix-shebang` -- verified PUBLIC 2026-09-19) may be named. unknown = private. fixtures synthetic | anonymised.
 
 ## §V INVARIANTS
 
@@ -35,7 +35,7 @@ V353: `tdd-order` exemption = closed list `scripts/guard/tdd-order.exempt`: full
 | M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T115|.|`scripts/guard/history-audit.sh [REF…]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
+T115|.|`scripts/guard/history-audit.sh [REF...]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
 
 ## §B BUGS
 

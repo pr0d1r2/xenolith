@@ -9,7 +9,7 @@
 //! (`languages/shells/shell:V137`).
 //!
 //! A site is a delimiter AND a sink context
-//! (`languages/api/src/site:V38`): the same `'…'` is a site after
+//! (`languages/api/src/site:V38`): the same `'...'` is a site after
 //! `python3 -c` and inert data after `echo`. Both halves come from the
 //! tree -- the command node and its arguments, the heredoc node and its
 //! terminator -- and which argv holds a program is `sinks`'s, as is the
@@ -246,7 +246,7 @@ fn span(node: Node<'_>) -> Span {
 /// A hole's span: its node, minus leading whitespace.
 ///
 /// tree-sitter-bash starts a `$(`, backtick or `$((` node that follows
-/// another expansion in a `"…"` at the SPACE before it (measured: in
+/// another expansion in a `"..."` at the SPACE before it (measured: in
 /// `"${a} $(b)"` the substitution spans ` $(b)`). The space is the
 /// guest's text, not the host's interpolation.
 fn hole(node: Node<'_>, src: &str) -> Span {
@@ -296,12 +296,12 @@ fn argv_site(node: Node<'_>, src: &str) -> Option<Site> {
     let program = *args.get(at)?;
     // The sink is named by the flag as written (`perl -ne`), except for
     // a shell, whose `-c` may sit in any bundle before the program
-    // (`bash -c -e '…'`, `sh -ec '…'`): `-c` is the one stable name.
+    // (`bash -c -e '...'`, `sh -ec '...'`): `-c` is the one stable name.
     let flag = match interpreter.kind {
         Kind::Shell => "-c",
         _ => words.get(at.checked_sub(1)?).copied().flatten()?,
     };
-    // Only a string whose bytes ARE the argument: `'…'`, or `"…"` with
+    // Only a string whose bytes ARE the argument: `'...'`, or `"..."` with
     // no backslash (`languages/shells/shell:V139`). `ArgvString` does not say
     // which quote it came from, so `\"` could not be decoded for one
     // without corrupting the other.

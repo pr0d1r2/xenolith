@@ -26,4 +26,4 @@ sib|languages/rust|rust parser, rust host sinks
 sib|languages/ruby|ruby parser, ruby host sinks
 
 ## §V INVARIANTS
-V132: `dialect` ≠ `base`: dialect = SAME grammar, other options|semantics (`GuestEnv.dialect`, `languages/shells/shell:V82`); base = own syntax ∴ own `LangId`. zsh = both — dialect ∀ options, base-like ∀ zsh-only syntax: construct ⊥ in the base grammar → `Judgment`, ⊥ `host-parse-error`, ⊥ `Err` (`languages/shells/shell:V138`).
+V132: `dialect` ≠ `base`: dialect = SAME grammar, other options|semantics (`GuestEnv.dialect`, `languages/shells/shell:V82`); base = own syntax ∴ own `LangId`. zsh = both -- dialect ∀ options, base-like ∀ zsh-only syntax: construct ⊥ in the base grammar → `Judgment`, ⊥ `host-parse-error`, ⊥ `Err` (`languages/shells/shell:V138`).

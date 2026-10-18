@@ -53,7 +53,7 @@ fn the_five_predefined_entities_are_decoded() {
 #[test]
 fn character_references_are_decoded_in_both_bases() {
     assert_eq!(read("&#65;&#x42;&#x4a;"), "ABJ");
-    // `&#X…;` is not XML: the hex marker is a lowercase `x`.
+    // `&#X...;` is not XML: the hex marker is a lowercase `x`.
     assert!(is_parse_error(&unescape(&argv(), "&#X43;")));
     assert_eq!(read("&#x17C;"), "ż");
     // A referenced carriage return survives: only a LITERAL one is a

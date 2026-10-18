@@ -5,7 +5,7 @@
 //! Tcl parses a script one command at a time and runs each before it
 //! parses the next, and a braced word -- a `proc` body, an `if` branch --
 //! is only text until something runs it. So the syntax Tcl can reject in
-//! a file is the WORD syntax of its top-level commands and of the `[…]`
+//! a file is the WORD syntax of its top-level commands and of the `[...]`
 //! substitutions in their words:
 //!
 //! - an unclosed `{`, `"`, `[`, `${` or `$name(`, or a backslash-newline
@@ -20,7 +20,7 @@
 //! braced word is found before anyone knows it holds a comment; and the
 //! scan stops at the first error, because Tcl's parser does too.
 //!
-//! [`run`] is the command-line face: `xenolith-tcl-syntax FILE…`, one
+//! [`run`] is the command-line face: `xenolith-tcl-syntax FILE...`, one
 //! `path:line:col: message` per file with an error, exit 1 if any, 2 when
 //! a file cannot be read or none is named.
 
@@ -52,7 +52,7 @@ enum Stop {
     /// A parse error that is not an unclosed opener, at this byte offset:
     /// Tcl stops parsing there, and so does the scan.
     Error(usize, &'static str),
-    /// The text ended inside a `[…]`; the substitution that opened it
+    /// The text ended inside a `[...]`; the substitution that opened it
     /// turns this into [`Stop::Incomplete`] at its `[`.
     Unclosed,
 }
@@ -115,7 +115,7 @@ pub fn lint_cmd() -> LintCmd {
     }
 }
 
-/// `xenolith-tcl-syntax FILE…`: every named file checked, each one with a
+/// `xenolith-tcl-syntax FILE...`: every named file checked, each one with a
 /// syntax error reported on `out` as `path:line:col: message`. The exit
 /// code: 0 all clean, 1 any error, 2 no file named or one that cannot be
 /// read (reported, and the rest still checked).
@@ -185,7 +185,7 @@ impl Scan<'_> {
 
     /// Whether the next byte ends a word: whitespace (a backslash-newline
     /// is whitespace too), a command end, the end of text, or `]` closing
-    /// a `[…]` this script is nested in.
+    /// a `[...]` this script is nested in.
     fn word_end(&self, nested: bool) -> bool {
         match self.peek() {
             None => true,
@@ -269,7 +269,7 @@ impl Scan<'_> {
         }
     }
 
-    /// `{…}`: nested braces counted, a backslash hides the next byte,
+    /// `{...}`: nested braces counted, a backslash hides the next byte,
     /// nothing substituted.
     fn braced(&mut self) -> Result<(), Stop> {
         let open = self.pos;
@@ -295,7 +295,7 @@ impl Scan<'_> {
         Err(Stop::Incomplete(open, "missing close-brace"))
     }
 
-    /// `"…"`, with its `$` and `[…]` substitutions.
+    /// `"..."`, with its `$` and `[...]` substitutions.
     fn quoted(&mut self) -> Result<(), Stop> {
         let open = self.pos;
         self.pos += 1;
@@ -319,7 +319,7 @@ impl Scan<'_> {
         Ok(())
     }
 
-    /// One piece of a word that substitutes: an escape, a `$`, a `[…]`,
+    /// One piece of a word that substitutes: an escape, a `$`, a `[...]`,
     /// or a plain byte.
     fn piece(&mut self, b: u8) -> Result<(), Stop> {
         match b {
@@ -331,7 +331,7 @@ impl Scan<'_> {
         Ok(())
     }
 
-    /// `[…]`: a nested script up to its `]`.
+    /// `[...]`: a nested script up to its `]`.
     fn substitution(&mut self) -> Result<(), Stop> {
         let open = self.pos;
         self.pos += 1;

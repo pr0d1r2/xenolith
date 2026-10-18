@@ -232,7 +232,7 @@ fn hole_advice_proposes_replace_vars_then_argv_then_env() {
     let [replace_vars, argv, env] = advice.as_slice() else {
         panic!("expected three directions, got {advice:#?}");
     };
-    assert!(replace_vars.contains("replaceVars ./<file> { var = …; }"));
+    assert!(replace_vars.contains("replaceVars ./<file> { var = ...; }"));
     assert!(replace_vars.contains("`@var@`"));
     assert!(argv.contains("argument"), "{argv}");
     assert!(env.contains("environment variable"), "{env}");

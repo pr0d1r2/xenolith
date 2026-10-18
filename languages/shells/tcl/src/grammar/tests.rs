@@ -31,7 +31,7 @@ fn a_command_is_a_name_and_a_word_list() {
 
 #[test]
 fn a_braced_word_is_parsed_as_a_script_even_where_tcl_reads_data() {
-    // What makes the host treat some braces as opaque: shell's `$(…)`
+    // What makes the host treat some braces as opaque: shell's `$(...)`
     // is not tcl, and the grammar says so inside the braces.
     let parsed = parse("exec sh -c {ls $(pwd)}\n").unwrap_or_else(|e| panic!("{e}"));
     assert!(parsed.root_node().has_error());

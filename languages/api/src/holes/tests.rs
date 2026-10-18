@@ -3,7 +3,7 @@
 //! stays a judgement call.
 //!
 //! The host here is a toy whose `unescape` is the identity, and the guest
-//! a toy that writes `$NAME` and refuses a marker inside `'…'`, so what is
+//! a toy that writes `$NAME` and refuses a marker inside `'...'`, so what is
 //! under test is the naming, the counting and the order of the steps --
 //! the real shell contexts are `languages/shells/shell`'s to pin.
 
@@ -23,8 +23,8 @@ const DEFAULT: Limits<'static> = Limits {
     prefix: "",
 };
 
-/// A nix-like file holding `body` in a `''…''` string, and its site, with
-/// every `${…}` in the body a hole.
+/// A nix-like file holding `body` in a `''...''` string, and its site, with
+/// every `${...}` in the body a hole.
 fn fixture(body: &str) -> (String, Site) {
     let src = format!("x = ''{body}'';");
     let start = "x = ''".len();
@@ -392,7 +392,7 @@ fn a_refusal_reads_as_the_why_of_a_judgement() {
 
 // --- toys -----------------------------------------------------------------
 
-/// Unescape is the identity for `''…''`, and refused for anything else.
+/// Unescape is the identity for `''...''`, and refused for anything else.
 struct ToyHost;
 
 impl Host for ToyHost {
@@ -429,7 +429,7 @@ impl Host for ToyHost {
 }
 
 /// A guest whose vars are the `NAME=` words, whose param reference is
-/// `$NAME`, and which does not expand inside `'…'`.
+/// `$NAME`, and which does not expand inside `'...'`.
 struct ToyGuest;
 
 impl Guest for ToyGuest {

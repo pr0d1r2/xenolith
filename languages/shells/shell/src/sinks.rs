@@ -371,7 +371,7 @@ pub(crate) fn stdin_is_program(interpreter: &Interpreter<'_>, args: &[Option<&st
 ///
 /// For a shell: its dialect, and the options its own flags set. Not the
 /// enclosing script's `set`, which a child process never sees
-/// (`languages/shells/shell:V139`) -- `set -e; bash -c '…'` runs the child
+/// (`languages/shells/shell:V139`) -- `set -e; bash -c '...'` runs the child
 /// WITHOUT errexit, and an extract given it would stop where the inline
 /// body carried on. expect states its dialect and nothing else
 /// (`languages/shells/tcl:V197`); any other interpreter states no env

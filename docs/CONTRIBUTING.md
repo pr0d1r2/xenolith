@@ -12,8 +12,8 @@ one, and it becomes a fixture once the fix lands.
 
 ## Get set up
 
-Everything — the Rust toolchain, the linters, the gate runner and the spec
-tools — comes from the flake. Nothing is assumed installed.
+Everything -- the Rust toolchain, the linters, the gate runner and the spec
+tools -- comes from the flake. Nothing is assumed installed.
 
 ```sh
 nix develop        # or: direnv allow  (the .envrc is `use flake`)
@@ -42,8 +42,8 @@ hk fix             # formatters, and the generated README blocks and notices
   behaviour change starts as a
   new or amended row, cited by id (`src/cli:V24`, `languages/ci/just:V180`).
 - **`§V` is the law.** A task cites the invariants it must respect. Read the
-  chain — the root `SPEC.md`, then every `SPEC.md` between it and the
-  directory you are changing — before starting.
+  chain -- the root `SPEC.md`, then every `SPEC.md` between it and the
+  directory you are changing -- before starting.
 - **Test first.** Every change to behaviour is a RED `test:` commit adding
   the failing test, fixture or bats file, then a GREEN `feat:` or `fix:`
   commit making it pass
@@ -79,7 +79,7 @@ without hk.
 **Never `--no-verify`**, on commit or on push. A gate that can be stepped
 around is not a gate.
 
-The same applies to the subtler versions — weakening a test, raising a token
+The same applies to the subtler versions -- weakening a test, raising a token
 ceiling in `.context-limits`, lowering the floor in `.coverage`, or silencing
 a lint to get past it. If a rule is wrong, that is a real and welcome
 finding: change the rule deliberately, in its own commit, with the reason
@@ -92,7 +92,7 @@ The README's badge block and Languages table, and all of
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md), are rendered by
 `xenolith-dev` (the unpublished workspace member in [`dev/`](../dev/SPEC.md))
 from the files that own each fact. Editing the output *is* the drift the gate
-reports. Change the owner — `Cargo.toml`, `hk.pkl`, `.coverage`, a spec — and
+reports. Change the owner -- `Cargo.toml`, `hk.pkl`, `.coverage`, a spec -- and
 regenerate:
 
 ```sh
@@ -110,7 +110,7 @@ cargo run -q -p xenolith-dev -- --check    # what the gate runs
 - **A rule with no runner.** An invariant that no test, guard or gate step
   executes is a comment with a number on it.
 - **A private repository named, or a private file pasted.** Fixtures are
-  synthetic or anonymised — in code, fixtures, docs and commit messages.
+  synthetic or anonymised -- in code, fixtures, docs and commit messages.
 
 ## Reporting a bug
 
@@ -119,7 +119,7 @@ attach the smallest file that shows it. Before a larger change, open an issue
 first: the spec decides what the tool does, and a patch against a rule the
 spec does not hold yet starts with a spec change.
 
-Security issues go privately instead — see [SECURITY.md](SECURITY.md).
+Security issues go privately instead -- see [SECURITY.md](SECURITY.md).
 
 ## Commits
 
@@ -150,5 +150,5 @@ be green. Say in the description which spec rows it serves and what you ran.
 ## License
 
 By contributing, you agree that your contributions are licensed under the MIT
-License, the same terms as the rest of the project — see
+License, the same terms as the rest of the project -- see
 [LICENSE](../LICENSE).

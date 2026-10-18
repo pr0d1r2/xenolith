@@ -27,7 +27,7 @@ mod tests;
 const READ_FILE: &[&str] = &["builtins", "readFile"];
 
 /// The load where it is, matched as the callee's TAIL: the input may be
-/// reached through whatever binds it (`inputs.nix-shebang.lib…`).
+/// reached through whatever binds it (`inputs.nix-shebang.lib...`).
 const READ_WITHOUT_STRICT: &[&str] = &["nix-shebang", "lib", "readWithoutStrict"];
 
 /// Whether a callee's dotted name is one of the two load calls.
@@ -110,7 +110,7 @@ pub(crate) fn dotted(function: &SyntaxNode) -> Option<Vec<String>> {
 /// The path a relative path literal names, as written: relative to the
 /// host file's dir, the runtime base nix reads it from
 /// (`languages/api/src/lens:V66`). `None` for an absolute, home or
-/// search path, and for a path with a `${…}` in it.
+/// search path, and for a path with a `${...}` in it.
 fn relative_path(argument: &SyntaxNode) -> Option<PathBuf> {
     if argument.kind() != SyntaxKind::NODE_PATH_REL
         || argument

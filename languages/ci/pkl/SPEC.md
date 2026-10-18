@@ -12,8 +12,8 @@ crate `xenolith-lang-pkl` (feature `lang-pkl`): pkl grammar; hk step sinks, `sh 
 ## §V INVARIANTS
 
 V52: pkl host placement: hk step site → name = step key (kebab), dir = `scripts/hk`, load = `<interpreter> ./scripts/hk/<name>.sh {{files}}` (hk passes files through), interpreter = the extract prelude's (V172; default `sh`, ⊥ `bash`: ⊥ a shell the step never ran under), set by the engine's `invoke` (`src/extract` §I); `loads` reads `sh`\|`bash`\|`zsh`.
-V171: write side: `escape` = inverse of `unescape` under the delim's own `#` count (`languages/api/src/lens:V39`); `inline` writes the host's line break (CRLF host → CRLF, B2); holes: `rewrite_bound` ⊥ (default `Unsupported`, `languages/api/src/lens` §I) ∴ refused, ⊥ `\(…)` landing in the script as text.
-V172: hk step site `env` = what hk runs it under (`languages/shells/shell:V82`), ⊥ guest default: step `shell`, else enclosing `Group` `shell` (`Hook` ⊥ has one), iff plain string `<sh\|bash\|zsh> [-<set letters>\|-o <name>]… -c` → its dialect & options; ⊥ set \| unreadable → hk default `sh -o errexit -c` (`pkl/Config.pkl` `Step.shell`; hk 1.58.1 argv) = `sh` + [`errexit`] ∴ prelude `#!/usr/bin/env sh` + `set -e`, ⊥ `set -euo pipefail` (B3).
+V171: write side: `escape` = inverse of `unescape` under the delim's own `#` count (`languages/api/src/lens:V39`); `inline` writes the host's line break (CRLF host → CRLF, B2); holes: `rewrite_bound` ⊥ (default `Unsupported`, `languages/api/src/lens` §I) ∴ refused, ⊥ `\(...)` landing in the script as text.
+V172: hk step site `env` = what hk runs it under (`languages/shells/shell:V82`), ⊥ guest default: step `shell`, else enclosing `Group` `shell` (`Hook` ⊥ has one), iff plain string `<sh\|bash\|zsh> [-<set letters>\|-o <name>]... -c` → its dialect & options; ⊥ set \| unreadable → hk default `sh -o errexit -c` (`pkl/Config.pkl` `Step.shell`; hk 1.58.1 argv) = `sh` + [`errexit`] ∴ prelude `#!/usr/bin/env sh` + `set -e`, ⊥ `set -euo pipefail` (B3).
 
 ## §T TASKS
 

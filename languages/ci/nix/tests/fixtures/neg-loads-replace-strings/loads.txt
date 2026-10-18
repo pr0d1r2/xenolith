@@ -1,8 +1,8 @@
 # `languages/ci/nix:V174`: a site with holes loads through
-# `builtins.replaceStrings [ "__NAME__" … ] [ "<hole>" … ] (<V53 load>)`,
+# `builtins.replaceStrings [ "__NAME__" ... ] [ "<hole>" ... ] (<V53 load>)`,
 # and the load spans the WHOLE call -- `inline` replaces all of it, and
 # `xnl graph` follows its path. Only the shape `rewrite_bound` writes is
-# the whole call: `__NAME__` patterns, as many holes, each a `${…}` with at
+# the whole call: `__NAME__` patterns, as many holes, each a `${...}` with at
 # most a path tail. Any other `replaceStrings` around a V53 load is the
 # author's own, and the load is the V53 call inside it. Whitespace is
 # shown collapsed.

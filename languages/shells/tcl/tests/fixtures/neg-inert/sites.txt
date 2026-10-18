@@ -1,5 +1,5 @@
 # Shell-looking text nothing runs (`languages:V2`): a comment, braced
-# data handed to an ordinary command, a quoted string. `open "|…"` is
+# data handed to an ordinary command, a quoted string. `open "|..."` is
 # open (`languages/shells/tcl` §I `?`). The interpreter must be a plain
 # name as argument 1 (`languages/shells/tcl:V196`): not a switch, not
 # `$var`, not `[cmd]`; a shell with no `-c` runs a file; `ssh -c` is a

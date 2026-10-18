@@ -85,7 +85,7 @@ typedef struct Scanner {
 // This function should create your scanner object. It will only be called once
 // anytime your language is set on a parser. Often, you will want to allocate
 // memory on the heap and return a pointer to it. If your external scanner
-// doesn’t need to maintain any state, it’s ok to return NULL.
+// doesn't need to maintain any state, it's ok to return NULL.
 void *tree_sitter_just_external_scanner_create(void) {
   Scanner *ptr = (Scanner *)calloc(SBYTES, 1);
   assertf(ptr, "tree_sitter_just_external_scanner_create: out of memory");
@@ -95,7 +95,7 @@ void *tree_sitter_just_external_scanner_create(void) {
 // This function should free any memory used by your scanner. It is called once
 // when a parser is deleted or assigned a different language. It receives as an
 // argument the same pointer that was returned from the create function. If your
-// create function didn’t allocate any memory, this function can be a noop.
+// create function didn't allocate any memory, this function can be a noop.
 void tree_sitter_just_external_scanner_destroy(void *payload) {
   assertf(payload, "got null payload at destroy");
   free(payload);

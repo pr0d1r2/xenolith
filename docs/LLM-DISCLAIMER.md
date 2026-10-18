@@ -26,10 +26,10 @@ not for the merges the loop makes now.
 ---
 <!-- hallucinogen:tending-disclaimer end -->
 
-This repository — Rust, shell, Nix, fixtures, specs and this prose — was
+This repository -- Rust, shell, Nix, fixtures, specs and this prose -- was
 written by [Claude Code](https://claude.com/claude-code) running Anthropic's
 **Claude Opus** models. Commits a model wrote carry a
-`Co-Authored-By: Claude …` trailer naming the model; the current ratio is
+`Co-Authored-By: Claude ...` trailer naming the model; the current ratio is
 whatever these two commands say, which is the point of not writing it down
 here:
 
@@ -54,8 +54,8 @@ Two reasons, and only the first is the obvious one.
 The second is specific to this tool. xenolith rewrites other people's files:
 it moves a script out of a Nix attribute, a justfile recipe or an hk step into
 a file of its own, and replaces it with a line that runs that file. An
-extraction that quietly changes what runs — drops an `errexit`, reorders two
-commands, loses a recipe line's `-` prefix — is worse than no tool at all. A
+extraction that quietly changes what runs -- drops an `errexit`, reorders two
+commands, loses a recipe line's `-` prefix -- is worse than no tool at all. A
 repository built by a model, arguing that every embed should be checked
 rather than trusted, has to hold itself to that first. Everything below is an
 attempt to make the provenance checkable instead of merely disclosed.
@@ -69,21 +69,21 @@ the root's `§F` table names the nodes. The `federated nodes` badge in the
 [README](../README.md) counts them, generated rather than typed.
 
 A behaviour change starts as a spec row, lands as a failing test, and only
-then as code — a guard checks that order in the history. A rule and its
+then as code -- a guard checks that order in the history. A rule and its
 checker land in the same commit, because a rule with no runner is a comment.
 
 ## The guardrails are git hooks that also run on CI
 
 Entering the dev shell (`nix develop`, or `direnv allow`) installs the hooks,
 which run [hk](https://github.com/jdx/hk) against one definition of the gate
-in [`hk.pkl`](../hk.pkl) — the fast set on commit, everything on push.
+in [`hk.pkl`](../hk.pkl) -- the fast set on commit, everything on push.
 [`ci.yml`](../.github/workflows/ci.yml) calls that same definition on three
 platforms, so a laptop and a runner cannot disagree.
 [`INTEGRATION.md`](INTEGRATION.md) has the full flow.
 
 The badges in the README are generated from the files that own each number
-— `Cargo.toml`, `hk.pkl`, `.coverage`, `.lint-debt`, `flake.lock`, `ci.yml`
-— by `xenolith-dev`, this repository's own unpublished tooling, and the gate
+-- `Cargo.toml`, `hk.pkl`, `.coverage`, `.lint-debt`, `flake.lock`, `ci.yml`
+-- by `xenolith-dev`, this repository's own unpublished tooling, and the gate
 fails when one drifts. A number typed into prose is true the day it is
 written and quietly wrong after; this document follows the same rule and
 states no counts of its own.
@@ -91,12 +91,12 @@ states no counts of its own.
 ## The record is deliberately unflattering
 
 `nix:B2` records that the flake's own clippy check was a three-line shell
-script inside a Nix string — and that the repository's own `xnl check`
+script inside a Nix string -- and that the repository's own `xnl check`
 flagged it as a `sequence`. **The repository held the exact embed it exists
 to forbid**, in the file that defines how it is checked.
 
 `src/registry:B11` records that the shell host shipped and was never
-registered, so every `.sh` file in the tree went unclaimed and unscanned —
+registered, so every `.sh` file in the tree went unclaimed and unscanned --
 and the dogfood step stayed green over scripts it had never read. A gate that
 passes by not looking is the failure this project is built to catch in other
 people's repositories.
@@ -125,7 +125,7 @@ The human named in [`LICENSE`](../LICENSE) is responsible for this code,
 including the parts a model wrote and the parts nobody caught. "The LLM wrote
 it" is an explanation of provenance, never a transfer of responsibility.
 
-Bug reports are welcome and unflattering ones are more useful — see
+Bug reports are welcome and unflattering ones are more useful -- see
 [`SECURITY.md`](SECURITY.md) for the ones that should not be public, and
 [`CONTRIBUTING.md`](CONTRIBUTING.md) for everything else.
 
