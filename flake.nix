@@ -52,17 +52,14 @@
       };
     };
 
-    # microlith's own itok edge follows ours (`nix:C6`, tool-to-tool edges).
-    # itok's microlith edge is deliberately LEFT ALONE: it pins a release tag,
-    # which is what terminates the graph -- pointing it back at our microlith
-    # while microlith points at our itok is a cycle, and a lock file cannot be
-    # computed from one.
+    # The locked microlith revision does not declare an itok input, so there is
+    # no edge to override here. Add this follow only when microlith declares
+    # itok again; otherwise Nix warns consumers about a non-existent input.
     microlith = {
       url = "github:pr0d1r2/microlith";
       inputs = {
         nixpkgs-lock.follows = "nixpkgs-lock";
         nix-hk.follows = "nix-hk";
-        itok.follows = "itok";
       };
     };
   };

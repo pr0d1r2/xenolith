@@ -18,7 +18,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §C CONSTRAINTS
 
-- C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`); `sherd` = crates.io release built in nix (V351), ⊥ flake input. `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges (`microlith`→`itok`, `itok`→`microlith`) follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
+- C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`); `sherd` = crates.io release built in nix (V351), ⊥ flake input. `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other declared input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges, when declared by the tool revision, follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
 - C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
 - C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
@@ -31,7 +31,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §V INVARIANTS
 
-V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith` (+ follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
+V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith` (+ valid follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 V96: `packages.default` = `xnl` wrapped w/ PATH ⊇ ∀ confirmed (non-`?`) default check & fixer of compiled-in languages & hosts; `languages` override drops tools of excluded languages; dev-only inputs still excluded (V29).
@@ -66,3 +66,4 @@ B2|2026-09-26|`checks.clippy` `buildPhase` = 3-line `''...''` script (`runHook` 
 B3|2026-09-27|V109 names cargo-release the only release path & `release.toml` configures it (T108), but `tools.dev` ⊥ carried it ∴ dev shell could not run the runbook; 0.1.0 merged untagged & unpublished|`pkgs.cargo-release` in `tools.dev`; closure check keeps it out of `xnl` (V29)
 B4|2026-09-27|runbook (`release.toml`, `docs/INTEGRATION.md`) ran `publish`/`push` w/o `--workspace`; root manifest = package ∴ cargo-release selected `xenolith` alone & refused 0.1.0 publish: deps "unpublished workspace package"; nothing uploaded|`--workspace` on `version`, `publish`, `push` in both runbooks (`tag` w/o: one lockstep tag); new-crate rate limit (5, then ~1/10 min) noted ∴ first publish in `-p` batches; issue #4
 B5|2026-10-04|`checks.test` source fileset omitted root `hk.pkl`, but `xenolith-dev`'s gate-glob test reads it ∴ every Nix platform failed one test with `hk.pkl: No such file or directory`|include `../hk.pkl` in the cargo source fileset so the workspace test has its declared repository input
+B6|2026-10-18|`microlith` at the locked revision declares only `nixpkgs-lock` and `nix-hk`, but `flake.nix` overrode `microlith.inputs.itok` ∴ consumers saw a warning on every evaluation|remove the non-existent override and add a metadata regression test
