@@ -68,7 +68,7 @@ id|status|task|cites
 T23|.|`extract` remaining hosts (Dockerfile, rust, ruby, html)|V4,V5,V6
 T51|.|companion creation under `--write` w/ V4--V6 laws|V49
 T65|.|fixpoint extraction w/ depth limit; fixture nix → shell → python (3 levels) & one over limit|V65
-T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per C17); until then V4 compares normalized whitespace|V4,C17
+T67|.|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per `scripts/guard:C17`); until then V4 compares normalized whitespace|V4,`scripts/guard:C17`
 T177|.|`extract` M3 hosts (just, xml, tcl) w/ their load idioms; a host whose load stays `Judgment` is refused w/ why|V4,V5,V6,`.:C25`
 
 ## §B BUGS
