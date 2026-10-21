@@ -61,7 +61,7 @@ V240: `[threshold.just] max_lines` = N: site whose `DelimKind::runs_line_by_line
 | M3 | publication | T89| public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44,T10
+T49|.|parse `[extract]` layout & `[[extract.rule]]`; template validation & `stale-rule`|V44
 T70|.|`inactive_rules` ignore/warn/error; fixture on `lang-nix`-only build w/ pkl rule|V44
 T89|.|generate `docs/config.md` from defaults & schema; drift test|V85,V73
 

@@ -39,9 +39,9 @@ V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only 
 | M3 | publication | T32, T116 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|C1
+T32|.|release: tag, CHANGELOG, crates.io publish ∀ workspace crate in dependency order api → languages → root, lockstep version|`src:C1`
 T95|.|M2 language survey: aggregate language & embed counts over sibling local repos, ⊥ names in repo; propose M3+ groups|C25
-T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src` C1
+T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src:C1`
 
 ## §B BUGS
 id|date|cause|fix
