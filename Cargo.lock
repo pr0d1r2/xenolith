@@ -363,8 +363,6 @@ dependencies = [
 name = "xenolith-lang-just"
 version = "0.1.0"
 dependencies = [
- "cc",
- "tree-sitter",
  "xenolith-lang-api",
 ]
 

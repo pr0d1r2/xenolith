@@ -1,7 +1,7 @@
 # xenolith-lang-just
 
-just support for xenolith: finds shell held in justfile recipe bodies. The
-tree-sitter-just grammar is vendored and compiled by `build.rs`.
+just support for xenolith: finds shell held in justfile recipe bodies,
+read by its own pure-Rust justfile parser: no grammar, no generated C.
 
 Part of [xenolith](https://github.com/pr0d1r2/xenolith), which finds
 code of one language embedded in a file of another and moves it into

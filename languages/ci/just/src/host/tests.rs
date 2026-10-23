@@ -8,12 +8,11 @@
 use xenolith_lang_api::{DelimKind, Error, Invoke, LangId, Site, Span};
 
 use super::{extract, line_break, load, located, plain_word, splice};
-use crate::recipe;
+use crate::parse::parse;
 
 fn sites(src: &str) -> Vec<Site> {
-    let tree = recipe::parse(src).unwrap_or_else(|e| panic!("{src:?}: {e}"));
-    let settings = recipe::settings(&tree, src);
-    located(&tree, src, &settings)
+    let justfile = parse(src).unwrap_or_else(|e| panic!("{src:?}: {e}"));
+    located(&justfile, src)
         .into_iter()
         .map(|(site, _)| site)
         .collect()
@@ -117,14 +116,15 @@ fn a_load_is_an_interpreter_and_a_relative_shell_script() {
         "    bash -c 'x'\n",
         "    echo scripts/e.sh\n",
     );
-    let tree = recipe::parse(src).unwrap_or_else(|e| panic!("{e}"));
-    let lines = recipe::recipes(&tree, src)
+    let justfile = parse(src).unwrap_or_else(|e| panic!("{e}"));
+    let lines = justfile
+        .recipes
         .first()
         .map(|r| r.lines.clone())
         .unwrap_or_default();
     let found: Vec<String> = lines
         .iter()
-        .filter_map(|line| load(*line, src))
+        .filter_map(|line| load(line, src))
         .map(|l| format!("{} {:?}", l.path.display(), l.span.of(src)))
         .collect();
     assert_eq!(
