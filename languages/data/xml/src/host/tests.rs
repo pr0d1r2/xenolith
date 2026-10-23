@@ -13,7 +13,8 @@ use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, Host, Invoke, LangId, LoadRef, Span,
 };
 
-use super::{XmlHost, parse};
+use super::XmlHost;
+use crate::doc;
 
 const PLIST_HEAD: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
 
@@ -76,9 +77,12 @@ fn other_xml_extensions_are_not_claimed_yet() {
 }
 
 #[test]
-fn parse_reads_well_formed_xml() {
-    let tree = parse(JOB).unwrap_or_else(|e| panic!("{e}"));
-    assert!(!tree.root_node().has_error());
+fn a_well_formed_job_reads_as_a_plist_document() {
+    let document = doc::parse(JOB).unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(
+        document.root.map(|root| root.name).as_deref(),
+        Some("plist")
+    );
 }
 
 #[test]

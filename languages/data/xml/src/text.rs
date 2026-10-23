@@ -16,14 +16,13 @@
 //! - text holds no markup: an element, comment or processing instruction
 //!   inside a `<string>` is not an argv word.
 //!
-//! References and CDATA are found by the GRAMMAR, never by scanning for
-//! `&` (`languages/api/src/site:V38`): the raw text is re-parsed inside a
-//! one-element document, and the tree says which bytes are which.
+//! References and CDATA are found by the XML READER, never by scanning
+//! for `&` (`languages/api/src/site:V38`): the raw text is re-read inside a
+//! one-element document, and its pieces say which bytes are which.
 
-use tree_sitter::Node;
 use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result};
 
-use crate::host::{parse, text};
+use crate::doc::{self, Piece};
 
 #[cfg(test)]
 mod tests;
@@ -78,52 +77,40 @@ fn reference(written: &str) -> Option<char> {
     char::from_u32(code).filter(|&ch| xml_char(ch))
 }
 
-/// The text of one content child, or why it is not text.
-fn piece(node: Node<'_>, src: &str) -> Result<String> {
-    let written = text(node, src);
-    match node.kind() {
-        "CharData" => Ok(fold_breaks(written)),
-        "EntityRef" => written
-            .strip_prefix('&')
-            .and_then(|rest| rest.strip_suffix(';'))
-            .and_then(entity)
-            .map(String::from)
-            .ok_or_else(|| refuse(format!("entity {written} has no value outside a DTD"))),
-        "CharRef" => reference(written)
-            .map(String::from)
-            .ok_or_else(|| refuse(format!("{written} names no XML character"))),
-        "CDSect" => {
-            let mut cursor = node.walk();
-            let data = node
-                .named_children(&mut cursor)
-                .find(|child| child.kind() == "CData")
-                .map_or("", |data| text(data, src));
-            Ok(fold_breaks(data))
+/// The text of one content piece, or why it is not text.
+fn piece(piece: &Piece, src: &str) -> Result<String> {
+    let written = |span: &xenolith_lang_api::Span| span.of(src).unwrap_or_default();
+    match piece {
+        Piece::Text(span) | Piece::CData(span) => Ok(fold_breaks(written(span))),
+        Piece::Ref(span) => {
+            let written = written(span);
+            if written.starts_with("&#") {
+                reference(written)
+                    .map(String::from)
+                    .ok_or_else(|| refuse(format!("{written} names no XML character")))
+            } else {
+                written
+                    .strip_prefix('&')
+                    .and_then(|rest| rest.strip_suffix(';'))
+                    .and_then(entity)
+                    .map(String::from)
+                    .ok_or_else(|| refuse(format!("entity {written} has no value outside a DTD")))
+            }
         }
-        other => Err(refuse(format!("markup ({other}) inside element text"))),
+        Piece::Markup(kind) => Err(refuse(format!("markup ({kind}) inside element text"))),
     }
 }
 
-/// The decoded text of an element's `content` node: every child must be
-/// text -- character data, a reference or a CDATA section.
-pub(crate) fn decode(content: Node<'_>, src: &str) -> Result<String> {
-    let mut cursor = content.walk();
-    content
-        .children(&mut cursor)
-        .map(|child| piece(child, src))
-        .collect()
+/// The decoded text of an element's content: every piece must be text --
+/// character data, a reference or a CDATA section.
+pub(crate) fn decode(pieces: &[Piece], src: &str) -> Result<String> {
+    pieces.iter().map(|p| piece(p, src)).collect()
 }
 
-/// Whether every child of `content` is text: the shape [`decode`] reads,
-/// whatever the entities turn out to mean.
-pub(crate) fn is_text(content: Node<'_>) -> bool {
-    let mut cursor = content.walk();
-    content.children(&mut cursor).all(|child| {
-        matches!(
-            child.kind(),
-            "CharData" | "EntityRef" | "CharRef" | "CDSect"
-        )
-    })
+/// Whether every piece is text: the shape [`decode`] reads, whatever the
+/// entities turn out to mean.
+pub(crate) fn is_text(pieces: &[Piece]) -> bool {
+    !pieces.iter().any(|p| matches!(p, Piece::Markup(_)))
 }
 
 /// The text an XML processor reads from `raw`, the content between the
@@ -138,28 +125,15 @@ pub(crate) fn is_text(content: Node<'_>) -> bool {
 pub fn unescape(delim: &Delim, raw: &str) -> Result<String> {
     argv_only(delim, "unescape")?;
     let wrapped = format!("{OPEN}{raw}{CLOSE}");
-    let tree = parse(&wrapped)?;
-    let root = tree.root_node();
-    if root.has_error() {
-        return Err(refuse("the text is not well-formed XML"));
-    }
-    let mut cursor = root.walk();
-    let elements: Vec<Node<'_>> = root
-        .named_children(&mut cursor)
-        .filter(|child| child.kind() == "element")
-        .collect();
-    let [element] = elements.as_slice() else {
-        return Err(refuse("the text closes its element"));
-    };
+    let document = doc::parse(&wrapped).map_err(|_| refuse("the text is not well-formed XML"))?;
     let (start, end) = (OPEN.len(), OPEN.len() + raw.len());
-    let mut cursor = element.walk();
-    let content = element
-        .named_children(&mut cursor)
-        .find(|child| child.kind() == "content");
-    match content {
-        None if raw.is_empty() => Ok(String::new()),
-        Some(content) if content.start_byte() == start && content.end_byte() == end => {
-            decode(content, &wrapped)
+    match document.root {
+        Some(element)
+            if element.end_tag.is_some()
+                && element.content.start == start
+                && element.content.end == end =>
+        {
+            decode(&element.pieces, &wrapped)
         }
         _ => Err(refuse("the text closes its element")),
     }

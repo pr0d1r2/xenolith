@@ -20,12 +20,11 @@
 
 use std::path::Path;
 
-use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
     Delim, Error, FileArg, Format, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site,
 };
 
-use crate::{launchd, text};
+use crate::{doc, launchd, text};
 
 #[cfg(test)]
 mod tests;
@@ -36,22 +35,6 @@ const PLIST_HEADS: &[&str] = &["<?xml", "<!DOCTYPE plist", "<plist"];
 /// The xml host.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct XmlHost;
-
-/// `src` parsed as an XML document.
-pub(crate) fn parse(src: &str) -> Result<Tree> {
-    let mut parser = Parser::new();
-    parser
-        .set_language(&tree_sitter_xml::LANGUAGE_XML.into())
-        .map_err(|e| Error::parse(LangId::Xml, e.to_string()))?;
-    parser
-        .parse(src, None)
-        .ok_or_else(|| Error::parse(LangId::Xml, "the parser returned no tree"))
-}
-
-/// The source text of `node`.
-pub(crate) fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
-    src.get(node.byte_range()).unwrap_or_default()
-}
 
 fn refused(operation: &'static str) -> Error {
     Error::unsupported(LangId::Xml, operation)
@@ -77,18 +60,12 @@ impl Host for XmlHost {
 
     /// The launchd site, if any (`languages/data/xml:V189`).
     ///
-    /// ANY parse error fails the whole file, as the shell host does:
-    /// spans inside and after an `ERROR` node are the parser's guess
+    /// A document that is not well-formed fails the whole file, as the
+    /// shell host does: spans after the error are a guess
     /// (`languages:V78`), and `xmllint` names the error precisely.
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
-        let tree = parse(src)?;
-        if tree.root_node().has_error() {
-            return Err(Error::parse(
-                LangId::Xml,
-                "the file is not well-formed XML, so none of its sites were read",
-            ));
-        }
-        Ok(launchd::sites(&tree, src))
+        let document = doc::parse(src)?;
+        Ok(launchd::sites(&document, src))
     }
 
     /// Not offered: there is no load idiom to read back until

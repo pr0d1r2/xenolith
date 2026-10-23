@@ -50,6 +50,7 @@ normal dependencies all the same.
 | `memchr` | 2.8.3 | `Unlicense OR MIT` |
 | `pklr` | 5.2.1 | `MIT` |
 | `proc-macro2` | 1.0.107 | `MIT OR Apache-2.0` |
+| `quick-xml` | 0.42.0 | `MIT` |
 | `quote` | 1.0.47 | `MIT OR Apache-2.0` |
 | `regex` | 1.13.1 | `MIT OR Apache-2.0` |
 | `regex-automata` | 0.4.18 | `MIT OR Apache-2.0` |
@@ -75,7 +76,6 @@ normal dependencies all the same.
 | `tree-sitter-bash` | 0.25.1 | `MIT` |
 | `tree-sitter-language` | 0.1.8 | `MIT` |
 | `tree-sitter-python` | 0.25.0 | `MIT` |
-| `tree-sitter-xml` | 0.7.0 | `MIT` |
 | `unicode-ident` | 1.0.26 | `(MIT OR Apache-2.0) AND Unicode-3.0` |
 | `winnow` | 1.0.4 | `MIT` |
 | `zmij` | 1.0.23 | `MIT` |
