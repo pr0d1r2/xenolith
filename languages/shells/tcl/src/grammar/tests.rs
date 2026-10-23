@@ -124,4 +124,11 @@ fn some_valid_tcl_is_still_rejected() {
     // Open in `languages/shells/tcl:B1`: a bare word with an index as
     // `set`'s value. The host fails such a file whole (`languages:V78`).
     assert!(!clean("set x a(b)\n"));
+    // Open in `languages/shells/tcl:B2`: `regexp` with a switch, or with a
+    // braced string, and so every site in a file that holds one.
+    assert!(!clean("set x [regexp -line {^ping: } $out]\n"));
+    assert!(!clean("regexp -all -inline {\\S+} $line\n"));
+    assert!(!clean("regexp -nocase -- {a} $o\n"));
+    assert!(!clean("regexp -start 2 {a} $o\n"));
+    assert!(!clean("regexp {a} {b}\n"));
 }
