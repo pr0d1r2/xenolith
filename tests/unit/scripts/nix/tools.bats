@@ -56,7 +56,7 @@ run_tools() {
   stub_xnl statix
   run_tools "$OUT" statix
   fixture="$(cat "${BATS_TEST_TMPDIR}/xnl-fixture")"
-  for file in xenolith.toml default.nix justfile a.xml a.tcl posix.sh bash.sh z.zsh; do
+  for file in xenolith.toml default.nix justfile a.xml a.tcl posix.sh bash.sh z.zsh a.py; do
     [[ "$fixture" == *"$file"* ]]
   done
 }
