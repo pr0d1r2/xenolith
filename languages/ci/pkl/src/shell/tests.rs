@@ -5,11 +5,11 @@
 //! one branch at a time: the command-line reader, the `shell` lookup in
 //! a body, and the walk from a step up to the group that owns it.
 
-use tree_sitter::{Node, Tree};
 use xenolith_lang_api::GuestEnv;
 
-use super::{HK_DEFAULT, bundle, env, hk_default, option_name, owner, read, shell_value};
-use crate::host::{parse, text};
+use super::{HK_DEFAULT, bundle, env, hk_default, option_name, read, shell_value};
+use crate::host::{Sink, sinks};
+use crate::syntax::{self, Module, Value};
 
 fn with(dialect: &str, options: &[&str]) -> GuestEnv {
     GuestEnv {
@@ -18,41 +18,23 @@ fn with(dialect: &str, options: &[&str]) -> GuestEnv {
     }
 }
 
-fn tree(src: &str) -> Tree {
-    parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"))
+fn module(src: &str) -> Module {
+    syntax::parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"))
 }
 
-/// Every node of `kind` under `node`, depth first, in source order.
-fn all<'t>(node: Node<'t>, kind: &str) -> Vec<Node<'t>> {
-    let mut out = Vec::new();
-    if node.kind() == kind {
-        out.push(node);
-    }
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        out.extend(all(child, kind));
-    }
-    out
-}
-
-/// The entry `["key"] { ... }` and its body.
-fn entry<'t>(tree: &'t Tree, src: &str, key: &str) -> (Node<'t>, Node<'t>) {
-    let quoted = format!("\"{key}\"");
-    all(tree.root_node(), "objectEntry")
+/// The first sink of step `key`: its body and its group.
+fn step<'m>(module: &'m Module, key: &str) -> Sink<'m> {
+    sinks(module)
         .into_iter()
-        .find_map(|entry| {
-            let name = entry.named_child(0)?;
-            let body = all(entry, "objectBody").into_iter().next()?;
-            (text(name, src) == quoted).then_some((entry, body))
-        })
-        .unwrap_or_else(|| panic!("no entry {key} in {src:?}"))
+        .find(|sink| sink.step == key)
+        .unwrap_or_else(|| panic!("no step {key}"))
 }
 
 /// The env of step `key` in `src`.
 fn env_of(src: &str, key: &str) -> GuestEnv {
-    let parsed = tree(src);
-    let (entry, body) = entry(&parsed, src, key);
-    env(entry, body, src)
+    let module = module(src);
+    let sink = step(&module, key);
+    env(sink.body, sink.group)
 }
 
 /// A hk config whose pre-commit hook's steps are `steps`.
@@ -165,15 +147,17 @@ fn shell_value_is_the_bodys_own_shell_not_a_local_one() {
         "        check = \"x\"\n",
         "      }\n",
     ));
-    let parsed = tree(&src);
-    let (_, body) = entry(&parsed, &src, "a");
-    assert!(shell_value(body, &src).is_none());
+    let parsed = module(&src);
+    assert!(shell_value(step(&parsed, "a").body).is_none());
 
     let src = hook("      [\"a\"] {\n        shell = \"bash -c\"\n      }\n");
-    let parsed = tree(&src);
-    let (_, body) = entry(&parsed, &src, "a");
-    let value = shell_value(body, &src).unwrap_or_else(|| panic!("no shell in {src:?}"));
-    assert_eq!(text(value, &src), "\"bash -c\"");
+    let parsed = module(&src);
+    let value =
+        shell_value(step(&parsed, "a").body).unwrap_or_else(|| panic!("no shell in {src:?}"));
+    let Value::Str(literal) = value else {
+        panic!("not a string: {value:?}");
+    };
+    assert_eq!(literal.span.of(&src), Some("\"bash -c\""));
 }
 
 #[test]
@@ -188,10 +172,11 @@ fn a_step_in_a_group_is_owned_by_the_group() {
         "        }\n",
         "      }\n",
     ));
-    let parsed = tree(&src);
-    let (step, _) = entry(&parsed, &src, "s");
-    let group = owner(step, &src).unwrap_or_else(|| panic!("no owner in {src:?}"));
-    assert!(shell_value(group, &src).is_some());
+    let parsed = module(&src);
+    let group = step(&parsed, "s")
+        .group
+        .unwrap_or_else(|| panic!("no owner in {src:?}"));
+    assert!(shell_value(group).is_some());
     assert_eq!(env_of(&src, "s"), with("zsh", &[]));
 }
 
@@ -205,9 +190,8 @@ fn a_step_outside_steps_has_no_owner() {
         "  }\n",
         "}\n",
     );
-    let parsed = tree(src);
-    let (step, _) = entry(&parsed, src, "s");
-    assert!(owner(step, src).is_none());
+    let parsed = module(src);
+    assert!(step(&parsed, "s").group.is_none());
     assert_eq!(env_of(src, "s"), hk_default());
 }
 
@@ -221,9 +205,8 @@ fn a_steps_mapping_under_new_is_still_its_owners() {
         "    }\n",
     );
     let src = hook("").replace("    steps {\n    }\n", mapping);
-    let parsed = tree(&src);
-    let (step, _) = entry(&parsed, &src, "s");
-    assert!(owner(step, &src).is_some(), "{src}");
+    let parsed = module(&src);
+    assert!(step(&parsed, "s").group.is_some(), "{src}");
 }
 
 #[test]

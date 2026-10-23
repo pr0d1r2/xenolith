@@ -5,18 +5,16 @@
 //! (`languages/ci/pkl` §I), where a multi-line string is a script that has
 //! escaped its file and nobody's shellcheck will ever see it.
 //!
-//! The grammar is `apple/tree-sitter-pkl`, VENDORED as generated C under
-//! `vendor/tree-sitter-pkl` because it is not published on crates.io
-//! (`languages:V121`). That makes this the one language crate that
-//! reaches FFI itself, and [`grammar`] is the only module allowed to.
+//! Pkl is read with `pklr`, a pure-Rust Pkl parser built here without its
+//! evaluator: it decides what is valid Pkl (as Pkl 0.31.1 and hk 2.x do),
+//! and its tokens, which carry byte offsets, give the object tree the
+//! host walks ([`syntax`]). No grammar is vendored and no C is compiled.
 
-#![deny(unsafe_code)]
-
-pub mod grammar;
 pub mod host;
 mod placement;
 mod shell;
 pub mod string;
+mod syntax;
 
 pub use crate::host::{PklHost, SINKS};
 pub use crate::string::{escape, multiline, unescape};

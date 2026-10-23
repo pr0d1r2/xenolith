@@ -1,7 +1,8 @@
 //! Pkl as a host: hk steps holding shell (`languages/ci/pkl:T13`).
 //!
 //! A site is a delimiter AND a sink context (`languages/api/src/site:V38`),
-//! and in pkl the context has three layers, all read from the tree:
+//! and in pkl the context has three layers, all read from the object tree
+//! [`crate::syntax`] builds:
 //!
 //! 1. the module `amends` hk's `Config.pkl` -- it is a hk config, so the
 //!    property names below mean what hk says they mean;
@@ -13,8 +14,8 @@
 //!
 //! Drop any layer and a `"""..."""` is inert data (`languages:V2`): the
 //! same shell in a `message`, in a top-level `local`, in a module that is
-//! not a hk config, or in a comment -- which the grammar never hands us
-//! as a string at all.
+//! not a hk config, or in a comment -- which the tree never holds as a
+//! string at all.
 //!
 //! The delimiter is the pkl multi-line string, `"""..."""` or `#"""..."""#`
 //! (`languages/api/src/site` §I). A single-line `"..."` has no delimiter
@@ -25,12 +26,12 @@
 
 use std::path::{Path, PathBuf};
 
-use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
     Delim, DelimKind, Error, Host, Invoke, LangId, LintCmd, LoadRef, Placement, Result, Site, Span,
 };
 
-use crate::{grammar, placement, shell, string};
+use crate::syntax::{self, Body, Member, Module, Str, Value};
+use crate::{placement, shell, string};
 
 #[cfg(test)]
 mod tests;
@@ -56,163 +57,131 @@ const SCRIPT_EXTENSIONS: &[&str] = &["bash", "sh", "zsh"];
 pub struct PklHost;
 
 /// One hk command property: which step, which property, and its value.
-struct Sink<'t> {
-    step: String,
-    property: String,
-    value: Node<'t>,
-    /// The step's `["name"] { ... }` entry and its body, where hk's shell
-    /// for it is read (`languages/ci/pkl:V172`).
-    entry: Node<'t>,
-    body: Node<'t>,
-}
-
-pub(crate) fn parse(src: &str) -> Result<Tree> {
-    let mut parser = Parser::new();
-    parser
-        .set_language(&grammar::language())
-        .map_err(|e| Error::parse(LangId::Pkl, e.to_string()))?;
-    parser
-        .parse(src, None)
-        .ok_or_else(|| Error::parse(LangId::Pkl, "the parser returned no tree"))
-}
-
-pub(crate) fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
-    src.get(node.byte_range()).unwrap_or_default()
-}
-
-fn span(node: Node<'_>) -> Span {
-    Span::new(node.start_byte(), node.end_byte())
-}
-
-/// The content of a single-line string with no escapes and no
-/// interpolation, or `None` for any other node.
-pub(crate) fn plain_string<'s>(node: Node<'_>, src: &'s str) -> Option<&'s str> {
-    if !matches!(node.kind(), "slStringLiteralExpr" | "stringConstant") {
-        return None;
-    }
-    let mut cursor = node.walk();
-    let mut parts = node.named_children(&mut cursor);
-    match (parts.next(), parts.next()) {
-        (Some(part), None) if part.kind() == "slStringLiteralPart" => Some(text(part, src)),
-        _ => None,
-    }
+pub(crate) struct Sink<'m> {
+    pub(crate) step: String,
+    pub(crate) property: String,
+    pub(crate) value: &'m Value,
+    /// The step's body, where hk's shell for it is read, and the body of
+    /// the `Group` or hook whose `steps` hold it (`languages/ci/pkl:V172`).
+    pub(crate) body: &'m Body,
+    pub(crate) group: Option<&'m Body>,
 }
 
 /// Layer 1: whether the module amends hk's `Config.pkl` -- a package URI
 /// (`.../hk@1.2.0#/Config.pkl`) or a vendored copy (`pkl/Config.pkl`).
-fn is_hk_config(root: Node<'_>, src: &str) -> bool {
-    let mut cursor = root.walk();
-    let Some(header) = root
-        .named_children(&mut cursor)
-        .find(|child| child.kind() == "moduleHeader")
-    else {
-        return false;
-    };
-    let mut cursor = header.walk();
-    header
-        .named_children(&mut cursor)
-        .filter(|clause| clause.kind() == "extendsOrAmendsClause")
-        .filter(|clause| clause.child(0).is_some_and(|kw| kw.kind() == "amends"))
-        .filter_map(|clause| {
-            let mut cursor = clause.walk();
-            clause
-                .named_children(&mut cursor)
-                .find_map(|child| plain_string(child, src))
-        })
-        .any(|uri| uri.rsplit(['/', '#', ':']).next() == Some("Config.pkl"))
+fn is_hk_config(module: &Module) -> bool {
+    module
+        .amends
+        .as_deref()
+        .is_some_and(|uri| uri.rsplit(['/', '#', ':']).next() == Some("Config.pkl"))
 }
 
-/// Layers 2 and 3 for one `objectProperty`: the step name and property
-/// name when it is a hk command property inside a step entry.
-fn as_sink<'t>(property: Node<'t>, src: &str) -> Option<Sink<'t>> {
-    let mut cursor = property.walk();
-    let named: Vec<Node<'t>> = property.named_children(&mut cursor).collect();
-    let [name, .., value] = named.as_slice() else {
-        return None;
-    };
-    // `local check = ...` inside a step is a private helper, not the step's
-    // command.
-    if name.kind() != "identifier" || !SINKS.contains(&text(*name, src)) {
-        return None;
+/// Layers 2 and 3: every hk command property in the module, in source
+/// order -- a non-`local` property named in [`SINKS`] directly in the body
+/// of a `["name"] { ... }` entry. A `local check` inside a step is a
+/// private helper, not the step's command.
+pub(crate) fn sinks(module: &Module) -> Vec<Sink<'_>> {
+    /// `body`, the step `step` when it is a step's body, inside the
+    /// `group` whose `steps` hold it.
+    fn walk<'m>(
+        body: &'m Body,
+        step: Option<&str>,
+        group: Option<&'m Body>,
+        out: &mut Vec<Sink<'m>>,
+    ) {
+        for member in &body.members {
+            match member {
+                Member::Property(property) => {
+                    if let Some(step) = step
+                        && !property.local
+                        && SINKS.contains(&property.name.as_str())
+                    {
+                        out.push(Sink {
+                            step: step.to_owned(),
+                            property: property.name.clone(),
+                            value: &property.value,
+                            body,
+                            group,
+                        });
+                    }
+                    // A `steps` object's entries are steps of THIS body.
+                    let holder = (property.name == "steps").then_some(body);
+                    match &property.value {
+                        Value::Object(inner) | Value::New(inner) => walk(inner, None, holder, out),
+                        Value::Other(bodies) => {
+                            for inner in bodies {
+                                walk(inner, None, None, out);
+                            }
+                        }
+                        Value::Str(_) => {}
+                    }
+                }
+                Member::Entry(entry) => {
+                    for inner in &entry.inside_key {
+                        walk(inner, None, None, out);
+                    }
+                    match &entry.value {
+                        Value::Object(inner) => walk(inner, entry.key.as_deref(), group, out),
+                        Value::New(inner) => walk(inner, None, None, out),
+                        Value::Other(bodies) => {
+                            for inner in bodies {
+                                walk(inner, None, None, out);
+                            }
+                        }
+                        Value::Str(_) => {}
+                    }
+                }
+                Member::Other(bodies) => {
+                    for inner in bodies {
+                        walk(inner, None, None, out);
+                    }
+                }
+            }
+        }
     }
-    let body = property.parent().filter(|p| p.kind() == "objectBody")?;
-    let entry = body.parent().filter(|e| e.kind() == "objectEntry")?;
-    let key = entry.named_child(0)?;
-    let step = plain_string(key, src).filter(|step| !step.is_empty())?;
-    Some(Sink {
-        step: step.to_owned(),
-        property: text(*name, src).to_owned(),
-        value: *value,
-        entry,
-        body,
-    })
-}
 
-/// Every hk command property in the tree, in source order.
-///
-/// ERROR regions are not entered (`languages:V78`): spans inside them are
-/// the parser's best guess, and a site built on a guess rewrites the
-/// wrong bytes.
-fn sinks<'t>(tree: &'t Tree, src: &str) -> Vec<Sink<'t>> {
-    fn walk<'t>(node: Node<'t>, src: &str, out: &mut Vec<Sink<'t>>) {
-        if node.is_error() || node.is_missing() {
-            return;
-        }
-        if node.kind() == "objectProperty"
-            && let Some(sink) = as_sink(node, src).filter(|sink| !sink.value.has_error())
-        {
-            out.push(sink);
-        }
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            walk(child, src, out);
-        }
-    }
-
-    let root = tree.root_node();
     let mut out = Vec::new();
-    if is_hk_config(root, src) {
-        walk(root, src, &mut out);
+    if is_hk_config(module) {
+        walk(&module.body, None, None, &mut out);
     }
     out
 }
 
-/// The site a multi-line sink value makes, or `None` for any other value.
-fn site(sink: &Sink<'_>, src: &str) -> Option<Site> {
-    let literal = sink.value;
-    if literal.kind() != "mlStringLiteralExpr" {
-        return None;
+/// The string a sink's value is, alone.
+fn literal<'m>(sink: &Sink<'m>) -> Option<&'m Str> {
+    match sink.value {
+        Value::Str(literal) => Some(literal),
+        _ => None,
     }
-    let open = literal.child(0)?;
-    let close = literal.child(literal.child_count().checked_sub(1)?)?;
-    let pounds = text(open, src).chars().filter(|&ch| ch == '#').count();
-    let mut cursor = literal.walk();
-    let holes = literal
-        .named_children(&mut cursor)
-        .filter(|child| child.kind() == "stringInterpolation")
-        .map(span)
-        .collect();
+}
+
+/// The site a multi-line sink value makes, or `None` for any other value.
+fn site(sink: &Sink<'_>) -> Option<Site> {
+    let literal = literal(sink).filter(|l| l.multiline)?;
     Some(Site {
         sink: format!("{}.{}", sink.step, sink.property),
         guest: LangId::Shell,
         // The shell hk runs this step under, never the guest's default,
         // whose strict line the inline step did not have
         // (`languages/ci/pkl:V172`).
-        env: shell::env(sink.entry, sink.body, src),
+        env: shell::env(sink.body, sink.group),
         delim: Delim {
-            kind: DelimKind::PklMultiline { pounds },
-            open: span(open),
-            body: Span::new(open.end_byte(), close.start_byte()),
-            close: span(close),
+            kind: DelimKind::PklMultiline {
+                pounds: literal.pounds,
+            },
+            open: literal.open,
+            body: literal.body(),
+            close: literal.close,
         },
-        holes,
+        holes: literal.holes.clone(),
     })
 }
 
 /// The load a single-line sink value holds: `<interpreter> <script>`,
 /// optionally followed by `{{files}}`, and nothing else.
-fn load(sink: &Sink<'_>, src: &str) -> Option<LoadRef> {
-    let command = plain_string(sink.value, src)?;
+fn load(sink: &Sink<'_>) -> Option<LoadRef> {
+    let literal = literal(sink)?;
+    let command = literal.plain.as_deref()?;
     let words: Vec<&str> = command.split_whitespace().collect();
     let [interpreter, script, rest @ ..] = words.as_slice() else {
         return None;
@@ -222,8 +191,8 @@ fn load(sink: &Sink<'_>, src: &str) -> Option<LoadRef> {
     }
     let path = PathBuf::from(script);
     let extension = path.extension().and_then(|ext| ext.to_str())?;
-    SCRIPT_EXTENSIONS.contains(&extension).then(|| LoadRef {
-        span: span(sink.value),
+    SCRIPT_EXTENSIONS.contains(&extension).then_some(LoadRef {
+        span: literal.span,
         path,
         guest: LangId::Shell,
     })
@@ -277,19 +246,13 @@ impl Host for PklHost {
     }
 
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
-        let tree = parse(src)?;
-        Ok(sinks(&tree, src)
-            .iter()
-            .filter_map(|sink| site(sink, src))
-            .collect())
+        let module = syntax::parse(src)?;
+        Ok(sinks(&module).iter().filter_map(site).collect())
     }
 
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
-        let tree = parse(src)?;
-        Ok(sinks(&tree, src)
-            .iter()
-            .filter_map(|sink| load(sink, src))
-            .collect())
+        let module = syntax::parse(src)?;
+        Ok(sinks(&module).iter().filter_map(load).collect())
     }
 
     /// The multi-line string becomes `"<invoke argv> {{files}}"`

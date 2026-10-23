@@ -18,15 +18,16 @@
 //!   delimiter has before it means anything -- so `#"""` holds a literal
 //!   backslash without escaping it.
 //!
-//! Escapes and interpolations are found by the GRAMMAR, never by
-//! scanning for backslashes (`languages/api/src/site:V38`): the raw text
-//! is re-parsed inside a one-line module, and the tree says which bytes
-//! are an escape, which are a hole and which are plain text.
+//! Interpolations are found by pklr's LEXER, never by scanning for
+//! backslashes (`languages/api/src/site:V38`): the raw text is re-lexed
+//! inside a one-line module, and the string token says where each
+//! `\(...)` is -- its parentheses balanced by the lexer, strings and all.
+//! Outside those, a `\` under the delimiter's guard is an escape.
 
-use tree_sitter::{Node, Parser};
+use pklr::lexer::TokenKind;
 use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result};
 
-use crate::grammar;
+use crate::syntax;
 
 #[cfg(test)]
 mod tests;
@@ -49,53 +50,69 @@ pub fn unescape(delim: &Delim, raw: &str) -> Result<String> {
     let guard = "#".repeat(pounds);
     let prefix = format!("x = {guard}\"\"\"");
     let module = format!("{prefix}{raw}\"\"\"{guard}\n");
-
-    let mut parser = Parser::new();
-    parser
-        .set_language(&grammar::language())
-        .map_err(|e| Error::parse(LangId::Pkl, e.to_string()))?;
-    let tree = parser
-        .parse(&module, None)
-        .ok_or_else(|| Error::parse(LangId::Pkl, "the parser returned no tree"))?;
-    let root = tree.root_node();
-    if root.has_error() {
-        return Err(Error::parse(
-            LangId::Pkl,
-            "not the inside of a pkl multi-line string",
-        ));
+    let not_inside = || Error::parse(LangId::Pkl, "not the inside of a pkl multi-line string");
+    let tokens = pklr::lexer::lex(&module).map_err(|_| not_inside())?;
+    let token = tokens
+        .iter()
+        .find(|t| {
+            matches!(
+                t.kind,
+                TokenKind::StringLit(_) | TokenKind::InterpolatedString(_)
+            )
+        })
+        .ok_or_else(not_inside)?;
+    // The literal must be exactly the one written: `raw` closing it early
+    // leaves more tokens behind it.
+    let open = prefix.len() - 3 - pounds;
+    if token.offset != open || token.end + 1 != module.len() {
+        return Err(not_inside());
     }
-    let literal = find_kind(root, "mlStringLiteralExpr")
-        .ok_or_else(|| Error::parse(LangId::Pkl, "no multi-line string"))?;
+    let holes: Vec<(usize, usize)> = syntax::literal(token, &module)
+        .holes
+        .iter()
+        .map(|h| (h.start - prefix.len(), h.end - prefix.len()))
+        .collect();
 
-    let deleted = indentation(raw, &holes_in(literal, prefix.len()))?;
+    let deleted = indentation(raw, &holes)?;
+    let backslash = format!("\\{guard}");
     let mut out = String::with_capacity(raw.len());
-    let mut cursor = literal.walk();
-    for child in literal.named_children(&mut cursor) {
-        let start = child.start_byte().saturating_sub(prefix.len());
-        let end = child.end_byte().saturating_sub(prefix.len());
-        let text = raw
-            .get(start..end)
-            .ok_or_else(|| Error::parse(LangId::Pkl, "a string part is outside the body"))?;
-        match child.kind() {
-            "escapeSequence" => out.push(decode(text, pounds)?),
-            "stringInterpolation" => out.push_str(text),
-            _ => {
-                for (offset, ch) in text.char_indices() {
-                    let at = start + offset;
-                    if deleted.iter().any(|&(from, to)| from <= at && at < to) {
-                        continue;
-                    }
-                    match ch {
-                        // The `\n` after it is this break's one `\n`.
-                        '\r' if raw.as_bytes().get(at + 1) == Some(&b'\n') => {}
-                        '\r' => out.push('\n'),
-                        _ => out.push(ch),
-                    }
-                }
+    let mut at = 0;
+    while let Some(rest) = raw.get(at..).filter(|rest| !rest.is_empty()) {
+        if let Some(&(_, end)) = holes.iter().find(|&&(from, _)| from == at) {
+            out.push_str(raw.get(at..end).unwrap_or_default());
+            at = end;
+            continue;
+        }
+        if rest.starts_with(&backslash) {
+            let len = escape_len(rest, pounds)
+                .ok_or_else(|| Error::parse(LangId::Pkl, format!("unknown escape `{rest:.4}`")))?;
+            out.push(decode(rest.get(..len).unwrap_or_default(), pounds)?);
+            at += len;
+            continue;
+        }
+        let ch = rest.chars().next().unwrap_or_default();
+        if !deleted.iter().any(|&(from, to)| from <= at && at < to) {
+            match ch {
+                // The `\n` after it is this break's one `\n`.
+                '\r' if raw.as_bytes().get(at + 1) == Some(&b'\n') => {}
+                '\r' => out.push('\n'),
+                _ => out.push(ch),
             }
         }
+        at += ch.len_utf8();
     }
     Ok(out)
+}
+
+/// The length of the escape sequence `rest` starts with, `\` and guard
+/// included: one character, or `u{...}`.
+fn escape_len(rest: &str, pounds: usize) -> Option<usize> {
+    let after = rest.get(1 + pounds..)?;
+    match after.chars().next()? {
+        'n' | 't' | 'r' | '"' | '\\' => Some(2 + pounds),
+        'u' if after.starts_with("u{") => after.find('}').map(|close| 1 + pounds + close + 1),
+        _ => None,
+    }
 }
 
 /// `body` as a pkl multi-line literal whose content lines carry `indent`.
@@ -199,31 +216,6 @@ fn pounds_for(body: &str) -> usize {
             !body.contains(&format!("\\{guard}")) && !body.contains(&format!("\"\"\"{guard}"))
         })
         .unwrap_or_default()
-}
-
-/// The first node of `kind` under `node`, depth first.
-fn find_kind<'t>(node: Node<'t>, kind: &str) -> Option<Node<'t>> {
-    if node.kind() == kind {
-        return Some(node);
-    }
-    let mut cursor = node.walk();
-    node.children(&mut cursor)
-        .find_map(|child| find_kind(child, kind))
-}
-
-/// Interpolation ranges inside `literal`, relative to the raw body.
-fn holes_in(literal: Node<'_>, shift: usize) -> Vec<(usize, usize)> {
-    let mut cursor = literal.walk();
-    literal
-        .named_children(&mut cursor)
-        .filter(|child| child.kind() == "stringInterpolation")
-        .map(|child| {
-            (
-                child.start_byte().saturating_sub(shift),
-                child.end_byte().saturating_sub(shift),
-            )
-        })
-        .collect()
 }
 
 /// The line breaks of `raw` as byte ranges, as pkl reads them inside a

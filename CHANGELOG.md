@@ -32,6 +32,12 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
+- The pkl host reads files with `pklr`, a pure-Rust Pkl parser, instead
+  of a vendored tree-sitter grammar: no generated C, no `build.rs`, no
+  `unsafe`, and with this no crate in the workspace vendors a grammar.
+  Validity now matches Pkl 0.31.1 and hk 2.x: a file they refuse to load
+  (for instance a `///` doc comment inside an object) is a
+  `host-parse-error` instead of being read anyway.
 - The just host reads justfiles with its own pure-Rust parser (a lexer
   and a recursive descent over just's own grammar) instead of a vendored
   tree-sitter grammar: no generated C, no `build.rs`, no `unsafe`. Over

@@ -4,13 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![edition 2024](https://img.shields.io/badge/edition-2024-000000?logo=rust&logoColor=white)](Cargo.toml)
 [![MSRV 1.95](https://img.shields.io/badge/MSRV-1.95-000000?logo=rust&logoColor=white)](Cargo.toml)
-[![direct dependencies 7](https://img.shields.io/badge/direct_dependencies-7-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
-[![unsafe forbidden, deny in 1 FFI crates](https://img.shields.io/badge/unsafe-forbidden,_deny_in_1_FFI_crates-yellowgreen)](Cargo.toml)
+[![direct dependencies 8](https://img.shields.io/badge/direct_dependencies-8-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen)](Cargo.toml)
 [![languages 7 built, 11 planned](https://img.shields.io/badge/languages-7_built,_11_planned-6E4AFF)](languages/SPEC.md)
 
 [![gate hk](https://img.shields.io/badge/gate-hk-6E4AFF)](hk.pkl)
 [![gate steps 46](https://img.shields.io/badge/gate_steps-46-6E4AFF)](hk.pkl)
-[![coverage floor 98.0%](https://img.shields.io/badge/coverage_floor-%E2%89%A598.0%25-brightgreen)](.coverage)
+[![coverage floor 98.1%](https://img.shields.io/badge/coverage_floor-%E2%89%A598.1%25-brightgreen)](.coverage)
 [![lint debt 0.0/KLoC](https://img.shields.io/badge/lint_debt-%E2%89%A40.0%2FKLoC-orange)](.lint-debt)
 [![federated nodes 46](https://img.shields.io/badge/federated_nodes-46-6E4AFF)](SPEC.md)
 
