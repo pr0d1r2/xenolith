@@ -45,10 +45,11 @@ in
     };
     # None yet: `pkl format --diff` is still `?` (`languages/api` §I).
     pkl = { };
-    # The guest's checks and fixers (`src/lint` §I): ruff for both, then
-    # mypy and bandit.
+    # The guest's checks and fixers (`src/lint` §I): ruff alone, a native
+    # binary. mypy and bandit would bring a python interpreter, whose closure
+    # on darwin holds the SDK and llvm (`nix:V29`).
     python = {
-      inherit (pkgs) ruff mypy bandit;
+      inherit (pkgs) ruff;
     };
     # Host checks shellcheck and shfmt; the guest adds checkbashisms for an
     # sh-family extract and `zsh -n` for a zsh one (`src/lint` §I).
