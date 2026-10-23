@@ -21,7 +21,8 @@ fn child(e: &Element, i: usize) -> &Element {
 }
 
 fn of(span: Span, src: &str) -> &str {
-    span.of(src).unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
+    span.of(src)
+        .unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
 }
 
 const PLIST: &str = concat!(
@@ -91,8 +92,16 @@ fn content_is_split_into_text_references_cdata_and_markup() {
         ]
     );
     let dict = child(&plist, 0);
-    assert!(dict.pieces.iter().any(|p| matches!(p, Piece::Markup("comment"))));
-    assert!(dict.pieces.iter().any(|p| matches!(p, Piece::Markup("element"))));
+    assert!(
+        dict.pieces
+            .iter()
+            .any(|p| matches!(p, Piece::Markup("comment")))
+    );
+    assert!(
+        dict.pieces
+            .iter()
+            .any(|p| matches!(p, Piece::Markup("element")))
+    );
 }
 
 #[test]

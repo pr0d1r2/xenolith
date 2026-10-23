@@ -32,6 +32,9 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
+- The xml host reads documents with `quick-xml`, a pure-Rust XML reader,
+  instead of tree-sitter-xml: no C is compiled for it. Its reports on 37
+  real-world XML and property-list files are unchanged.
 - The pkl host reads files with `pklr`, a pure-Rust Pkl parser, instead
   of a vendored tree-sitter grammar: no generated C, no `build.rs`, no
   `unsafe`, and with this no crate in the workspace vendors a grammar.

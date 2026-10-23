@@ -9,7 +9,7 @@
 use xenolith_lang_api::{DelimKind, GuestEnv, LangId, Site};
 
 use super::sites;
-use crate::host::parse;
+use crate::doc::parse;
 
 /// A launchd plist whose top dict holds `entries` (already XML).
 fn plist(entries: &str) -> String {
@@ -29,8 +29,8 @@ fn program_arguments(argv: &[&str]) -> String {
 }
 
 fn found(src: &str) -> Vec<Site> {
-    let tree = parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"));
-    sites(&tree, src)
+    let document = parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"));
+    sites(&document, src)
 }
 
 /// The one site `src` holds.

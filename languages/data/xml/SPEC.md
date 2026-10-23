@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-crate `xenolith-lang-xml` (feature `lang-xml`): tree-sitter-xml; host: text plists & `*.xml` -- launchd `ProgramArguments` shell argv; host check `xmllint --noout`.
+crate `xenolith-lang-xml` (feature `lang-xml`): `quick-xml` (pure Rust, V357), ⊥ grammar, ⊥ C; host: text plists & `*.xml` -- launchd `ProgramArguments` shell argv; host check `xmllint --noout`.
 
 ## §N NAV
 
@@ -28,10 +28,11 @@ sib|languages/data/perl|perl grammar, guest rules
 
 id|topic|finding|src
 R186|fleet 2026-09-27|15 repos / 42 files (33 `.xml`, 9 `.plist`); 3 launchd plists w/ `ProgramArguments` (argv arrays, may be `sh -c <script>`); 3 files w/ CDATA. fleet hook = `xmllint --noout` per staged `*.xml` (`.plist` ⊥ checked)|read-only fleet survey, counts only (`scripts/guard` C17)
-R187|grammar 2026-09-27|`tree-sitter-xml` on crates.io 0.7.0 (tree-sitter-grammars, MIT) ∴ crate dep, ⊥ vendored (`languages:V121`)|crates.io API
+R187|grammar 2026-09-27|`tree-sitter-xml` on crates.io 0.7.0 (tree-sitter-grammars, MIT) ∴ crate dep, ⊥ vendored (`languages:V121`)|crates.io API; SUPERSEDED 2026-10-23 by V357 (quick-xml, ⊥ C)
 
 ## §V INVARIANTS
 
+V357: reader = `quick-xml` 0.42 (deps `memchr`), events w/ raw bytes & byte positions → `src/doc.rs` element tree: name, start tag, end tag (⊥ for `<x/>`), content span, child elements, content pieces (text \| reference \| CDATA data \| markup). ⊥ well-formed (unclosed \| mismatched \| stray tag, 2nd root, text outside root, repeated \| unquoted attribute, reference naming ⊥ XML name \| `#N` \| `#xN`, unclosed CDATA) ⇒ `Error::Parse` line:col (`languages:V78`). `text` decodes pieces, ⊥ re-parse by grammar. dogfood 2026-10-23: 37 fleet xml/plist files, reports identical to tree-sitter-xml's.
 V188: `claims`: `*.xml`; `*.plist` iff text XML (starts `<?xml` \| `<!DOCTYPE plist` \| `<plist`); binary plist (`bplist00`) ⊥ claimed (⊥ parse, `src/check:V13`). other XML exts (`.svg`, `.xsd`, `.xsl`, `.xhtml`, ...) ⊥ claimed ? until a sink needs them.
 V189: launchd sink: top `<plist><dict>` w/ `<key>ProgramArguments</key>` → `<array>`; ⊥ `<key>Program</key>` (else argv[0] ≠ executable ?); argv[0] basename ∈ {`sh`,`bash`,`zsh`,`dash`} & argv[1] = `-c` exactly → argv[2] = site, dialect = argv[0], env from ITS argv (argv form of `languages/shells/shell:V139`); combined flags (`-lc`, `-ec`) ?. ⊥ other shape = site.
 

@@ -16,20 +16,16 @@ authors.workspace = true
 # the crate stays out of the package until it is listed here.
 include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 
-# Three dependencies, the most `languages/api:V32` allows a language
-# crate: the api contract, its own grammar, and the grammar's runtime. The
-# guest is NAMED as `LangId::Shell` and never linked (`languages:C24`).
+# Two dependencies (`languages/api:V32`): the api contract and the XML
+# reader. The guest is NAMED as `LangId::Shell` and never linked
+# (`languages:C24`).
 [dependencies]
 xenolith-lang-api = { path = "../../api", version = "0.1.0" }
-# The parser runtime. Same version as the shell crate's, so the workspace
-# carries one copy of it.
-tree-sitter = "0.27"
-# tree-sitter-xml 0.7.0, published by tree-sitter-grammars (MIT) on
-# crates.io (`languages/data/xml:R187`), so a crate dependency rather than
-# vendored C (`languages:V121`). An element's text, its entity references
-# and its CDATA sections are grammar nodes, never a regex over bytes
-# (`languages:C4`).
-tree-sitter-xml = "0.7"
+# quick-xml (MIT), pure Rust, its only default dependency `memchr`: a
+# streaming reader whose events carry raw bytes and positions, so element
+# text, entity references and CDATA sections are events, never a regex
+# over bytes (`languages:C4`).
+quick-xml = "0.42"
 
 [lints]
 workspace = true
