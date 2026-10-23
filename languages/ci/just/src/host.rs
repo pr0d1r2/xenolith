@@ -2,7 +2,7 @@
 //!
 //! A site is a delimiter AND a sink context (`languages/api/src/site:V38`).
 //! In a justfile the sink is the recipe and the delimiter its indented
-//! body, both read from the tree; a comment, a string in an assignment or
+//! body, both read by the parser; a comment, a string in an assignment or
 //! a backtick in an expression is never a site.
 //!
 //! Two kinds of body (`languages/ci/just` §I):
@@ -27,13 +27,13 @@
 
 use std::path::{Path, PathBuf};
 
-use tree_sitter::Node;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, FileArg, Format, GuestEnv, Host, Invoke, LangId, LintCmd, LoadRef,
     Placement, Result, Site, Span, holes, lens, shebang,
 };
 
-use crate::recipe::{self, Recipe, Settings, span, text};
+use crate::parse;
+use crate::recipe::{Justfile, Line, Recipe};
 use crate::shell::{self, LineShell};
 use crate::{lines, placement, state};
 
@@ -61,13 +61,13 @@ fn refuse(operation: &'static str) -> Error {
 }
 
 /// The site `recipe` makes, or `None` for a recipe that makes none.
-fn site(recipe: &Recipe<'_>, src: &str, shell: Option<&LineShell>) -> Option<Site> {
+fn site(recipe: &Recipe, src: &str, shell: Option<&LineShell>) -> Option<Site> {
     if recipe.script {
         return None;
     }
     let body = recipe.body(src)?;
-    let (kind, guest, env) = if let Some(line) = recipe.shebang {
-        let parsed = shebang::parse(text(line, src))?;
+    let (kind, guest, env) = if let Some(line) = &recipe.shebang {
+        let parsed = shebang::parse(line.span.of(src)?)?;
         let guest = shebang::guest_of(&parsed)?;
         let interpreter = parsed.resolved_interpreter();
         let name = interpreter.rsplit('/').next().unwrap_or(interpreter);
@@ -90,36 +90,32 @@ fn site(recipe: &Recipe<'_>, src: &str, shell: Option<&LineShell>) -> Option<Sit
         env,
         delim: Delim {
             kind,
-            open: span(recipe.header),
+            open: recipe.header,
             body,
             close: Span::new(body.end, body.end),
         },
         holes: recipe
             .lines
             .iter()
-            .flat_map(|line| recipe::interpolations(*line, src))
+            .flat_map(|line| line.holes.iter().copied())
             .collect(),
     })
 }
 
 /// Every site of `src`, each with the recipe it came from.
-fn located<'t>(
-    tree: &'t tree_sitter::Tree,
-    src: &str,
-    settings: &Settings,
-) -> Vec<(Site, Recipe<'t>)> {
-    let shell = shell::line_shell(settings);
-    recipe::recipes(tree, src)
-        .into_iter()
-        .filter_map(|recipe| site(&recipe, src, shell.as_ref()).map(|s| (s, recipe)))
+fn located<'j>(justfile: &'j Justfile, src: &str) -> Vec<(Site, &'j Recipe)> {
+    let shell = shell::line_shell(&justfile.settings);
+    justfile
+        .recipes
+        .iter()
+        .filter_map(|recipe| site(recipe, src, shell.as_ref()).map(|s| (s, recipe)))
         .collect()
 }
 
 /// The load a recipe line holds: `[@]<interpreter> <script> [args...]`, the
 /// script a plain relative path with a shell extension.
-fn load(line: Node<'_>, src: &str) -> Option<LoadRef> {
-    let prefix = recipe::prefix(line, src);
-    let command = recipe::line_text(line, src).get(prefix.len()..)?;
+fn load(line: &Line, src: &str) -> Option<LoadRef> {
+    let command = src.get(line.prefix.end..line.span.end)?;
     let words: Vec<&str> = command.split_whitespace().collect();
     let [interpreter, script, ..] = words.as_slice() else {
         return None;
@@ -129,8 +125,8 @@ fn load(line: Node<'_>, src: &str) -> Option<LoadRef> {
     }
     let path = PathBuf::from(script);
     let extension = path.extension().and_then(|ext| ext.to_str())?;
-    SCRIPT_EXTENSIONS.contains(&extension).then(|| LoadRef {
-        span: recipe::line_span(line, src),
+    SCRIPT_EXTENSIONS.contains(&extension).then_some(LoadRef {
+        span: line.span,
         path,
         guest: LangId::Shell,
     })
@@ -168,9 +164,9 @@ fn splice(src: &str, at: Span, with: &str) -> Result<String> {
 /// place of the lines, and the merged script
 /// (`languages/ci/just:V180`), or the refusal that keeps it a judgement.
 fn extract(src: &str, site: &Site, invoke: &Invoke) -> Result<lens::Rewrite> {
-    let tree = recipe::parse(src)?;
-    let settings = recipe::settings(&tree, src);
-    let found = located(&tree, src, &settings);
+    let justfile = parse::parse(src)?;
+    let settings = &justfile.settings;
+    let found = located(&justfile, src);
     let Some((_, recipe)) = found.iter().find(|(s, _)| s == site) else {
         return Err(Error::parse(
             LangId::Just,
@@ -185,7 +181,7 @@ fn extract(src: &str, site: &Site, invoke: &Invoke) -> Result<lens::Rewrite> {
             "rewrite of a recipe with {{...}} holes: pass each as an argument by hand",
         ));
     }
-    let Some(shell) = shell::line_shell(&settings) else {
+    let Some(shell) = shell::line_shell(settings) else {
         return Err(refuse(
             "rewrite under a set shell that is not statically readable (languages/ci/just:V179)",
         ));
@@ -226,11 +222,7 @@ fn extract(src: &str, site: &Site, invoke: &Invoke) -> Result<lens::Rewrite> {
         .ok_or_else(|| Error::parse(LangId::Just, "a line site with no line"))?;
     let load = format!("{}{}", if quiet { "@" } else { "" }, invoke.argv.join(" "));
     Ok(lens::Rewrite {
-        src: splice(
-            src,
-            Span::new(first.start_byte(), site.delim.body.end),
-            &load,
-        )?,
+        src: splice(src, Span::new(first.span.start, site.delim.body.end), &load)?,
         body: merged,
     })
 }
@@ -253,9 +245,8 @@ impl Host for JustHost {
     }
 
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
-        let tree = recipe::parse(src)?;
-        let settings = recipe::settings(&tree, src);
-        Ok(located(&tree, src, &settings)
+        let justfile = parse::parse(src)?;
+        Ok(located(&justfile, src)
             .into_iter()
             .map(|(site, _)| site)
             .collect())
@@ -264,17 +255,17 @@ impl Host for JustHost {
     /// Every recipe line that runs a script: `[@]<sh|bash|zsh> <path>
     /// [args...]`, in a line body and not continued.
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
-        let tree = recipe::parse(src)?;
+        let justfile = parse::parse(src)?;
         let mut out = Vec::new();
-        for recipe in recipe::recipes(&tree, src) {
+        for recipe in &justfile.recipes {
             if recipe.script || recipe.shebang.is_some() {
                 continue;
             }
             let mut after_backslash = false;
             for line in &recipe.lines {
-                let backslash = recipe::line_text(*line, src).ends_with('\\');
+                let backslash = line.span.of(src).is_some_and(|t| t.ends_with('\\'));
                 if !after_backslash && !backslash {
-                    out.extend(load(*line, src));
+                    out.extend(load(line, src));
                 }
                 after_backslash = backslash;
             }

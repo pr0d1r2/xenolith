@@ -32,6 +32,10 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
+- The just host reads justfiles with its own pure-Rust parser (a lexer
+  and a recursive descent over just's own grammar) instead of a vendored
+  tree-sitter grammar: no generated C, no `build.rs`, no `unsafe`. Over
+  204 real-world justfiles it reports exactly what the grammar did.
 - Add python as a guest (`lang-python`, on by default): a python heredoc,
   `-c` argument, just shebang recipe or nix `writers.writePython3` body is
   judged instead of stopping `xnl check` with exit 2. One expression

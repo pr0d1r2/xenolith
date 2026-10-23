@@ -6,16 +6,15 @@
 //! (`languages/ci/just` §I). Past one simple command it is a script
 //! nobody's shellcheck will ever see.
 //!
-//! The grammar is `tree-sitter-just`, VENDORED as generated C under
-//! `vendor/tree-sitter-just`: the published crate pins a tree-sitter
-//! runtime the workspace cannot link beside its own (`languages:V121`).
-//! That makes [`grammar`] the one module allowed FFI.
+//! The parser is this crate's own, in pure Rust: a lexer and a
+//! recursive descent over just's own grammar ([`parse`]), in place of a
+//! vendored tree-sitter grammar that rejected just 1.51 syntax and
+//! misread `{{{{` (`languages/ci/just:B2`, `languages/ci/just:B3`).
 
-#![deny(unsafe_code)]
-
-pub mod grammar;
 pub mod host;
+mod lexer;
 mod lines;
+mod parse;
 mod placement;
 mod recipe;
 mod shell;

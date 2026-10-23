@@ -89,18 +89,11 @@ grammars -- and none of their code is in `xnl`.
 
 ## Vendored tree-sitter grammars
 
-**2 grammars** are compiled from C vendored beside the crate that uses
+**1 grammars** are compiled from C vendored beside the crate that uses
 them (`languages:V121`), because none is on crates.io in a form this
 workspace can link. Each directory keeps upstream's licence file verbatim
 and an `UPSTREAM` record of where it came from and what, if anything, was
 patched.
-
-### `tree-sitter-just`
-
-- vendored in [`languages/ci/just/vendor/tree-sitter-just`](../languages/ci/just/vendor/tree-sitter-just/UPSTREAM)
-- upstream: <https://github.com/casey/tree-sitter-just> at `5685543a6e64f66335e25518c9ae8ffa1dae3d01`
-- licence: MIT per the crate manifest and package.json; the repo's LICENSE file at the rev above is Apache-2.0 text, kept verbatim beside this file as LICENSE.txt. Both are allowed by deny.toml.
-- [`LICENSE.txt`](../languages/ci/just/vendor/tree-sitter-just/LICENSE.txt), verbatim
 
 ### `tree-sitter-pkl`
 

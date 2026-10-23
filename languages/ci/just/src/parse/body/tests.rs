@@ -57,7 +57,10 @@ fn a_shebang_first_line_is_kept_apart_and_starts_the_body() {
     let src = "s:\n  #!/bin/sh\n  echo x\n";
     let recipe = only(src);
     assert_eq!(
-        recipe.shebang.map(|l| l.span.of(src).unwrap_or_default().to_owned()),
+        recipe
+            .shebang
+            .as_ref()
+            .map(|l| l.span.of(src).unwrap_or_default().to_owned()),
         Some("#!/bin/sh".to_owned())
     );
     assert_eq!(recipe.lines.len(), 1);
@@ -99,11 +102,7 @@ fn four_braces_are_a_literal_and_open_no_hole() {
     // `languages/ci/just:B2`: just prints `x{{y}}` for `x{{{{y}}`.
     assert_eq!(
         holes("a:\n    echo x{{{{y}} {{ z }}\n    echo {{{{ w }}\n    echo {{{{{{v}}\n"),
-        [
-            vec!["{{ z }}".to_owned()],
-            vec![],
-            vec!["{{v}}".to_owned()],
-        ]
+        [vec!["{{ z }}".to_owned()], vec![], vec!["{{v}}".to_owned()],]
     );
 }
 
