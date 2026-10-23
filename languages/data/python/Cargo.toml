@@ -1,6 +1,6 @@
 [package]
 name = "xenolith-lang-python"
-description = "Python support for xenolith: the python guest, its triviality rule and ruff, mypy and bandit defaults"
+description = "Python support for xenolith: the python guest, its triviality rule and ruff defaults"
 keywords = ["xenolith", "python", "ruff", "lint"]
 categories = ["development-tools"]
 documentation = "https://docs.rs/xenolith-lang-python"

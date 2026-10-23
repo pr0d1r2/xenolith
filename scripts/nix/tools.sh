@@ -35,6 +35,9 @@ printf 'puts hi\n' >a.tcl
 printf '#!/bin/sh\necho hi\n' >posix.sh
 printf '#!/usr/bin/env bash\necho hi\n' >bash.sh
 printf '#!/usr/bin/env zsh\necho hi\n' >z.zsh
+# No host claims a `.py`; its shebang makes it a python extract, linted by
+# ruff (`languages/data/python:V59`).
+printf '#!/usr/bin/env python3\nprint("hi")\n' >a.py
 
 set +e
 report="$(xnl lint --format json .)"

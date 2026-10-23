@@ -99,7 +99,7 @@ fn the_guest_names_no_constructs_so_the_size_threshold_judges() {
 }
 
 #[test]
-fn checks_are_ruff_mypy_and_bandit() {
+fn checks_are_ruff_check_and_ruff_format() {
     let checks = PythonGuest.checks(&GuestEnv::default());
     let argv: Vec<Vec<&str>> = checks
         .iter()
@@ -110,8 +110,6 @@ fn checks_are_ruff_mypy_and_bandit() {
         [
             vec!["ruff", "check", "--output-format=json"],
             vec!["ruff", "format", "--check"],
-            vec!["mypy"],
-            vec!["bandit", "-q"],
         ]
     );
     assert_eq!(

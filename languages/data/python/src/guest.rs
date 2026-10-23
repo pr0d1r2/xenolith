@@ -115,7 +115,9 @@ impl Guest for PythonGuest {
     }
 
     /// The `src/lint` §I python defaults: `ruff check` (read as ruff's
-    /// json), `ruff format --check`, `mypy` and `bandit`.
+    /// json) and `ruff format --check`. ruff only: mypy and bandit run on a
+    /// python interpreter, whose closure on darwin holds the SDK and llvm
+    /// (`nix:V29`), so they are a `[lint.python] checks` opt-in.
     fn checks(&self, _env: &GuestEnv) -> Vec<LintCmd> {
         vec![
             LintCmd {
@@ -128,8 +130,6 @@ impl Guest for PythonGuest {
                 format: Format::Json("ruff"),
             },
             raw(&["ruff", "format", "--check"]),
-            raw(&["mypy"]),
-            raw(&["bandit", "-q"]),
         ]
     }
 

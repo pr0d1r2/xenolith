@@ -135,11 +135,9 @@ its own licence. A cargo build ships none of them.
 
 | command | nixpkgs package | version | licence |
 |---|---|---|---|
-| `bandit` | bandit | 1.9.4 | `Apache-2.0` |
 | `checkbashisms` | checkbashisms | 2.25.10 | `GPL-2.0-or-later` |
 | `deadnix` | deadnix | 1.3.2 | `GPL-3.0-only` |
 | `just` | just | 1.51.0 | `CC0-1.0` |
-| `mypy` | mypy | 1.20.1 | `MIT` |
 | `nixfmt` | nixfmt | 1.5.0 | `MPL-2.0` |
 | `ruff` | ruff | 0.15.14 | `MIT` |
 | `shellcheck` | ShellCheck | 0.11.0 | `GPL-3.0-only` |
