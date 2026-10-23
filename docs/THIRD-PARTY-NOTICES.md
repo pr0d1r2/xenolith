@@ -89,7 +89,7 @@ grammars -- and none of their code is in `xnl`.
 
 ## Vendored tree-sitter grammars
 
-**3 grammars** are compiled from C vendored beside the crate that uses
+**2 grammars** are compiled from C vendored beside the crate that uses
 them (`languages:V121`), because none is on crates.io in a form this
 workspace can link. Each directory keeps upstream's licence file verbatim
 and an `UPSTREAM` record of where it came from and what, if anything, was
@@ -118,13 +118,6 @@ Copyright © 2024 Apple Inc. and the Pkl project authors
 
 The tree-sitter-pkl binary includes libraries that may be distributed under a different license.
 ```
-
-### `tree-sitter-tcl`
-
-- vendored in [`languages/shells/tcl/vendor/tree-sitter-tcl`](../languages/shells/tcl/vendor/tree-sitter-tcl/UPSTREAM)
-- upstream: <https://github.com/tree-sitter-grammars/tree-sitter-tcl> at `850a72ab6436e06645b33b11cfa60cbdb04b1f01`
-- licence: MIT (LICENSE beside this file, verbatim)
-- [`LICENSE`](../languages/shells/tcl/vendor/tree-sitter-tcl/LICENSE), verbatim
 
 ## Tools the nix package runs
 

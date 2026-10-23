@@ -10,7 +10,8 @@
 //! guest names no constructs and the engine judges a body by
 //! `[threshold.tcl] max_lines` / `max_bytes` (`languages/api:V37`). What
 //! [`TclGuest::trivial`] does decide is that a body the grammar rejects is
-//! never trivial (`languages:V77`).
+//! never trivial (`languages:V77`): what Tcl's parser rejects, read by
+//! [`syntax::check`].
 
 use std::path::Path;
 
@@ -18,7 +19,6 @@ use xenolith_lang_api::{
     Error, Guest, GuestEnv, Invoke, LangId, LintCmd, Prelude, Result, Shebang,
 };
 
-use crate::grammar;
 use crate::host::EXPECT;
 use crate::syntax;
 
@@ -60,13 +60,9 @@ impl Guest for TclGuest {
     /// Never trivial when the grammar rejects the body (`languages:V77`);
     /// otherwise `false`, leaving the verdict to the size threshold.
     fn trivial(&self, body: &str) -> Result<bool> {
-        let tree = grammar::parse(body)?;
-        if tree.root_node().has_error() {
-            return Err(Error::parse(
-                LangId::Tcl,
-                "the body is not valid tcl to this grammar",
-            ));
-        }
+        syntax::check(body).map_err(|e| {
+            Error::parse(LangId::Tcl, format!("{}:{}: {}", e.line, e.col, e.message))
+        })?;
         Ok(false)
     }
 

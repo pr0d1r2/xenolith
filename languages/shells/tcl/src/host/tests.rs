@@ -1,21 +1,32 @@
-//! Unit tests for `host.rs` (`src:C139`): the claim, the word grouping,
-//! the program word, the walk and the error containment, part by part.
+//! Unit tests for `host.rs` (`src:C139`): the claim, the plain word,
+//! the program word, the roles and the walk, part by part.
 
 use std::path::Path;
 
 use xenolith_lang_api::{Delim, DelimKind, Error, Host, Invoke, LangId, LoadRef, Site, Span};
 
 use super::{
-    EXTENSIONS, INTERPRETERS, TclHost, Walk, dialect, errors_contained, plain, program_word,
-    shebang_interpreter, words,
+    EXTENSIONS, INTERPRETERS, TclHost, Walk, dialect, plain, program_word, shebang_interpreter,
 };
-use crate::grammar::parse;
+use crate::script::{Word, parse};
+
+/// The words of the first command in `src`, its name included.
+fn first_words(src: &str) -> Vec<Word> {
+    parse(src)
+        .unwrap_or_else(|e| panic!("{e}"))
+        .commands
+        .into_iter()
+        .next()
+        .map(|c| c.words)
+        .unwrap_or_default()
+}
 
 /// The walk over `src`: its sites and its opaque spans.
 fn walked(src: &str) -> Walk {
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
+    let script = parse(src).unwrap_or_else(|e| panic!("{e}"));
     let mut walk = Walk::default();
-    walk.node(tree.root_node(), src);
+    walk.script(&script, src)
+        .unwrap_or_else(|e| panic!("{src:?}: {e}"));
     walk
 }
 
@@ -27,37 +38,18 @@ fn sinks(src: &str) -> Vec<String> {
         .collect()
 }
 
-/// The words of the first command's argument list in `src`, as text.
+/// The arguments of the first command in `src`, as text.
 fn word_texts(src: &str) -> Vec<String> {
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
-    let command = tree
-        .root_node()
-        .named_child(0)
-        .unwrap_or_else(|| unreachable!());
-    let list = command
-        .child_by_field_name("arguments")
-        .unwrap_or_else(|| panic!("no arguments in {src:?}"));
-    let mut cursor = list.walk();
-    let nodes: Vec<_> = list.children(&mut cursor).collect();
-    words(&nodes)
+    first_words(src)
         .iter()
-        .map(|word| {
-            let start = word.first().map_or(0, tree_sitter::Node::start_byte);
-            let end = word.last().map_or(0, tree_sitter::Node::end_byte);
-            src.get(start..end).unwrap_or_default().to_owned()
-        })
+        .skip(1)
+        .map(|w| w.span.of(src).unwrap_or_default().to_owned())
         .collect()
 }
 
 /// The program word of the LAST argument of the first command in `src`.
 fn last_word(src: &str) -> Option<(Delim, Vec<Span>)> {
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
-    let command = tree.root_node().named_child(0)?;
-    let list = command.child_by_field_name("arguments")?;
-    let mut cursor = list.walk();
-    let nodes: Vec<_> = list.children(&mut cursor).collect();
-    let grouped = words(&nodes);
-    program_word(grouped.last()?, src)
+    program_word(first_words(src).last()?, src)
 }
 
 #[test]
@@ -101,19 +93,16 @@ fn adjacent_pieces_are_one_word() {
 
 #[test]
 fn only_a_lone_simple_word_is_plain() {
-    let src = "exec sh $x foo$y {z}\n";
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
-    let command = tree
-        .root_node()
-        .named_child(0)
-        .unwrap_or_else(|| unreachable!());
-    let list = command
-        .child_by_field_name("arguments")
-        .unwrap_or_else(|| unreachable!());
-    let mut cursor = list.walk();
-    let nodes: Vec<_> = list.children(&mut cursor).collect();
-    let texts: Vec<Option<&str>> = words(&nodes).iter().map(|w| plain(w, src)).collect();
-    assert_eq!(texts, [Some("sh"), None, None, None]);
+    let src = "exec sh $x foo$y {z} \"q\" a\\ b {*}c a(b)\n";
+    let texts: Vec<Option<&str>> = first_words(src)
+        .iter()
+        .skip(1)
+        .map(|w| plain(w, src))
+        .collect();
+    assert_eq!(
+        texts,
+        [Some("sh"), None, None, None, None, None, None, Some("a(b)")]
+    );
 }
 
 #[test]
@@ -166,8 +155,17 @@ fn a_bare_program_has_empty_delimiters_around_the_word() {
 #[test]
 fn a_mixed_or_expanded_word_is_no_program() {
     assert_eq!(last_word("exec sh -c {*}$cmd\n"), None);
-    assert_eq!(last_word("exec sh -c a\"b\"\n"), None);
     assert_eq!(last_word("exec sh -c a\\ b\n"), None);
+}
+
+#[test]
+fn a_quote_inside_a_bare_word_is_text() {
+    // Tcl passes `a"b"` as those four bytes: a quote opens a quoted word
+    // only at the start of one.
+    let src = "exec sh -c a\"b\"\n";
+    let (delim, holes) = last_word(src).unwrap_or_else(|| panic!("no program"));
+    assert_eq!(delim.body.of(src), Some("a\"b\""));
+    assert!(holes.is_empty());
 }
 
 #[test]
@@ -209,27 +207,83 @@ fn a_comment_holds_no_site() {
 }
 
 #[test]
-fn errors_inside_opaque_braces_are_contained() {
-    let src = "exec sh -c {ls $(pwd) | wc -l}\n";
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
-    assert!(tree.root_node().has_error());
-    let walk = walked(src);
-    assert!(errors_contained(tree.root_node(), &walk.opaque));
+fn a_data_argument_is_never_parsed() {
+    // Shell's `$(...)` and awk's braces are not Tcl; as a site body or an
+    // ordinary command's argument they are only data.
+    let walk = walked("exec sh -c {ls $(pwd) | {wc -l}\nputs {x}b\n}\n");
+    assert_eq!(walk.sites.len(), 1);
 }
 
 #[test]
-fn errors_outside_opaque_braces_are_not() {
-    let src = "set x a(b)\n";
-    let tree = parse(src).unwrap_or_else(|e| panic!("{e}"));
-    assert!(tree.root_node().has_error());
-    let walk = walked(src);
-    assert!(!errors_contained(tree.root_node(), &walk.opaque));
+fn an_error_in_a_body_the_walk_runs_fails_the_walk() {
+    let src = "proc f {} {\n  puts {a}b\n}\n";
+    let script = parse(src).unwrap_or_else(|e| panic!("{e}"));
+    let mut walk = Walk::default();
+    match walk.script(&script, src) {
+        Err(Error::Parse { message, .. }) => assert!(message.contains("2:"), "{message}"),
+        other => panic!("expected a parse error, got {other:?}"),
+    }
 }
 
 #[test]
-fn a_clean_tree_is_contained_trivially() {
-    let tree = parse("puts hi\n").unwrap_or_else(|e| panic!("{e}"));
-    assert!(errors_contained(tree.root_node(), &[]));
+fn if_reads_conditions_as_expressions_and_branches_as_scripts() {
+    assert_eq!(sinks("if {[exec sh -c {a}]} {}\n"), ["exec sh -c"]);
+    assert_eq!(
+        sinks("if {0} then {} elseif {1} {exec sh -c {a}} else {exec bash -c {b}}\n"),
+        ["exec sh -c", "exec bash -c"]
+    );
+    assert_eq!(sinks("if {0} {} {exec sh -c {a}}\n"), ["exec sh -c"]);
+    assert!(sinks("if {0} {} else {} {exec sh -c {a}}\n").is_empty());
+}
+
+#[test]
+fn try_reads_its_body_handlers_and_finally() {
+    let src = "try {exec sh -c {a}} on error {m} {exec sh -c {b}} \
+               trap {POSIX} {m o} {exec sh -c {c}} finally {exec sh -c {d}}\n";
+    assert_eq!(sinks(src).len(), 4);
+}
+
+#[test]
+fn expr_and_while_run_their_substitutions() {
+    assert_eq!(
+        sinks("set n [expr {[exec sh -c {a}] + 1}]\n"),
+        ["exec sh -c"]
+    );
+    assert_eq!(sinks("while {[exec sh -c {a}]} {}\n"), ["exec sh -c"]);
+    assert!(sinks("expr {{[exec sh -c {a}]}}\n").is_empty());
+}
+
+#[test]
+fn a_try_skips_words_it_does_not_know() {
+    assert_eq!(
+        sinks("try {exec sh -c {a}} junk finally {exec sh -c {b}}\n").len(),
+        2
+    );
+}
+
+#[test]
+fn an_error_in_a_nested_body_fails_the_walk() {
+    for src in [
+        "puts [proc f {} {puts {a}b}]\n",
+        "puts $a([proc f {} {puts {a}b}])\n",
+        "if {\"a} {}\n",
+    ] {
+        let script = parse(src).unwrap_or_else(|e| panic!("{src:?}: {e}"));
+        let mut walk = Walk::default();
+        assert!(walk.script(&script, src).is_err(), "{src:?}");
+    }
+}
+
+#[test]
+fn only_a_plain_exec_with_an_interpreter_and_a_program_is_a_site() {
+    assert!(sinks("exec\n").is_empty());
+    assert!(sinks("\"exec\" sh -c {a}\n").is_empty());
+    assert!(sinks("exec sh -c\n").is_empty());
+}
+
+#[test]
+fn a_substitution_in_an_array_index_runs() {
+    assert_eq!(sinks("puts $a([exec sh -c {a}])\n"), ["exec sh -c"]);
 }
 
 #[test]

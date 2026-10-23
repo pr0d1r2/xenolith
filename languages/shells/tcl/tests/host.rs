@@ -66,12 +66,11 @@ fn an_exp_file_is_the_expect_dialect() {
 }
 
 #[test]
-fn a_file_with_an_error_outside_braces_fails_whole() {
-    // `languages:V78`: spans after an `ERROR` node are the parser's guess.
-    // `set x a(b)` is valid Tcl the vendored grammar still rejects, even
-    // patched (`languages/shells/tcl:B1`); the file is then a host parse
+fn a_file_with_a_syntax_error_fails_whole() {
+    // `languages:V78`: spans after a syntax error are a guess. Tcl rejects
+    // extra characters after a close-brace; the file is then a host parse
     // error, never a partial list of sites.
-    let src = "set x a(b)\nexec sh -c {a | b}\n";
+    let src = "set x {a}b\nexec sh -c {a | b}\n";
     let err = TclHost.sites(src);
     assert!(
         matches!(
@@ -86,6 +85,14 @@ fn a_file_with_an_error_outside_braces_fails_whole() {
 }
 
 #[test]
+fn valid_tcl_the_old_grammar_rejected_keeps_its_sites() {
+    // `languages/shells/tcl:B1`, `languages/shells/tcl:B2`, #73.
+    let src = "set x a(b)\nset p {^(\\d+)$}\nputs (a)\n\
+               set y [regexp -line {^p: } $o]\nexec sh -c {a | b}\n";
+    assert_eq!(sites(src).len(), 1);
+}
+
+#[test]
 fn an_unclosed_brace_fails_whole() {
     let err = TclHost.sites("exec sh -c {a | b\n");
     assert!(matches!(err, Err(Error::Parse { .. })), "{err:?}");
@@ -94,7 +101,7 @@ fn an_unclosed_brace_fails_whole() {
 #[test]
 fn errors_inside_a_data_argument_do_not_fail_the_file() {
     // expect's pattern-action list is a braced ARGUMENT: data to this
-    // walk, however the grammar reads it.
+    // walk, never parsed.
     let src = "expect {\n  \"yes/no\" { send \"yes\\r\"; exp_continue }\n}\n\
                exec sh -c {a | b}\n";
     let found = sites(src);

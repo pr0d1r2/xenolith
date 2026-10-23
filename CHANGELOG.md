@@ -38,9 +38,13 @@ behind the full gate, and never by hand.
   statement stays inline; anything more is flagged, and an extract is a
   `*.py` file run by `python3`, linted by `ruff check` and
   `ruff format --check`.
-- Fix the tcl host failing a whole file over `regexp` with a switch
-  (`-line`, `-all`, `-nocase`, `-start i`, `--`) or a braced string:
-  every site in such a file went unread.
+- The tcl host reads Tcl with its own pure-Rust word parser instead of a
+  vendored tree-sitter grammar: no generated C, no `build.rs`, no
+  `unsafe`. Valid Tcl the grammar rejected no longer fails a whole file:
+  `regexp` with a switch (`-line`, `-all`, `-nocase`, `-start i`, `--`)
+  or a braced string, a parenthesis in a word (`set x {(a)}`,
+  `puts (a)`), `set x a(b)`, `[f]($y)`. A quote inside a bare word
+  (`a"b"`) is text, as in Tcl, so `exec sh -c a"b"` is a site.
 - Add the `x86_64-darwin` package output for Intel Mac consumers.
 
 ## [0.1.0] - 2026-09-27
