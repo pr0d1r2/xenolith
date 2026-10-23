@@ -1,6 +1,29 @@
 --- a/grammar.js
 +++ b/grammar.js
-@@ -85,11 +85,10 @@
+@@ -65,13 +65,21 @@ module.exports = grammar({
+     ),
+
+     // regexp ?switches? exp string ?matchVar? ?subMatchVar subMatchVar ...?
++    // xenolith: the switches, and any word as the string -- a braced one
++    // included -- before the match variables.
+     regexp: $ => seq(
+       'regexp',
++      repeat($._regexp_switch),
+       $._word_simple, // exp
+-      $._concat_word, // string
++      $._word, // string
+       repeat($._concat_word),
+     ),
+
++    _regexp_switch: $ => choice(
++      '-about', '-expanded', '-indices', '-line', '-linestop', '-lineanchor',
++      '-nocase', '-all', '-inline', seq('-start', $._concat_word), '--',
++    ),
++
+     while: $ => seq('while', $.expr, $._word),
+
+     expr_cmd: $ => seq('expr', $.expr),
+@@ -85,11 +93,10 @@ module.exports = grammar({
      try: $ => seq(
        'try',
        $._word,
@@ -16,7 +39,7 @@
        )),
        optional($.finally),
      ),
-@@ -146,6 +145,7 @@
+@@ -146,6 +153,7 @@ module.exports = grammar({
 
      _ident_imm: _ => token.immediate(/[a-zA-Z_][a-zA-Z0-9_]*/),
      _ident: _ => /[a-zA-Z_][a-zA-Z0-9_]*/,
@@ -24,7 +47,7 @@
 
      _id_immediate: $ => seq(
        optional($._ns_delim), $._ident_imm,
-@@ -208,7 +208,8 @@
+@@ -208,7 +216,8 @@ module.exports = grammar({
        $.simple_word,
      ),
 
@@ -34,7 +57,7 @@
      _boolean: $ => token(choice(
        '1', '0',
        /[Tt][Rr][Uu][Ee]/,
-@@ -225,7 +226,14 @@
+@@ -225,7 +234,14 @@ module.exports = grammar({
        // As a mathematical function whose arguments have any of the above
        // forms for operands, such as sin($x). See MATH FUNCTIONS below for a
        // discussion of how mathematical functions are handled.
@@ -50,7 +73,7 @@
 
        // As a Tcl command enclosed in brackets. The command will be executed
        // and its result will be used as the operand.
-@@ -284,6 +292,7 @@
+@@ -284,6 +300,7 @@ module.exports = grammar({
      elseif: $ => seq(
        'elseif',
        field('condition', $.expr),
@@ -58,7 +81,7 @@
        field('consequence', $._word),
      ),
 
-@@ -295,6 +304,7 @@
+@@ -295,6 +312,7 @@ module.exports = grammar({
      if: $ => seq(
        'if',
        field('condition', $.expr),
@@ -66,7 +89,7 @@
        field('consequence', $._word),
        repeat(field('alternative', $.elseif)),
        optional(field('alternative', $.else)),
-@@ -306,17 +316,22 @@
+@@ -306,17 +324,22 @@ module.exports = grammar({
        $.elseif,
      ),
 
@@ -93,7 +116,7 @@
          $.escaped_character,
 --- a/src/scanner.c
 +++ b/src/scanner.c
-@@ -19,12 +19,16 @@
+@@ -19,12 +19,16 @@ bool tree_sitter_tcl_external_scanner_scan(void *payload, TSLexer *lexer,
      return false;
    }
 

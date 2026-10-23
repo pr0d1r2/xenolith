@@ -28,6 +28,9 @@ whole local change to upstream's grammar.js and src/scanner.c:
   - expr functions take 0..n comma-separated args: `max(1,2)`, `rand()`
   - `if`/`elseif` take the noise word `then`; `catch` its options var;
     `try` any number of `on <code>` / `trap <pattern>` handlers
+  - `regexp` takes its switches (`-line`, `-all`, `-start i`, `--`, ...)
+    and any word as its string, a braced one included
+    (2026-10-23, languages/shells/tcl:B2)
 
 Files regenerated or patched here:
 

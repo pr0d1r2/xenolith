@@ -38,6 +38,9 @@ behind the full gate, and never by hand.
   statement stays inline; anything more is flagged, and an extract is a
   `*.py` file run by `python3`, linted by `ruff check` and
   `ruff format --check`.
+- Fix the tcl host failing a whole file over `regexp` with a switch
+  (`-line`, `-all`, `-nocase`, `-start i`, `--`) or a braced string:
+  every site in such a file went unread.
 - Add the `x86_64-darwin` package output for Intel Mac consumers.
 
 ## [0.1.0] - 2026-09-27
