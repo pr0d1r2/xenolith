@@ -19,6 +19,7 @@ fn built_with(id: LangId) -> bool {
         (LangId::Just, cfg!(feature = "lang-just")),
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
+        (LangId::Python, cfg!(feature = "lang-python")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
         (LangId::Tcl, cfg!(feature = "lang-tcl")),
         (LangId::Xml, cfg!(feature = "lang-xml")),

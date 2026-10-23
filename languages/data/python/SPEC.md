@@ -19,16 +19,13 @@ sib|languages/data/xml|xml parser, launchd argv sinks, `xmllint` check
 
 ## §V INVARIANTS
 
-V59: python guest: `trivial` = single expression statement, ⊥ `import`, ⊥ `def`/`class`, within `[threshold.python]`; `prelude` = shebang `#!/usr/bin/env python3`, strict ⊥; ext `py`; `invoke` = `python3 {path}`; checks & fixers per `src/lint` §I defaults.
+V59: python guest: `trivial` = single expression statement (an `assignment` the grammar files as one is ⊥ trivial), ⊥ `import`, ⊥ `def`/`class`; else ⊥ constructs named (`languages/api:V37`) ∴ judged by `[threshold.python]` `max_lines`/`max_bytes`; parse error → `Error::Parse` (`languages:V77`); `prelude` = shebang `#!/usr/bin/env python3`, strict ⊥; ext `py`; `invoke` = `python3 {path}`; checks & fixers per `src/lint` §I defaults, their tools in `nix/tools.nix` `python`. guest ONLY: a `.py` file stays unclaimed, and an unclaimed-file message ⊥ names `lang-python` (`src/registry` `GUEST_ONLY`).
 
 ## §T TASKS
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M5 | data languages -- python, sql, jq, awk | T59 | each guest lands w/ its trivial rule, checks & fixtures |
-
 id|status|task|cites
-T59|.|python `Guest` + fixtures (trivial one-liner inline, multi-statement flagged)|V59
 
 ## §B BUGS
 

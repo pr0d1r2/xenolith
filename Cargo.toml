@@ -19,6 +19,7 @@ members = [
   "languages/ci/just",
   "languages/ci/nix",
   "languages/ci/pkl",
+  "languages/data/python",
   "languages/data/xml",
   "languages/shebang",
   "languages/shells/shell",
@@ -80,7 +81,15 @@ include = ["Cargo.toml", "README.md", "LICENSE", "CHANGELOG.md", "src/**", "test
 # docs.rs builds the default features unless told otherwise; naming every
 # language keeps a future non-default one documented (`nix:V112`).
 [package.metadata.docs.rs]
-features = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl", "lang-xml"]
+features = [
+  "lang-just",
+  "lang-nix",
+  "lang-pkl",
+  "lang-python",
+  "lang-shell",
+  "lang-tcl",
+  "lang-xml",
+]
 
 [lib]
 name = "xenolith"
@@ -119,6 +128,7 @@ toml = { version = "1", default-features = false, features = ["std", "parse", "s
 xenolith-lang-just = { path = "languages/ci/just", version = "0.1.0", optional = true }
 xenolith-lang-nix = { path = "languages/ci/nix", version = "0.1.0", optional = true }
 xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.1.0", optional = true }
+xenolith-lang-python = { path = "languages/data/python", version = "0.1.0", optional = true }
 xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", optional = true }
 xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.1.0", optional = true }
 xenolith-lang-xml = { path = "languages/data/xml", version = "0.1.0", optional = true }
@@ -134,10 +144,11 @@ xenolith-lang-xml = { path = "languages/data/xml", version = "0.1.0", optional =
 # (`src:V30`), because a module that reaches across a feature gate
 # compiles fine in the default build and breaks only in a consumer's.
 [features]
-default = ["lang-just", "lang-nix", "lang-pkl", "lang-shell", "lang-tcl", "lang-xml"]
+default = ["lang-just", "lang-nix", "lang-pkl", "lang-python", "lang-shell", "lang-tcl", "lang-xml"]
 lang-just = ["dep:xenolith-lang-just"]
 lang-nix = ["dep:xenolith-lang-nix"]
 lang-pkl = ["dep:xenolith-lang-pkl"]
+lang-python = ["dep:xenolith-lang-python"]
 lang-shell = ["dep:xenolith-lang-shell"]
 lang-tcl = ["dep:xenolith-lang-tcl"]
 lang-xml = ["dep:xenolith-lang-xml"]

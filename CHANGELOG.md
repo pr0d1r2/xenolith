@@ -32,6 +32,11 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
+- Add python as a guest (`lang-python`, on by default): a python heredoc,
+  `-c` argument, just shebang recipe or nix `writers.writePython3` body is
+  judged instead of stopping `xnl check` with exit 2. One expression
+  statement stays inline; anything more is flagged, and an extract is a
+  `*.py` file run by `python3`, linted by ruff, mypy and bandit.
 - Add the `x86_64-darwin` package output for Intel Mac consumers.
 
 ## [0.1.0] - 2026-09-27
