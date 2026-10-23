@@ -114,7 +114,10 @@ fn checks_are_ruff_mypy_and_bandit() {
             vec!["bandit", "-q"],
         ]
     );
-    assert_eq!(checks.first().map(|c| &c.format), Some(&Format::Json("ruff")));
+    assert_eq!(
+        checks.first().map(|c| &c.format),
+        Some(&Format::Json("ruff"))
+    );
     for check in checks.iter().skip(1) {
         assert_eq!(check.format, Format::Raw, "{:?}", check.argv);
     }

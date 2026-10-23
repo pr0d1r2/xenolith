@@ -45,6 +45,11 @@ in
     };
     # None yet: `pkl format --diff` is still `?` (`languages/api` §I).
     pkl = { };
+    # The guest's checks and fixers (`src/lint` §I): ruff for both, then
+    # mypy and bandit.
+    python = {
+      inherit (pkgs) ruff mypy bandit;
+    };
     # Host checks shellcheck and shfmt; the guest adds checkbashisms for an
     # sh-family extract and `zsh -n` for a zsh one (`src/lint` §I).
     shell = {

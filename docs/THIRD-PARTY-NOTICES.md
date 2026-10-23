@@ -13,7 +13,7 @@ from those three sources, and the gate fails when it drifts from them.
 
 ## Crates compiled into `xnl`
 
-**35 third-party crates** are in the normal-dependency closure of the
+**36 third-party crates** are in the normal-dependency closure of the
 published crates -- `xenolith` and its language crates, every `lang-*`
 feature on. Dev-dependencies are excluded: they are not distributed in
 anything you run. So is `xenolith-dev`, which is never published.
@@ -21,7 +21,7 @@ anything you run. So is `xenolith-dev`, which is never published.
 | licence | crates |
 |---|---|
 | `MIT OR Apache-2.0` | 22 |
-| `MIT` | 7 |
+| `MIT` | 8 |
 | `Apache-2.0 OR MIT` | 2 |
 | `Unlicense OR MIT` | 2 |
 | `(MIT OR Apache-2.0) AND Unicode-3.0` | 1 |
@@ -70,6 +70,7 @@ normal dependencies all the same.
 | `tree-sitter` | 0.27.0 | `MIT` |
 | `tree-sitter-bash` | 0.25.1 | `MIT` |
 | `tree-sitter-language` | 0.1.8 | `MIT` |
+| `tree-sitter-python` | 0.25.0 | `MIT` |
 | `tree-sitter-xml` | 0.7.0 | `MIT` |
 | `unicode-ident` | 1.0.26 | `(MIT OR Apache-2.0) AND Unicode-3.0` |
 | `winnow` | 1.0.4 | `MIT` |
@@ -134,10 +135,13 @@ its own licence. A cargo build ships none of them.
 
 | command | nixpkgs package | version | licence |
 |---|---|---|---|
+| `bandit` | bandit | 1.9.4 | `Apache-2.0` |
 | `checkbashisms` | checkbashisms | 2.25.10 | `GPL-2.0-or-later` |
 | `deadnix` | deadnix | 1.3.2 | `GPL-3.0-only` |
 | `just` | just | 1.51.0 | `CC0-1.0` |
+| `mypy` | mypy | 1.20.1 | `MIT` |
 | `nixfmt` | nixfmt | 1.5.0 | `MPL-2.0` |
+| `ruff` | ruff | 0.15.14 | `MIT` |
 | `shellcheck` | ShellCheck | 0.11.0 | `GPL-3.0-only` |
 | `shfmt` | shfmt | 3.13.1 | `BSD-3-Clause` |
 | `statix` | statix | 0-unstable-2026-05-14 | `MIT` |

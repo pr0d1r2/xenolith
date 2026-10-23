@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 use xenolith_lang_api::{Guest, Host, LangId};
 
 use super::{
-    compiled_in, existing_feature, feature, guest, guests, host, hosts, missing_shebang_guest,
-    require_guest,
+    compiled_in, existing_feature, feature, guest, guest_only, guests, host, hosts,
+    missing_shebang_guest, require_guest,
 };
 
 /// What the build says, stated independently of the code under test.
@@ -23,6 +23,7 @@ fn built_with(id: LangId) -> bool {
         (LangId::Just, cfg!(feature = "lang-just")),
         (LangId::Nix, cfg!(feature = "lang-nix")),
         (LangId::Pkl, cfg!(feature = "lang-pkl")),
+        (LangId::Python, cfg!(feature = "lang-python")),
         (LangId::Shell, cfg!(feature = "lang-shell")),
         (LangId::Tcl, cfg!(feature = "lang-tcl")),
         (LangId::Xml, cfg!(feature = "lang-xml")),
@@ -61,7 +62,7 @@ fn hosts_are_exactly_the_compiled_in_hosts() {
 
 #[test]
 fn guests_are_exactly_the_compiled_in_guests() {
-    let expected: Vec<LangId> = [LangId::Shell, LangId::Tcl]
+    let expected: Vec<LangId> = [LangId::Python, LangId::Shell, LangId::Tcl]
         .into_iter()
         .filter(|id| built_with(*id))
         .collect();
@@ -275,19 +276,33 @@ fn a_feature_exists_exactly_for_the_languages_cargo_toml_declares() {
     assert_eq!(existing, declared);
 }
 
+/// python's crate is a guest and no host (`languages/data/python:V59`).
+#[test]
+fn only_python_is_guest_only() {
+    let guest_only: Vec<LangId> = LangId::ALL
+        .iter()
+        .copied()
+        .filter(|id| guest_only(*id))
+        .collect();
+    assert_eq!(guest_only, [LangId::Python]);
+}
+
 #[test]
 fn a_shebang_named_guest_is_a_warning_naming_the_interpreter() {
-    let python = missing_shebang_guest(LangId::Python, Path::new("m.nix"), Some("python3"));
-    assert_eq!(python.code, "missing-guest");
-    assert_eq!(python.file.as_deref(), Some(Path::new("m.nix")));
-    assert!(python.message.contains("`python3`"), "{}", python.message);
+    // sql has no crate yet, so no `lang-sql` exists to name.
+    let sql = missing_shebang_guest(LangId::Sql, Path::new("m.nix"), Some("psql"));
+    assert_eq!(sql.code, "missing-guest");
+    assert_eq!(sql.file.as_deref(), Some(Path::new("m.nix")));
+    assert!(sql.message.contains("`psql`"), "{}", sql.message);
     assert!(
-        python.message.contains("no support for python"),
+        sql.message.contains("no support for sql"),
         "{}",
-        python.message
+        sql.message
     );
+    assert!(!sql.message.contains("lang-sql"), "{}", sql.message);
+    let python = missing_shebang_guest(LangId::Python, Path::new("m.nix"), None);
     assert!(
-        !python.message.contains("lang-python"),
+        python.message.contains("`lang-python`"),
         "{}",
         python.message
     );

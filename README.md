@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![edition 2024](https://img.shields.io/badge/edition-2024-000000?logo=rust&logoColor=white)](Cargo.toml)
 [![MSRV 1.95](https://img.shields.io/badge/MSRV-1.95-000000?logo=rust&logoColor=white)](Cargo.toml)
-[![direct dependencies 6](https://img.shields.io/badge/direct_dependencies-6-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
+[![direct dependencies 7](https://img.shields.io/badge/direct_dependencies-7-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
 [![unsafe forbidden, deny in 3 FFI crates](https://img.shields.io/badge/unsafe-forbidden,_deny_in_3_FFI_crates-yellowgreen)](Cargo.toml)
-[![languages 6 built, 12 planned](https://img.shields.io/badge/languages-6_built,_12_planned-6E4AFF)](languages/SPEC.md)
+[![languages 7 built, 11 planned](https://img.shields.io/badge/languages-7_built,_11_planned-6E4AFF)](languages/SPEC.md)
 
 [![gate hk](https://img.shields.io/badge/gate-hk-6E4AFF)](hk.pkl)
 [![gate steps 46](https://img.shields.io/badge/gate_steps-46-6E4AFF)](hk.pkl)
@@ -340,7 +340,7 @@ langs` prints, plus where each one's rules live:
 | nix | default build | `lang-nix` | [`languages/ci/nix`](languages/ci/nix/SPEC.md) |
 | perl | planned | -- | [`languages/data/perl`](languages/data/perl/SPEC.md) |
 | pkl | default build | `lang-pkl` | [`languages/ci/pkl`](languages/ci/pkl/SPEC.md) |
-| python | planned | -- | [`languages/data/python`](languages/data/python/SPEC.md) |
+| python | default build | `lang-python` | [`languages/data/python`](languages/data/python/SPEC.md) |
 | ruby | planned | -- | [`languages/ruby`](languages/ruby/SPEC.md) |
 | rust | planned | -- | [`languages/rust`](languages/rust/SPEC.md) |
 | shell | default build | `lang-shell` | [`languages/shells/shell`](languages/shells/shell/SPEC.md) |

@@ -50,6 +50,8 @@ const HOSTS: &[&dyn Host] = &[
 
 /// Every compiled-in guest, sorted by [`LangId`].
 const GUESTS: &[&dyn Guest] = &[
+    #[cfg(feature = "lang-python")]
+    &xenolith_lang_python::PythonGuest,
     #[cfg(feature = "lang-shell")]
     &xenolith_lang_shell::ShellGuest,
     #[cfg(feature = "lang-tcl")]
@@ -104,16 +106,29 @@ const FEATURED: &[LangId] = &[
     LangId::Just,
     LangId::Nix,
     LangId::Pkl,
+    LangId::Python,
     LangId::Shell,
     LangId::Tcl,
     LangId::Xml,
 ];
+
+/// The languages whose crate is a guest and no host
+/// (`languages/data/python:V59`): their feature exists, but turning it on
+/// claims no file, so a message about an unclaimed file must not send
+/// anyone after it.
+const GUEST_ONLY: &[LangId] = &[LangId::Python];
 
 /// [`feature`] for `id` when that feature exists, else `None`: no crate
 /// provides the language yet, and no build can have it.
 #[must_use]
 pub fn existing_feature(id: LangId) -> Option<String> {
     FEATURED.contains(&id).then(|| feature(id))
+}
+
+/// Whether `id`'s crate is a guest only, so no build has a host for it.
+#[must_use]
+pub fn guest_only(id: LangId) -> bool {
+    GUEST_ONLY.contains(&id)
 }
 
 /// How a message says a build lacks `id`: the feature to rebuild with,

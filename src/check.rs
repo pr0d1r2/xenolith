@@ -140,8 +140,14 @@ impl fmt::Display for CheckError {
                     "{}: host unsupported: no host in this build claims it",
                     file.display()
                 )?;
-                // Only a feature that exists is named (`src:V30`, `src/check:B10`).
+                // Only a feature that exists is named (`src:V30`, `src/check:B10`),
+                // and only one that would bring a host.
                 match missing.map(|id| (id, registry::existing_feature(id))) {
+                    Some((id, Some(_))) if registry::guest_only(id) => write!(
+                        f,
+                        "; xenolith reads {id} only where another language embeds it, \
+                         and has no {id} host"
+                    )?,
                     Some((id, Some(feature))) => {
                         write!(
                             f,

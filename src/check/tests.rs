@@ -891,21 +891,31 @@ fn a_compiled_out_guest_refuses_by_default_naming_its_feature() {
 
 #[test]
 fn a_guest_no_crate_provides_is_named_without_a_feature_that_does_not_exist() {
-    // Python has no crate yet, so no `lang-python`: the refusal names
-    // the language and says this build cannot check it.
+    // sql has no crate yet, so no `lang-sql`: the refusal names the
+    // language and says this build cannot check it.
     let sandbox = Sandbox::new();
-    let root = tree(&sandbox, &[("a.fake", "p=python: print(1)\n")]);
+    let root = tree(&sandbox, &[("a.fake", "q=sql: select 1\n")]);
     let e = refused(&root, &Config::default(), &["a.fake"], &shell_only_host());
     let text = e.to_string();
-    assert!(!text.contains("lang-python"), "{text}");
-    assert!(text.contains("python"), "{text}");
+    assert!(!text.contains("lang-sql"), "{text}");
+    assert!(text.contains("sql"), "{text}");
     assert!(text.contains("no support"), "{text}");
     let warn = config("version = 1\n[langs]\nmissing_guest = \"warn\"\n");
     let report = run_with(&root, &warn, &["a.fake"], &shell_only_host());
     for w in report.warnings() {
-        assert!(!w.message.contains("lang-python"), "{}", w.message);
+        assert!(!w.message.contains("lang-sql"), "{}", w.message);
         assert!(w.message.contains("no support"), "{}", w.message);
     }
+}
+
+#[test]
+fn a_guest_whose_crate_exists_is_named_with_its_feature() {
+    // python has a crate, so a build without it says which feature brings it.
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "p=python: print(1)\n")]);
+    let e = refused(&root, &Config::default(), &["a.fake"], &shell_only_host());
+    let text = e.to_string();
+    assert!(text.contains("`lang-python`"), "{text}");
 }
 
 #[test]
@@ -1634,13 +1644,13 @@ mod nix_shell {
         assert!(why.contains("sequence"), "{why}");
     }
 
-    /// A python-shebang `etc` text beside a shell script: python has no
-    /// guest in any build yet.
+    /// A python-shebang `etc` text beside a shell script.
     const PYTHON_AND_SHELL: &str = "{\n  environment.etc.\"hello\".text = ''\n    \
                                     #!/usr/bin/env python3\n    import sys\n    \
                                     print(sys.argv)\n  '';\n  systemd.services.a.script = ''\n    \
                                     make && make install\n  '';\n}\n";
 
+    #[cfg(not(feature = "lang-python"))]
     #[test]
     fn a_shebang_named_guest_this_build_lacks_is_a_warning_whatever_the_policy() {
         // `src/check:V42`: the interpreter line picked the guest, not the
@@ -1661,14 +1671,79 @@ mod nix_shell {
                 [w] => {
                     assert_eq!(w.code, "missing-guest", "{policy}");
                     assert!(w.message.contains("python"), "{}", w.message);
-                    assert!(w.message.contains("no support"), "{}", w.message);
-                    assert!(!w.message.contains("lang-python"), "{}", w.message);
+                    assert!(w.message.contains("`lang-python`"), "{}", w.message);
                 }
                 other => panic!("{policy}: expected one warning, got {other:?}"),
             }
         }
         let defaults = check_nix(PYTHON_AND_SHELL, &Config::default());
         assert_eq!(defaults.exit_code(), 1);
+    }
+
+    /// A perl-shebang `etc` text beside a shell script: perl has no crate
+    /// in any build yet.
+    const PERL_AND_SHELL: &str = "{\n  environment.etc.\"hello\".text = ''\n    \
+                                  #!/usr/bin/env perl\n    use strict;\n    \
+                                  print \"@ARGV\";\n  '';\n  systemd.services.a.script = ''\n    \
+                                  make && make install\n  '';\n}\n";
+
+    #[test]
+    fn a_shebang_named_guest_no_crate_provides_is_a_warning_whatever_the_policy() {
+        // `src/check:V42`: the interpreter line picked the guest, not the
+        // sink; the run goes on and still reports the shell script.
+        for policy in ["error", "warn", "ignore"] {
+            let config = config::parse(&format!(
+                "version = 1\n[langs]\nmissing_guest = \"{policy}\"\n"
+            ))
+            .unwrap_or_else(|e| panic!("{e}"));
+            let report = check_nix(PERL_AND_SHELL, &config);
+            assert_eq!(
+                rules(&report),
+                vec![("service.nix".to_owned(), 7, Rule::Xenolith)],
+                "{policy}"
+            );
+            let warned: Vec<&crate::model::Warning> = report.warnings().iter().collect();
+            match warned.as_slice() {
+                [w] => {
+                    assert_eq!(w.code, "missing-guest", "{policy}");
+                    assert!(w.message.contains("`perl`"), "{}", w.message);
+                    assert!(w.message.contains("no support for perl"), "{}", w.message);
+                    assert!(!w.message.contains("lang-perl"), "{}", w.message);
+                }
+                other => panic!("{policy}: expected one warning, got {other:?}"),
+            }
+        }
+    }
+
+    #[cfg(feature = "lang-python")]
+    #[test]
+    fn a_shebang_named_python_text_is_judged_beside_the_shell_script() {
+        // `languages/data/python:V59`: two statements under `#!/usr/bin/env
+        // python3` are more than trivial, and nothing is left unjudged.
+        let report = check_nix(PYTHON_AND_SHELL, &Config::default());
+        assert_eq!(
+            rules(&report),
+            vec![
+                ("service.nix".to_owned(), 2, Rule::Xenolith),
+                ("service.nix".to_owned(), 7, Rule::Xenolith),
+            ]
+        );
+        assert!(report.warnings().is_empty(), "{:?}", report.warnings());
+        let why = report
+            .violations()
+            .first()
+            .map(|v| v.why.clone())
+            .unwrap_or_default();
+        assert!(why.contains("non-trivial python"), "{why}");
+    }
+
+    #[cfg(feature = "lang-python")]
+    #[test]
+    fn a_one_expression_python_text_stays_inline() {
+        clean(
+            "{\n  environment.etc.\"hello\".text = ''\n    \
+             #!/usr/bin/env python3\n    print(1)\n  '';\n}\n",
+        );
     }
 
     #[test]
@@ -1928,17 +2003,25 @@ fn a_nix_only_build_refuses_a_shell_site_naming_lang_shell() {
 }
 
 /// `--strict-hosts` names only features that exist (`src:V30`, as
-/// `src/check:B8` did for guests): a `.py` file has no host crate, so the
-/// refusal must not send anyone after `lang-python`.
+/// `src/check:B8` did for guests) and would bring a host: a `.sql` file has
+/// no crate at all, and python's crate is a guest only, so neither refusal
+/// sends anyone after a feature.
 #[test]
 fn an_unclaimed_file_names_only_a_feature_that_exists() {
+    let sql = CheckError::Unclaimed {
+        file: PathBuf::from("q.sql"),
+        missing: Some(LangId::Sql),
+    }
+    .to_string();
+    assert!(!sql.contains("lang-sql"), "{sql}");
+    assert!(sql.contains("no support for sql"), "{sql}");
     let python = CheckError::Unclaimed {
         file: PathBuf::from("tool.py"),
         missing: Some(LangId::Python),
     }
     .to_string();
     assert!(!python.contains("lang-python"), "{python}");
-    assert!(python.contains("no support for python"), "{python}");
+    assert!(python.contains("has no python host"), "{python}");
     let nix = CheckError::Unclaimed {
         file: PathBuf::from("a.nix"),
         missing: Some(LangId::Nix),
@@ -1964,7 +2047,7 @@ fn a_refused_write_stops_the_unclaimed_message_where_it_failed() {
     use std::fmt::Write as _;
 
     let head = "a.nix: host unsupported: no host in this build claims it";
-    for missing in [Some(LangId::Nix), Some(LangId::Python)] {
+    for missing in [Some(LangId::Nix), Some(LangId::Python), Some(LangId::Sql)] {
         let e = CheckError::Unclaimed {
             file: PathBuf::from("a.nix"),
             missing,
