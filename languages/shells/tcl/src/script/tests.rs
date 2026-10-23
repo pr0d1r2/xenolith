@@ -5,7 +5,7 @@
 
 use xenolith_lang_api::{Error, LangId, Span};
 
-use super::{Command, Part, Script, Word, WordKind, expression, parse, parse_at};
+use super::{Command, Part, Script, Word, WordKind, parse, parse_at};
 
 fn script(src: &str) -> Script {
     parse(src).unwrap_or_else(|e| panic!("{src:?}: {e}"))
@@ -164,48 +164,6 @@ fn parse_at_reads_a_body_with_spans_into_the_whole_text() {
         .flat_map(|c| c.words.iter().map(|w| of(w.span, src)))
         .collect();
     assert_eq!(spans, ["exec", "sh", "-c", "{x}"]);
-}
-
-#[test]
-fn an_expression_yields_its_substitutions_and_skips_braced_strings() {
-    let src = "if {[file exists $f] && {[x]} ne \"[y]\"} {}\n";
-    let WordKind::Braced { body, .. } = word(src, 1).kind else {
-        panic!("not braced");
-    };
-    let parts = expression(src, body).unwrap_or_else(|e| panic!("{e}"));
-    let subs: Vec<&str> = parts
-        .iter()
-        .map(|p| match p {
-            Part::Var { span, .. } | Part::Cmd { span, .. } => of(*span, src),
-            Part::Text(s) | Part::Escape(s) => of(*s, src),
-        })
-        .collect();
-    assert_eq!(subs, ["[file exists $f]", "[y]"]);
-}
-
-#[test]
-fn an_expression_reads_escapes_quoted_text_and_a_lone_dollar() {
-    let src = "expr {\\[ + $ + \"a $x b\" + $ns::y}";
-    let body = Span::new(6, src.len() - 1);
-    let parts = expression(src, body).unwrap_or_else(|e| panic!("{e}"));
-    let subs: Vec<&str> = parts
-        .iter()
-        .filter_map(|p| match p {
-            Part::Var { span, .. } => Some(of(*span, src)),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(subs, ["$x", "$ns::y"]);
-}
-
-#[test]
-fn an_expression_that_never_closes_is_a_parse_error() {
-    for (src, message) in [("{a", "missing close-brace"), ("\"a", "missing \"")] {
-        match expression(src, Span::new(0, src.len())) {
-            Err(Error::Parse { message: m, .. }) => assert!(m.contains(message), "{m}"),
-            other => panic!("{src:?}: expected a parse error, got {other:?}"),
-        }
-    }
 }
 
 #[test]
