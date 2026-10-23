@@ -8,23 +8,22 @@
 //! tree -- the command node and its words -- and which word holds a
 //! program is `sinks`'s to say.
 //!
-//! One property of this grammar shapes the whole walk. tree-sitter-tcl
-//! parses EVERY braced word as a script, while Tcl reads a braced
-//! argument literally: `{ls $(pwd)}` handed to `sh -c` is shell, and the
-//! grammar's errors inside it say nothing about the Tcl file. So a braced
-//! word the walk does not treat as a script -- an argument of an ordinary
-//! command, a site's body -- is OPAQUE: never searched for sites, and a
-//! parse error wholly inside its braces is the grammar misreading data.
-//! Any other error fails the file (`languages:V78`).
+//! The tree is this crate's own Tcl word parser ([`script`]): Tcl reads a
+//! braced argument literally, and so does the walk. Which braced words
+//! are scripts -- a `proc` body, an `if` branch, a `namespace eval` body
+//! -- is decided here, by command, and only those are parsed and searched
+//! (`languages/shells/tcl` §I). Every other braced argument is OPAQUE
+//! data: `{ls $(pwd)}` handed to `sh -c` is shell, never read as Tcl.
+//! A text Tcl's parser would reject, at the top or in a body the walk
+//! reads, fails the whole file (`languages:V78`).
 
 use std::path::Path;
 
-use tree_sitter::Node;
 use xenolith_lang_api::{
     Delim, DelimKind, Error, Host, Invoke, LangId, LintCmd, LoadRef, Result, Site, Span, shebang,
 };
 
-use crate::grammar;
+use crate::script::{self, Command, Part, Script, Word, WordKind};
 use crate::sinks::{self, Runner};
 use crate::syntax;
 
@@ -92,21 +91,13 @@ impl Host for TclHost {
     /// Every `-c` word and `<<` value an `exec` or `spawn` hands an
     /// interpreter, sorted by span (`languages/shells/tcl:V196`).
     ///
-    /// A parse error outside every opaque braced word fails the whole
-    /// file: spans inside and after an `ERROR` node are the parser's
-    /// guess, and a site built on a guess rewrites the wrong bytes
-    /// (`languages:V78`).
+    /// A syntax error -- at the top, or in a body the walk reads as a
+    /// script -- fails the whole file: spans after it are a guess, and a
+    /// site built on a guess rewrites the wrong bytes (`languages:V78`).
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
-        let tree = grammar::parse(src)?;
-        let root = tree.root_node();
+        let top = script::parse(src)?;
         let mut walk = Walk::default();
-        walk.node(root, src);
-        if root.has_error() && !errors_contained(root, &walk.opaque) {
-            return Err(Error::parse(
-                LangId::Tcl,
-                "the file is not valid tcl to this grammar, so none of its sites were read",
-            ));
-        }
+        walk.script(&top, src)?;
         walk.sites.sort_by_key(|site| site.delim.open);
         Ok(walk.sites)
     }
@@ -154,151 +145,163 @@ impl Host for TclHost {
     }
 }
 
-fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
-    src.get(node.byte_range()).unwrap_or_default()
-}
-
-fn span(node: Node<'_>) -> Span {
-    Span::new(node.start_byte(), node.end_byte())
-}
-
-/// Every child of `node`, in order.
-fn children(node: Node<'_>) -> Vec<Node<'_>> {
-    let mut cursor = node.walk();
-    node.children(&mut cursor).collect()
-}
-
-/// The words of a `word_list`: the grammar concatenates adjacent pieces
-/// (`foo$bar`) as sibling nodes with no wrapper, so a word is a run of
-/// siblings with no gap between them.
-pub(crate) fn words<'t>(list: &[Node<'t>]) -> Vec<Vec<Node<'t>>> {
-    let mut out: Vec<Vec<Node<'t>>> = Vec::new();
-    for node in list {
-        match out.last_mut() {
-            Some(word)
-                if word
-                    .last()
-                    .is_some_and(|l| l.end_byte() == node.start_byte()) =>
-            {
-                word.push(*node);
-            }
-            _ => out.push(vec![*node]),
-        }
-    }
-    out
-}
-
-/// The text of a word that is one plain `simple_word`, else `None`: a
-/// braced, quoted or substituted word is never a flag or a command name.
-fn plain<'s>(word: &[Node<'_>], src: &'s str) -> Option<&'s str> {
-    match word {
-        [only] if only.kind() == "simple_word" => Some(text(*only, src)),
+/// The text of a word that is one plain run of bytes, else `None`: a
+/// braced, quoted, substituted, escaped or expanded word is never a flag
+/// or a command name.
+fn plain<'s>(word: &Word, src: &'s str) -> Option<&'s str> {
+    match &word.kind {
+        WordKind::Bare { parts } if !word.expand => match parts.as_slice() {
+            [Part::Text(span)] => span.of(src),
+            _ => None,
+        },
         _ => None,
     }
 }
 
-/// The inside of a braced word, between braces the grammar really found
-/// (neither `MISSING`), or `None`.
-fn braced_inside(node: Node<'_>) -> Option<(Node<'_>, Node<'_>)> {
-    let parts = children(node);
-    let open = parts
-        .first()
-        .filter(|n| n.kind() == "{" && !n.is_missing())?;
-    let close = parts
-        .last()
-        .filter(|n| n.kind() == "}" && !n.is_missing())?;
-    (open.id() != close.id()).then_some((*open, *close))
-}
-
 /// The delimiter and holes of a program word, or `None` for a word whose
 /// bytes are not the argument Tcl passes.
-fn program_word(word: &[Node<'_>], src: &str) -> Option<(Delim, Vec<Span>)> {
-    let first = word.first()?;
-    let last = word.last()?;
-    if let [only] = word {
-        match only.kind() {
-            "braced_word" => {
-                let (open, close) = braced_inside(*only)?;
-                let body = Span::new(open.end_byte(), close.start_byte());
-                // Tcl turns backslash-newline into a space even in braces.
-                if body.of(src)?.contains("\\\n") {
-                    return None;
-                }
-                let delim = Delim {
-                    kind: DelimKind::ArgvString,
-                    open: span(open),
-                    body,
-                    close: span(close),
-                };
-                return Some((delim, Vec::new()));
-            }
-            "quoted_word" => {
-                let parts = children(*only);
-                let open = parts.first().filter(|n| n.kind() == "\"")?;
-                let close = parts
-                    .last()
-                    .filter(|n| n.kind() == "\"" && !n.is_missing())?;
-                if open.id() == close.id() {
-                    return None;
-                }
-                let holes = holes(&parts, src)?;
-                let delim = Delim {
-                    kind: DelimKind::ArgvString,
-                    open: span(*open),
-                    body: Span::new(open.end_byte(), close.start_byte()),
-                    close: span(*close),
-                };
-                return Some((delim, holes));
-            }
-            _ => {}
-        }
-    }
-    // A bare word, maybe concatenated (`foo$bar`): no delimiter of its
-    // own, so both ends are empty spans around the whole word.
-    let bare = word.iter().all(|n| {
-        matches!(
-            n.kind(),
-            "simple_word" | "variable_substitution" | "command_substitution"
-        )
-    });
-    if !bare {
+fn program_word(word: &Word, src: &str) -> Option<(Delim, Vec<Span>)> {
+    if word.expand {
         return None;
     }
-    let holes = holes(word, src)?;
-    let (start, end) = (first.start_byte(), last.end_byte());
-    let delim = Delim {
-        kind: DelimKind::ArgvString,
-        open: Span::new(start, start),
-        body: Span::new(start, end),
-        close: Span::new(end, end),
-    };
-    Some((delim, holes))
+    match &word.kind {
+        WordKind::Braced { open, body, close } => {
+            // Tcl turns backslash-newline into a space even in braces.
+            if body.of(src).is_none_or(|text| text.contains("\\\n")) {
+                return None;
+            }
+            let delim = Delim {
+                kind: DelimKind::ArgvString,
+                open: *open,
+                body: *body,
+                close: *close,
+            };
+            Some((delim, Vec::new()))
+        }
+        WordKind::Quoted { open, close, parts } => {
+            let delim = Delim {
+                kind: DelimKind::ArgvString,
+                open: *open,
+                body: Span::new(open.end, close.start),
+                close: *close,
+            };
+            Some((delim, holes(parts)?))
+        }
+        // A bare word, maybe concatenated (`foo$bar`): no delimiter of its
+        // own, so both ends are empty spans around the whole word.
+        WordKind::Bare { parts } => {
+            let (start, end) = (word.span.start, word.span.end);
+            let delim = Delim {
+                kind: DelimKind::ArgvString,
+                open: Span::new(start, start),
+                body: Span::new(start, end),
+                close: Span::new(end, end),
+            };
+            Some((delim, holes(parts)?))
+        }
+    }
 }
 
 /// The substitutions among `parts` -- Tcl's `$var` and `[cmd]`, host
 /// interpolations the guest never sees as written
 /// (`languages/api/src/holes:V40`) -- or `None` when a backslash escape
 /// makes the word's bytes differ from the argument.
-fn holes(parts: &[Node<'_>], src: &str) -> Option<Vec<Span>> {
+fn holes(parts: &[Part]) -> Option<Vec<Span>> {
     let mut out = Vec::new();
     for part in parts {
-        match part.kind() {
-            "escaped_character" => return None,
-            "variable_substitution" | "command_substitution" => out.push(hole(*part, src)),
-            _ => {}
+        match part {
+            Part::Escape(_) => return None,
+            Part::Var { span, .. } | Part::Cmd { span, .. } => out.push(*span),
+            Part::Text(_) => {}
         }
     }
     Some(out)
 }
 
-/// A hole's span: its node, minus leading whitespace. The grammar starts
-/// a `[cmd]` that follows other text in a `"..."` at the space before it
-/// (measured: in `"echo $x [pwd]"` the substitution spans ` [pwd]`), and
-/// the space is the guest's text, not the host's interpolation.
-fn hole(node: Node<'_>, src: &str) -> Span {
-    let whole = text(node, src);
-    let lead = whole.len() - whole.trim_start().len();
-    Span::new(node.start_byte() + lead, node.end_byte())
+/// How a command reads one of its words.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Role {
+    /// A script Tcl runs: a braced one is parsed and searched.
+    Script,
+    /// An expression: its `[cmd]` and `$var` run, braced or not.
+    Expr,
+    /// Data: a braced one is opaque.
+    Data,
+}
+
+/// The role of each word of `command` (the name included), by the
+/// commands whose bodies Tcl runs (`languages/shells/tcl` §I): `proc`,
+/// `if`/`elseif`/`else`, `while`, `foreach`, `catch`, `try` (its `on`,
+/// `trap` and `finally` bodies), `namespace eval` and `expr`. Any other
+/// command's words are data.
+fn roles(command: &Command, src: &str) -> Vec<Role> {
+    let words = &command.words;
+    let mut roles = vec![Role::Data; words.len()];
+    let word = |i: usize| words.get(i).and_then(|w| plain(w, src));
+    let mut set = |i: usize, role: Role| {
+        if let Some(slot) = roles.get_mut(i) {
+            *slot = role;
+        }
+    };
+    match word(0) {
+        Some("proc") => set(3, Role::Script),
+        Some("while") => {
+            set(1, Role::Expr);
+            set(2, Role::Script);
+        }
+        Some("foreach") => set(words.len().saturating_sub(1), Role::Script),
+        Some("catch") => set(1, Role::Script),
+        Some("expr") => (1..words.len()).for_each(|i| set(i, Role::Expr)),
+        Some("namespace") if word(1) == Some("eval") => {
+            (3..words.len()).for_each(|i| set(i, Role::Script));
+        }
+        Some("if") => {
+            let mut i = 1;
+            set(i, Role::Expr);
+            i += 1;
+            loop {
+                if word(i) == Some("then") {
+                    i += 1;
+                }
+                set(i, Role::Script);
+                i += 1;
+                match word(i) {
+                    Some("elseif") => {
+                        set(i + 1, Role::Expr);
+                        i += 2;
+                    }
+                    Some("else") => {
+                        set(i + 1, Role::Script);
+                        break;
+                    }
+                    _ => {
+                        // `if c b c2`: a last word with no `else` is a body.
+                        set(i, Role::Script);
+                        break;
+                    }
+                }
+            }
+        }
+        Some("try") => {
+            set(1, Role::Script);
+            let mut i = 2;
+            while i < words.len() {
+                match word(i) {
+                    Some("on" | "trap") => {
+                        set(i + 3, Role::Script);
+                        i += 4;
+                    }
+                    Some("finally") => {
+                        set(i + 1, Role::Script);
+                        i += 2;
+                    }
+                    _ => i += 1,
+                }
+            }
+        }
+        _ => {}
+    }
+    roles
 }
 
 /// What the walk collects: the sites, and the inside of every braced word
@@ -310,80 +313,65 @@ struct Walk {
 }
 
 impl Walk {
-    /// Every site at or under `node`, which is in a SCRIPT position.
-    fn node(&mut self, node: Node<'_>, src: &str) {
-        match node.kind() {
-            "comment" => {}
-            "command" => self.command(node, src),
-            "namespace" => self.namespace(node, src),
-            "braced_word_simple" => self.opaque(node),
-            _ => {
-                for child in children(node) {
-                    self.node(child, src);
-                }
-            }
+    /// Every site in a script.
+    fn script(&mut self, script: &Script, src: &str) -> Result<()> {
+        for command in &script.commands {
+            self.command(command, src)?;
         }
+        Ok(())
     }
 
-    /// A braced word read as data: remembered, never entered.
-    fn opaque(&mut self, node: Node<'_>) {
-        if let Some((open, close)) = braced_inside(node) {
-            self.opaque
-                .push(Span::new(open.end_byte(), close.start_byte()));
-        }
-    }
-
-    /// An argument of a command: a braced one is data, anything else may
-    /// hold a `[cmd]` Tcl runs first.
-    fn argument(&mut self, node: Node<'_>, src: &str) {
-        if node.kind() == "braced_word" {
-            self.opaque(node);
-        } else {
-            self.node(node, src);
-        }
-    }
-
-    /// An ordinary command: its site, if it is one, then its words.
-    fn command(&mut self, node: Node<'_>, src: &str) {
-        let mut cursor = node.walk();
-        let name: Vec<Node<'_>> = node.children_by_field_name("name", &mut cursor).collect();
-        let list: Vec<Node<'_>> = node
-            .child_by_field_name("arguments")
-            .map(children)
-            .unwrap_or_default();
-        if let Some(site) = site(&name, &list, src) {
+    /// One command: its site, if it is one, then what its words run.
+    fn command(&mut self, command: &Command, src: &str) -> Result<()> {
+        if let Some(site) = site(command, src) {
             self.sites.push(site);
         }
-        for part in name.iter().chain(&list) {
-            self.argument(*part, src);
+        for (word, role) in command.words.iter().zip(roles(command, src)) {
+            self.word(word, role, src)?;
+        }
+        Ok(())
+    }
+
+    /// One word, read in its role.
+    fn word(&mut self, word: &Word, role: Role, src: &str) -> Result<()> {
+        match (&word.kind, role) {
+            (WordKind::Braced { body, .. }, Role::Script) => {
+                let inner = script::parse_at(src, *body)?;
+                self.script(&inner, src)
+            }
+            (WordKind::Braced { body, .. }, Role::Expr) => {
+                self.parts(&script::expression(src, *body)?, src)
+            }
+            (WordKind::Braced { body, .. }, Role::Data) => {
+                self.opaque.push(*body);
+                Ok(())
+            }
+            (WordKind::Quoted { parts, .. } | WordKind::Bare { parts }, _) => {
+                self.parts(parts, src)
+            }
         }
     }
 
-    /// `namespace eval NAME {...}` runs its body; any other subcommand's
-    /// braced words are data.
-    fn namespace(&mut self, node: Node<'_>, src: &str) {
-        let list: Vec<Node<'_>> = children(node)
-            .into_iter()
-            .filter(|n| n.kind() == "word_list")
-            .flat_map(children)
-            .collect();
-        let eval = words(&list).first().and_then(|w| plain(w, src)) == Some("eval");
-        for part in list {
-            if eval {
-                self.node(part, src);
-            } else {
-                self.argument(part, src);
+    /// The scripts a word's substitutions run: each `[cmd]`, and any in a
+    /// variable's index.
+    fn parts(&mut self, parts: &[Part], src: &str) -> Result<()> {
+        for part in parts {
+            match part {
+                Part::Cmd { script, .. } => self.script(script, src)?,
+                Part::Var { index, .. } => self.parts(index, src)?,
+                Part::Text(_) | Part::Escape(_) => {}
             }
         }
+        Ok(())
     }
 }
 
-/// The site of `exec`/`spawn` with these name and argument nodes, if the
-/// argv holds a program (`languages/shells/tcl:V196`).
-fn site(name: &[Node<'_>], list: &[Node<'_>], src: &str) -> Option<Site> {
+/// The site of an `exec`/`spawn` command, if its argv holds a program
+/// (`languages/shells/tcl:V196`).
+fn site(command: &Command, src: &str) -> Option<Site> {
+    let (name, rest) = command.words.split_first()?;
     let runner = Runner::of(plain(name, src)?)?;
-    let words = words(list);
-    let (first, rest) = words.split_first()?;
+    let (first, rest) = rest.split_first()?;
     let interpreter = sinks::interpreter(plain(first, src)?);
     let args: Vec<Option<&str>> = rest.iter().map(|w| plain(w, src)).collect();
     let program = sinks::program(runner, interpreter, &args)?;
@@ -395,20 +383,4 @@ fn site(name: &[Node<'_>], list: &[Node<'_>], src: &str) -> Option<Site> {
         delim,
         holes,
     })
-}
-
-/// Whether every `ERROR` and `MISSING` node under `node` lies inside one
-/// of `opaque` -- braced data the grammar misread as script.
-fn errors_contained(node: Node<'_>, opaque: &[Span]) -> bool {
-    if node.is_error() || node.is_missing() {
-        return opaque
-            .iter()
-            .any(|o| o.start <= node.start_byte() && node.end_byte() <= o.end);
-    }
-    if !node.has_error() {
-        return true;
-    }
-    children(node)
-        .into_iter()
-        .all(|child| errors_contained(child, opaque))
 }

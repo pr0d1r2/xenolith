@@ -12,7 +12,8 @@ fn script(src: &str) -> Script {
 }
 
 fn of(span: Span, src: &str) -> &str {
-    span.of(src).unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
+    span.of(src)
+        .unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
 }
 
 /// Every word of every command, as the bytes it spans.
@@ -86,7 +87,11 @@ fn a_quoted_word_holds_its_substitutions() {
         })
         .collect();
     assert_eq!(subs, ["$x", "[pwd]", "${y}", "$a(b)"]);
-    assert!(parts.iter().any(|p| matches!(p, Part::Escape(s) if of(*s, src) == "\\n")));
+    assert!(
+        parts
+            .iter()
+            .any(|p| matches!(p, Part::Escape(s) if of(*s, src) == "\\n"))
+    );
 }
 
 #[test]
@@ -132,6 +137,16 @@ fn the_expansion_prefix_is_marked() {
 }
 
 #[test]
+fn a_bare_expansion_prefix_may_end_the_text_and_a_comment_may_hold_escapes() {
+    let w = word("puts {*}", 1);
+    assert!(!w.expand);
+    assert_eq!(
+        words("# a \\\n still comment\nputs b\n"),
+        [vec!["puts", "b"]]
+    );
+}
+
+#[test]
 fn a_backslash_newline_separates_words() {
     assert_eq!(words("puts a \\\n  b\n"), [vec!["puts", "a", "b"]]);
 }
@@ -166,6 +181,60 @@ fn an_expression_yields_its_substitutions_and_skips_braced_strings() {
         })
         .collect();
     assert_eq!(subs, ["[file exists $f]", "[y]"]);
+}
+
+#[test]
+fn an_expression_reads_escapes_quoted_text_and_a_lone_dollar() {
+    let src = "expr {\\[ + $ + \"a $x b\" + $ns::y}";
+    let body = Span::new(6, src.len() - 1);
+    let parts = expression(src, body).unwrap_or_else(|e| panic!("{e}"));
+    let subs: Vec<&str> = parts
+        .iter()
+        .filter_map(|p| match p {
+            Part::Var { span, .. } => Some(of(*span, src)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(subs, ["$x", "$ns::y"]);
+}
+
+#[test]
+fn an_expression_that_never_closes_is_a_parse_error() {
+    for (src, message) in [("{a", "missing close-brace"), ("\"a", "missing \"")] {
+        match expression(src, Span::new(0, src.len())) {
+            Err(Error::Parse { message: m, .. }) => assert!(m.contains(message), "{m}"),
+            other => panic!("{src:?}: expected a parse error, got {other:?}"),
+        }
+    }
+}
+
+#[test]
+fn a_body_outside_the_text_is_refused() {
+    assert!(matches!(
+        parse_at("puts a", Span::new(3, 40)),
+        Err(Error::Parse { .. })
+    ));
+}
+
+#[test]
+fn the_last_word_may_end_the_text_and_braces_hide_escaped_braces() {
+    assert_eq!(words("puts a"), [vec!["puts", "a"]]);
+    assert_eq!(
+        words("puts {a\\}b} $ns::v"),
+        [vec!["puts", "{a\\}b}", "$ns::v"]]
+    );
+}
+
+#[test]
+fn an_error_on_the_first_line_of_a_body_counts_its_column_in_the_whole_text() {
+    let src = "proc f {} {puts {a}b}\n";
+    let WordKind::Braced { body, .. } = word(src, 3).kind else {
+        panic!("not braced");
+    };
+    match parse_at(src, body) {
+        Err(Error::Parse { message, .. }) => assert!(message.starts_with("1:20:"), "{message}"),
+        other => panic!("expected a parse error, got {other:?}"),
+    }
 }
 
 #[test]

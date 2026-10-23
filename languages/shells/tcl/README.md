@@ -1,8 +1,8 @@
 # xenolith-lang-tcl
 
 Tcl and expect support for xenolith: finds commands held in `exec`
-and `spawn`. The tree-sitter-tcl grammar is vendored and compiled by
-`build.rs`. It also ships `xenolith-tcl-syntax`, a Tcl syntax check that
+and `spawn`, read by its own pure-Rust Tcl word parser: no grammar, no
+generated C. It also ships `xenolith-tcl-syntax`, a Tcl syntax check that
 needs no `tclsh`.
 
 Part of [xenolith](https://github.com/pr0d1r2/xenolith), which finds

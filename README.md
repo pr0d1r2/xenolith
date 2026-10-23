@@ -5,7 +5,7 @@
 [![edition 2024](https://img.shields.io/badge/edition-2024-000000?logo=rust&logoColor=white)](Cargo.toml)
 [![MSRV 1.95](https://img.shields.io/badge/MSRV-1.95-000000?logo=rust&logoColor=white)](Cargo.toml)
 [![direct dependencies 7](https://img.shields.io/badge/direct_dependencies-7-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
-[![unsafe forbidden, deny in 3 FFI crates](https://img.shields.io/badge/unsafe-forbidden,_deny_in_3_FFI_crates-yellowgreen)](Cargo.toml)
+[![unsafe forbidden, deny in 2 FFI crates](https://img.shields.io/badge/unsafe-forbidden,_deny_in_2_FFI_crates-yellowgreen)](Cargo.toml)
 [![languages 7 built, 11 planned](https://img.shields.io/badge/languages-7_built,_11_planned-6E4AFF)](languages/SPEC.md)
 
 [![gate hk](https://img.shields.io/badge/gate-hk-6E4AFF)](hk.pkl)
