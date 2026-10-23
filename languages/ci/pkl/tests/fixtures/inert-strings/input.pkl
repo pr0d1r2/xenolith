@@ -1,15 +1,15 @@
 amends "pkl/Config.pkl"
 
-/// A step written in a doc comment is documentation:
-///
-///   ["example"] { check = """
-///     if true; then echo yes; fi
-///     """ }
 // check = """
 //   for f in *; do echo "$f"; done
 //   """
 
-/// Top level `check`, not inside a step entry: not a hk step sink.
+/// Top level `check`, not inside a step entry: not a hk step sink. A step
+/// written in a doc comment is documentation, not a step either:
+///
+///   ["example"] { check = """
+///     if true; then echo yes; fi
+///     """ }
 local check = """
   while true; do sleep 1; done
   """

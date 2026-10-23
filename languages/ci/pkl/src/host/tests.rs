@@ -8,21 +8,20 @@
 
 use std::path::{Path, PathBuf};
 
-use tree_sitter::{Node, Tree};
 use xenolith_lang_api::{
     Delim, DelimKind, Error, GuestEnv, Host, Invoke, LangId, LoadRef, Site, Span,
 };
 
 use super::{
-    FILES, PklHost, SINKS, as_sink, is_hk_config, line_break, load, parse, plain_string,
-    plain_word, sinks, site, span, splice, text,
+    FILES, PklHost, SINKS, is_hk_config, line_break, load, plain_word, sinks, site, splice,
 };
+use crate::syntax::{self, Member, Module, Value};
 
 /// A hk config header, the layer-1 context every positive case needs.
 const HK: &str = "amends \"pkl/Config.pkl\"\n";
 
-fn tree(src: &str) -> Tree {
-    parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"))
+fn module(src: &str) -> Module {
+    syntax::parse(src).unwrap_or_else(|e| panic!("parse failed: {e}"))
 }
 
 fn nth<T>(items: &[T], i: usize) -> &T {
@@ -31,32 +30,19 @@ fn nth<T>(items: &[T], i: usize) -> &T {
         .unwrap_or_else(|| panic!("expected an item at {i}, found {}", items.len()))
 }
 
-/// Every node of `kind` under `node`, depth first, in source order.
-fn all<'t>(node: Node<'t>, kind: &str) -> Vec<Node<'t>> {
-    let mut out = Vec::new();
-    if node.kind() == kind {
-        out.push(node);
-    }
-    let mut cursor = node.walk();
-    for child in node.children(&mut cursor) {
-        out.extend(all(child, kind));
-    }
-    out
-}
-
-/// The value of the top-level property `name = ...`.
-fn value<'t>(tree: &'t Tree, src: &str, name: &str) -> Node<'t> {
-    all(tree.root_node(), "classProperty")
+/// The plain content of the top-level property `name = "..."`, if any.
+fn plain(src: &str, name: &str) -> Option<String> {
+    module(src)
+        .body
+        .members
         .into_iter()
-        .find_map(|property| {
-            let mut cursor = property.walk();
-            let named: Vec<Node<'t>> = property.named_children(&mut cursor).collect();
-            match named.as_slice() {
-                [key, .., last] if text(*key, src) == name => Some(*last),
+        .find_map(|member| match member {
+            Member::Property(property) if property.name == name => match property.value {
+                Value::Str(literal) => literal.plain,
                 _ => None,
-            }
+            },
+            _ => None,
         })
-        .unwrap_or_else(|| panic!("no top-level property `{name}` in {src:?}"))
 }
 
 /// A hk config: the header, then `lines`, each ending in a newline.
@@ -75,8 +61,8 @@ fn step(name: &str, body: &str) -> String {
 }
 
 fn hk_sinks(src: &str) -> Vec<(String, String)> {
-    let tree = tree(src);
-    sinks(&tree, src)
+    let module = module(src);
+    sinks(&module)
         .into_iter()
         .map(|sink| (sink.step, sink.property))
         .collect()
@@ -98,11 +84,8 @@ fn only_site(src: &str) -> Site {
 }
 
 fn only_load(src: &str) -> Option<LoadRef> {
-    let tree = tree(src);
-    let found: Vec<LoadRef> = sinks(&tree, src)
-        .iter()
-        .filter_map(|sink| load(sink, src))
-        .collect();
+    let module = module(src);
+    let found: Vec<LoadRef> = sinks(&module).iter().filter_map(load).collect();
     assert!(found.len() <= 1, "expected at most one load: {found:?}");
     found.into_iter().next()
 }
@@ -120,71 +103,78 @@ fn check_script(src_body: &str) -> String {
     )
 }
 
-// --- parse, text, span ------------------------------------------------
+// --- what Pkl rejects (`languages:V78`) --------------------------------------
 
 #[test]
-fn parse_hands_back_a_tree_even_for_broken_pkl() {
-    // Error recovery is the grammar's: a broken file is still a tree,
-    // with its damage marked, and `sinks` is what refuses to enter it.
-    assert!(!tree("x = 1\n").root_node().has_error());
-    assert!(tree("x = = )\n").root_node().has_error());
+fn a_file_pkl_rejects_has_no_sites_or_loads_only_a_parse_error() {
+    // Anything Pkl itself rejects fails the whole file: spans after an
+    // error are a guess, and a site built on a guess rewrites the wrong
+    // bytes. Pkl 0.31 rejects a `///` doc comment inside an object too.
+    for src in [
+        "x = = )\n".to_owned(),
+        format!(
+            "{HK}steps {{\n  [\"a\"] {{ check = \"x\" }}\n  [\"b\"] {{ ) check = \"y\" }}\n}}\n"
+        ),
+        format!(
+            "{HK}steps {{\n  [\"a\"] {{ check = \"x\" }}\n  [\"b\"] {{ check = (\"y\" }}\n}}\n"
+        ),
+        check_script("      \\(\n"),
+        format!("{HK}steps {{\n  /// a step\n  [\"a\"] {{ check = \"x\" }}\n}}\n"),
+    ] {
+        for got in [
+            PklHost.sites(&src).map(|_| ()),
+            PklHost.loads(&src).map(|_| ()),
+        ] {
+            assert!(
+                matches!(
+                    got,
+                    Err(Error::Parse {
+                        lang: LangId::Pkl,
+                        ..
+                    })
+                ),
+                "{src:?}: {got:?}"
+            );
+        }
+    }
+    assert!(syntax::parse("x = 1\n").is_ok());
 }
 
-#[test]
-fn text_and_span_cover_the_same_bytes() {
-    let src = "x = \"abc\"\n";
-    let tree = tree(src);
-    let literal = value(&tree, src, "x");
-    assert_eq!(text(literal, src), "\"abc\"");
-    assert_eq!(span(literal), Span::new(4, 9));
-    assert_eq!(span(literal).of(src), Some("\"abc\""));
-}
-
-#[test]
-fn text_of_a_node_from_another_source_is_empty_not_a_panic() {
-    let src = "x = \"a long enough value\"\n";
-    let tree = tree(src);
-    assert_eq!(text(value(&tree, src, "x"), "x"), "");
-}
-
-// --- plain_string -------------------------------------------------------
+// --- plain strings ---------------------------------------------------------
 
 #[test]
 fn a_plain_string_is_its_one_literal_part() {
-    let src = "a = \"bash x.sh\"\n";
-    let tree = tree(src);
-    assert_eq!(plain_string(value(&tree, src, "a"), src), Some("bash x.sh"));
+    assert_eq!(
+        plain("a = \"bash x.sh\"\n", "a").as_deref(),
+        Some("bash x.sh")
+    );
 }
 
 #[test]
 fn the_amends_uri_is_a_plain_string_too() {
-    let tree = tree(HK);
-    let uri = nth(&all(tree.root_node(), "stringConstant"), 0).to_owned();
-    assert_eq!(plain_string(uri, HK), Some("pkl/Config.pkl"));
+    assert_eq!(module(HK).amends.as_deref(), Some("pkl/Config.pkl"));
 }
 
 #[test]
 fn escapes_interpolations_and_empties_are_not_plain() {
     let src = "a = \"x\\ny\"\nb = \"\\(y) z\"\nc = \"\"\ny = 1\n";
-    let tree = tree(src);
-    assert_eq!(plain_string(value(&tree, src, "a"), src), None);
-    assert_eq!(plain_string(value(&tree, src, "b"), src), None);
-    assert_eq!(plain_string(value(&tree, src, "c"), src), None);
+    for name in ["a", "b", "c"] {
+        assert_eq!(plain(src, name), None, "{name}");
+    }
 }
 
 #[test]
 fn other_expressions_are_not_plain_strings() {
-    let src = "a = \"\"\"\n  x\n  \"\"\"\nb = c\nd = 1\n";
-    let tree = tree(src);
+    let src = "a = \"\"\"\n  x\n  \"\"\"\nb = c\nc = 2\nd = 1\n";
     for name in ["a", "b", "d"] {
-        assert_eq!(plain_string(value(&tree, src, name), src), None, "{name}");
+        assert_eq!(plain(src, name), None, "{name}");
     }
 }
 
 // --- is_hk_config (layer 1) ------------------------------------------------
 
 fn hk_config(src: &str) -> bool {
-    is_hk_config(tree(src).root_node(), src)
+    syntax::parse(src).is_ok_and(|module| is_hk_config(&module))
 }
 
 #[test]
@@ -218,11 +208,11 @@ fn a_module_without_a_header_or_an_amends_is_not_a_hk_config() {
 
 #[test]
 fn an_interpolated_amends_uri_is_not_read() {
-    // `plain_string` refuses it, so the module is not known to be hk.
+    // No plain URI, so the module is not known to be hk.
     assert!(!hk_config("amends \"\\(x)/Config.pkl\"\n"));
 }
 
-// --- as_sink (layers 2 and 3) ----------------------------------------------
+// --- sinks (layers 2 and 3) ----------------------------------------------
 
 #[test]
 fn every_hk_command_property_in_a_step_is_a_sink() {
@@ -235,13 +225,14 @@ fn every_hk_command_property_in_a_step_is_a_sink() {
 }
 
 #[test]
-fn a_sink_carries_its_value_node() {
+fn a_sink_carries_its_value() {
     let src = step("s", "    check = \"bash x.sh\"\n");
-    let tree = tree(&src);
-    let found = sinks(&tree, &src);
-    let sink = nth(&found, 0);
-    assert_eq!(sink.value.kind(), "slStringLiteralExpr");
-    assert_eq!(text(sink.value, &src), "\"bash x.sh\"");
+    let module = module(&src);
+    let found = sinks(&module);
+    let Value::Str(literal) = nth(&found, 0).value else {
+        panic!("not a string value");
+    };
+    assert_eq!(literal.span.of(&src), Some("\"bash x.sh\""));
 }
 
 #[test]
@@ -261,13 +252,15 @@ fn a_local_named_like_a_sink_is_not_one() {
 
 #[test]
 fn a_sink_name_outside_a_step_entry_is_not_one() {
-    // Directly in a top-level object, and one object deeper than a step.
+    // Directly in a top-level object, one object deeper than a step, and
+    // in an object a step's key builds with `new`.
     let src = hk(&[
         "hooks { check = \"x\" }",
         "steps {",
         "  [\"s\"] {",
         "    nested { check = \"y\" }",
         "  }",
+        "  [\"t\"] = new Dynamic { check = \"z\" }",
         "}",
     ]);
     assert_eq!(hk_sinks(&src), pairs(&[]));
@@ -287,16 +280,30 @@ fn a_step_needs_a_plain_non_empty_string_key() {
 }
 
 #[test]
-fn as_sink_reads_one_property_directly() {
-    let src = step("fmt", "    fix = \"cargo fmt\"\n");
-    let tree = tree(&src);
-    let properties = all(tree.root_node(), "objectProperty");
-    let sink =
-        as_sink(*nth(&properties, 0), &src).unwrap_or_else(|| panic!("expected a sink in {src:?}"));
-    assert_eq!((sink.step.as_str(), sink.property.as_str()), ("fmt", "fix"));
+fn a_step_inside_a_new_mapping_or_a_generator_is_still_read() {
+    let src = hk(&[
+        "steps = new Mapping<String, Step> {",
+        "  [\"m\"] { fix = \"1\" }",
+        "  when (true) { [\"w\"] { check = \"2\" } }",
+        "}",
+    ]);
+    assert_eq!(hk_sinks(&src), pairs(&[("m", "fix"), ("w", "check")]));
 }
 
-// --- sinks -------------------------------------------------------------------
+#[test]
+fn steps_inside_expressions_and_other_entry_values_are_still_read() {
+    let src = hk(&[
+        "local made = List(new Dynamic { [\"in-call\"] { check = \"1\" } })",
+        "steps {",
+        "  [\"listed\"] = List(new Dynamic { [\"nested\"] { fix = \"2\" } })",
+        "  [\"plain\"] = \"not a step\"",
+        "}",
+    ]);
+    assert_eq!(
+        hk_sinks(&src),
+        pairs(&[("in-call", "check"), ("nested", "fix")])
+    );
+}
 
 #[test]
 fn a_module_that_is_not_hk_has_no_sinks() {
@@ -319,47 +326,6 @@ fn sinks_come_in_source_order_across_steps() {
         hk_sinks(&src),
         pairs(&[("b", "fix"), ("b", "check"), ("a", "shell")])
     );
-}
-
-#[test]
-fn an_error_region_is_not_entered_but_its_neighbours_are() {
-    // A stray token is its own small ERROR: the step around it, and a
-    // sink beside it, are still whole nodes the grammar vouches for.
-    let src = format!(
-        "{HK}steps {{\n  [\"a\"] {{ check = \"x\" }}\n  [\"b\"] {{ ) check = \"y\" }}\n}}\n"
-    );
-    assert!(
-        tree(&src).root_node().has_error(),
-        "the fixture must be broken"
-    );
-    assert_eq!(hk_sinks(&src), pairs(&[("a", "check"), ("b", "check")]));
-}
-
-#[test]
-fn a_sink_whose_value_holds_an_error_is_dropped() {
-    let src = format!(
-        "{HK}steps {{\n  [\"a\"] {{ check = \"x\" }}\n  [\"b\"] {{ check = (\"y\" }}\n}}\n"
-    );
-    let tree = tree(&src);
-    assert!(tree.root_node().has_error(), "the fixture must be broken");
-    assert_eq!(
-        hk_sinks(&src),
-        pairs(&[("a", "check")]),
-        "{}",
-        tree.root_node().to_sexp()
-    );
-}
-
-#[test]
-fn a_module_that_is_one_error_has_no_sinks() {
-    // An unclosed interpolation swallows the whole file into ERROR, the
-    // header included: nothing in it is trusted.
-    let src = check_script("      \\(\n");
-    assert!(
-        tree(&src).root_node().is_error(),
-        "the fixture must be broken"
-    );
-    assert_eq!(hk_sinks(&src), pairs(&[]));
 }
 
 // --- site ----------------------------------------------------------------------
@@ -428,10 +394,10 @@ fn a_pound_guarded_interpolation_is_a_hole_and_a_bare_one_is_text() {
 #[test]
 fn single_line_and_non_string_values_are_not_sites() {
     let src = step("s", "    check = \"bash x.sh\"\n    fix = other\n");
-    let tree = tree(&src);
-    let found = sinks(&tree, &src);
+    let module = module(&src);
+    let found = sinks(&module);
     assert_eq!(found.len(), 2);
-    assert!(found.iter().all(|sink| site(sink, &src).is_none()));
+    assert!(found.iter().all(|sink| site(sink).is_none()));
 }
 
 // --- load -----------------------------------------------------------------------

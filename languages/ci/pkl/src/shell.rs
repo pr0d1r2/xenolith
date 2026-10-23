@@ -13,10 +13,9 @@
 //! hk's default standing: V172 says so, and the alternative, the guest
 //! default, is the stricter program B3 is about.
 
-use tree_sitter::Node;
 use xenolith_lang_api::GuestEnv;
 
-use crate::host::{plain_string, text};
+use crate::syntax::{Body, Member, Value};
 
 #[cfg(test)]
 mod tests;
@@ -136,49 +135,28 @@ fn option_name(name: &str, dialect: &str) -> Option<&'static str> {
     OPTION_NAMES.iter().copied().find(|known| *known == folded)
 }
 
-/// The value of the `shell` property directly in an object body.
-fn shell_value<'t>(body: Node<'t>, src: &str) -> Option<Node<'t>> {
-    let mut cursor = body.walk();
-    body.named_children(&mut cursor)
-        .filter(|child| child.kind() == "objectProperty")
-        .find_map(|property| {
-            let mut cursor = property.walk();
-            let named: Vec<Node<'t>> = property.named_children(&mut cursor).collect();
-            match named.as_slice() {
-                // A `local shell` leads with its modifier, not the name.
-                [name, .., value] if name.kind() == "identifier" && text(*name, src) == "shell" => {
-                    Some(*value)
-                }
-                _ => None,
-            }
-        })
+/// The value of the first non-`local` `shell` property directly in
+/// `body`. A `shell` that is there but unreadable still answers: it is not
+/// a reason to read the group's instead.
+fn shell_value(body: &Body) -> Option<&Value> {
+    body.members.iter().find_map(|member| match member {
+        Member::Property(property) if !property.local && property.name == "shell" => {
+            Some(&property.value)
+        }
+        _ => None,
+    })
 }
 
-/// The body of the object whose `steps` hold the step `entry`: a
-/// `Group`, or a hook, which has no `shell` of its own.
-fn owner<'t>(entry: Node<'t>, src: &str) -> Option<Node<'t>> {
-    let mut up = entry
-        .parent()
-        .filter(|p| p.kind() == "objectBody")?
-        .parent()?;
-    if up.kind() == "newExpr" {
-        up = up.parent()?;
-    }
-    let steps = Some(up).filter(|p| p.kind() == "objectProperty")?;
-    let name = steps.named_child(0)?;
-    if name.kind() != "identifier" || text(name, src) != "steps" {
-        return None;
-    }
-    steps.parent().filter(|p| p.kind() == "objectBody")
-}
-
-/// The env of the step whose body is `body` and whose entry is `entry`
+/// The env of the step whose body is `body`, held in the `steps` of
+/// `group` (a `Group`, or a hook, which has no `shell` of its own)
 /// (`languages/ci/pkl:V172`).
-pub(crate) fn env(entry: Node<'_>, body: Node<'_>, src: &str) -> GuestEnv {
-    let value = shell_value(body, src)
-        .or_else(|| owner(entry, src).and_then(|group| shell_value(group, src)));
+pub(crate) fn env(body: &Body, group: Option<&Body>) -> GuestEnv {
+    let value = shell_value(body).or_else(|| group.and_then(shell_value));
     value
-        .and_then(|value| plain_string(value, src))
+        .and_then(|value| match value {
+            Value::Str(literal) => literal.plain.as_deref(),
+            _ => None,
+        })
         .and_then(read)
         .unwrap_or_else(hk_default)
 }

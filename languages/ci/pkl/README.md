@@ -1,7 +1,7 @@
 # xenolith-lang-pkl
 
-Pkl support for xenolith: finds shell held in hk steps. The tree-sitter-pkl
-grammar is vendored and compiled by `build.rs`.
+Pkl support for xenolith: finds shell held in hk steps, reading pkl with
+`pklr`, a pure-Rust Pkl parser: no grammar, no generated C.
 
 Part of [xenolith](https://github.com/pr0d1r2/xenolith), which finds
 code of one language embedded in a file of another and moves it into

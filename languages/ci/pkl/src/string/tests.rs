@@ -3,17 +3,14 @@
 //! `tests/host.rs` checks `unescape` and `multiline` on real hk sites.
 //! These take each piece alone: the delimiter-layout ranges
 //! (`indentation`), escape decoding (`decode`), the pound search
-//! (`pounds_for`), the tree helpers, and the round trip the module
+//! (`pounds_for`), escape lengths, and the round trip the module
 //! promises -- `unescape(multiline(body)) == body`.
 
-use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{Delim, DelimKind, Error, LangId, Result, Span};
 
 use super::{
-    decode, escape, find_kind, holes_in, indentation, line_breaks, lines, multiline, pounds_for,
-    unescape,
+    decode, escape, escape_len, indentation, line_breaks, lines, multiline, pounds_for, unescape,
 };
-use crate::grammar;
 
 fn delim(kind: DelimKind) -> Delim {
     Delim {
@@ -40,21 +37,6 @@ fn is_parse_error<T: std::fmt::Debug>(result: &Result<T>) -> bool {
             ..
         })
     )
-}
-
-fn tree(src: &str) -> Tree {
-    let mut parser = Parser::new();
-    if let Err(e) = parser.set_language(&grammar::language()) {
-        panic!("language: {e}");
-    }
-    parser
-        .parse(src, None)
-        .unwrap_or_else(|| panic!("no tree for {src:?}"))
-}
-
-fn literal(tree: &Tree) -> Node<'_> {
-    find_kind(tree.root_node(), "mlStringLiteralExpr")
-        .unwrap_or_else(|| panic!("no multi-line string in {}", tree.root_node().to_sexp()))
 }
 
 /// The raw text between the delimiters of a literal `multiline` wrote.
@@ -96,9 +78,15 @@ fn an_empty_body_evaluates_to_the_empty_string() {
 }
 
 #[test]
-fn blank_lines_survive_and_short_whitespace_lines_become_empty() {
+fn blank_lines_survive_and_short_whitespace_lines_are_refused() {
     assert_eq!(ok(0, "\n  a\n\n  b\n  "), "a\n\nb");
-    assert_eq!(ok(0, "\n    a\n  \n    b\n    "), "a\n\nb");
+    // Pkl 0.31.1: "Line must match or exceed indentation of the String's
+    // last line" -- a whitespace line shorter than the indent is an error,
+    // not an empty line.
+    assert!(is_parse_error(&unescape(
+        &pkl(0),
+        "\n    a\n  \n    b\n    "
+    )));
     // Longer than the indent: only the indent goes.
     assert_eq!(ok(0, "\n  a\n     \n  "), "a\n   ");
 }
@@ -147,7 +135,6 @@ fn a_crlf_body_evaluates_as_its_lf_twin() {
         "\n",
         "\n    ",
         "\n  a\n\n  b\n  ",
-        "\n    a\n  \n    b\n    ",
         "\n  a\n\n  ",
     ] {
         let want = ok(0, lf);
@@ -309,34 +296,28 @@ fn pounds_for_always_finds_an_answer() {
     assert_eq!(pounds_for("\\##"), 3);
 }
 
-// --- find_kind, holes_in ---------------------------------------------------------
+// --- escape_len, holes ----------------------------------------------------------
 
 #[test]
-fn find_kind_returns_the_node_itself_the_first_descendant_or_none() {
-    let tree = tree("a = \"\"\"\n  x\n  \"\"\"\nb = \"\"\"\n  y\n  \"\"\"\n");
-    let root = tree.root_node();
-    assert_eq!(find_kind(root, "module").map(|n| n.id()), Some(root.id()));
-    let first = find_kind(root, "mlStringLiteralExpr")
-        .unwrap_or_else(|| panic!("no literal in {}", root.to_sexp()));
-    assert_eq!(first.start_byte(), 4);
-    assert!(find_kind(root, "intLiteralExpr").is_none());
+fn a_body_that_closes_its_own_string_early_is_refused() {
+    let early = unescape(&pkl(0), "\n  a\n  \"\"\"\n  b = 1\n  ");
+    assert!(is_parse_error(&early), "{early:?}");
 }
 
 #[test]
-fn holes_in_is_relative_to_the_shift() {
-    let src = "x = \"\"\"\n  \\(a) b \\(c)\n  \"\"\"\n";
-    let tree = tree(src);
-    let prefix = "x = \"\"\"".len();
-    let holes = holes_in(literal(&tree), prefix);
-    let raw = src.get(prefix..).unwrap_or_default();
-    let texts: Vec<Option<&str>> = holes.iter().map(|&(from, to)| raw.get(from..to)).collect();
-    assert_eq!(texts, [Some("\\(a)"), Some("\\(c)")]);
+fn escape_len_counts_the_backslash_the_guard_and_the_sequence() {
+    assert_eq!(escape_len("\\n rest", 0), Some(2));
+    assert_eq!(escape_len("\\#t", 1), Some(3));
+    assert_eq!(escape_len("\\u{1F600}x", 0), Some(9));
+    assert_eq!(escape_len("\\##u{41}", 2), Some(8));
+    assert_eq!(escape_len("\\q", 0), None);
+    assert_eq!(escape_len("\\u{41", 0), None);
 }
 
 #[test]
-fn holes_in_a_literal_without_interpolation_is_empty() {
-    let tree = tree("x = \"\"\"\n  plain\n  \"\"\"\n");
-    assert!(holes_in(literal(&tree), 0).is_empty());
+fn holes_are_kept_verbatim_by_unescape() {
+    assert_eq!(ok(0, "\n  \\(a) b \\(c.d)\n  "), "\\(a) b \\(c.d)");
+    assert_eq!(ok(1, "\n  \\(text) \\#(real)\n  "), "\\(text) \\#(real)");
 }
 
 // --- indentation ------------------------------------------------------------------

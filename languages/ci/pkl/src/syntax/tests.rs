@@ -11,7 +11,8 @@ fn module(src: &str) -> Module {
 }
 
 fn of(span: Span, src: &str) -> &str {
-    span.of(src).unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
+    span.of(src)
+        .unwrap_or_else(|| panic!("{span:?} outside {src:?}"))
 }
 
 /// The value of the property `name` directly in `body`.
@@ -31,7 +32,7 @@ fn entry<'b>(body: &'b Body, key: &str) -> &'b Body {
         .iter()
         .find_map(|m| match m {
             Member::Entry(e) if e.key.as_deref() == Some(key) => match &e.value {
-                Value::Object(b) => Some(b),
+                Value::Object(b) | Value::New(b) => Some(b),
                 _ => None,
             },
             _ => None,
@@ -41,7 +42,7 @@ fn entry<'b>(body: &'b Body, key: &str) -> &'b Body {
 
 fn object(value: &Value) -> &Body {
     match value {
-        Value::Object(b) => b,
+        Value::Object(b) | Value::New(b) => b,
         other => panic!("not an object: {other:#?}"),
     }
 }
@@ -91,9 +92,17 @@ fn properties_entries_and_objects_nest_as_written() {
     assert_eq!(of(check.body(), HK), "\n          a | b\n          ");
     let fix = string(property(lint, "fix"));
     assert!(!fix.multiline);
-    assert_eq!(fix.plain.as_deref(), Some("sh scripts/hk/lint.sh {{files}}"));
+    assert_eq!(
+        fix.plain.as_deref(),
+        Some("sh scripts/hk/lint.sh {{files}}")
+    );
     assert_eq!(of(fix.span, HK), "\"sh scripts/hk/lint.sh {{files}}\"");
-    assert_eq!(string(property(entry(steps, "next"), "check")).plain.as_deref(), Some("ls"));
+    assert_eq!(
+        string(property(entry(steps, "next"), "check"))
+            .plain
+            .as_deref(),
+        Some("ls")
+    );
 }
 
 #[test]
@@ -115,6 +124,7 @@ fn new_and_typed_objects_are_objects() {
     );
     let m = module(src);
     let steps = object(property(&m.body, "steps"));
+    assert!(matches!(property(&m.body, "steps"), Value::New(_)));
     let a = steps.members.iter().find_map(|mb| match mb {
         Member::Entry(e) if e.key.as_deref() == Some("a") => Some(object(&e.value)),
         _ => None,
@@ -134,7 +144,10 @@ fn a_custom_delimiter_counts_its_pounds_and_holes_span_their_backslash() {
     assert_eq!(holes, ["\\#(y)", "\\#(w.v)"]);
     let y = string(property(&m.body, "y"));
     assert_eq!(y.plain, None);
-    assert_eq!(y.holes.iter().map(|h| of(*h, src)).collect::<Vec<_>>(), ["\\(b)"]);
+    assert_eq!(
+        y.holes.iter().map(|h| of(*h, src)).collect::<Vec<_>>(),
+        ["\\(b)"]
+    );
 }
 
 #[test]
@@ -142,21 +155,30 @@ fn an_escape_or_an_empty_string_is_not_plain() {
     let m = module("a = \"x\\ty\"\nb = \"\"\nc = #\"x\\y\"#\n");
     assert_eq!(string(property(&m.body, "a")).plain, None);
     assert_eq!(string(property(&m.body, "b")).plain, None);
-    assert_eq!(string(property(&m.body, "c")).plain.as_deref(), Some("x\\y"));
+    assert_eq!(
+        string(property(&m.body, "c")).plain.as_deref(),
+        Some("x\\y")
+    );
 }
 
 #[test]
 fn a_string_joined_to_more_is_no_string_value() {
-    let m = module("a = \"x\" + \"y\"\nb = \"x\".length\nc = \"z\"\n[\"k\"] = 1\n");
-    assert!(matches!(property(&m.body, "a"), Value::Other(_)));
-    assert!(matches!(property(&m.body, "b"), Value::Other(_)));
-    assert!(matches!(property(&m.body, "c"), Value::Str(_)));
+    let m = module("o {\n  a = \"x\" + \"y\"\n  b = \"x\".length\n  c = \"z\"\n  [\"k\"] = 1\n}\n");
+    let o = object(property(&m.body, "o"));
+    assert!(matches!(property(o, "a"), Value::Other(_)));
+    assert!(matches!(property(o, "b"), Value::Other(_)));
+    assert!(matches!(property(o, "c"), Value::Str(_)));
+    assert!(
+        o.members
+            .iter()
+            .any(|mb| matches!(mb, Member::Entry(e) if e.key.as_deref() == Some("k")))
+    );
 }
 
 #[test]
 fn objects_inside_expressions_and_generators_are_still_reached() {
     let src = "local x = if (true) new { [\"a\"] { check = \"\"\"\n  q\n  \"\"\" } } else null\n\
-               for (k in List(1)) { [\"b\"] { check = \"r\" } }\n";
+               o { for (k in List(1)) { [\"b\"] { check = \"r\" } } }\n";
     let m = module(src);
     let mut keys = Vec::new();
     m.body.visit(&mut |body| {
@@ -183,4 +205,36 @@ fn what_pkl_rejects_is_a_parse_error() {
             other => panic!("{src:?}: expected a parse error, got {other:?}"),
         }
     }
+}
+
+#[test]
+fn modifiers_elements_and_declarations_read_as_written() {
+    let src = concat!(
+        "hidden a = \"h\"\n",
+        "fixed b = \"f\"\n",
+        "const c = \"c\"\n",
+        "class K {\n",
+        "  d: String\n",
+        "}\n",
+        "o {\n",
+        "  e\n",
+        "  [1] { check = \"x\" }\n",
+        "  [\"a\" + \"b\"] { check = \"y\" }\n",
+        "}\n",
+    );
+    let m = module(src);
+    for name in ["a", "b", "c"] {
+        assert!(matches!(property(&m.body, name), Value::Str(_)), "{name}");
+    }
+    let o = object(property(&m.body, "o"));
+    let keys: Vec<Option<String>> = o
+        .members
+        .iter()
+        .filter_map(|mb| match mb {
+            Member::Entry(e) => Some(e.key.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(keys, [None, None]);
+    assert!(o.members.iter().any(|mb| matches!(mb, Member::Other(_))));
 }

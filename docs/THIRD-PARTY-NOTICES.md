@@ -13,15 +13,15 @@ from those three sources, and the gate fails when it drifts from them.
 
 ## Crates compiled into `xnl`
 
-**36 third-party crates** are in the normal-dependency closure of the
+**40 third-party crates** are in the normal-dependency closure of the
 published crates -- `xenolith` and its language crates, every `lang-*`
 feature on. Dev-dependencies are excluded: they are not distributed in
 anything you run. So is `xenolith-dev`, which is never published.
 
 | licence | crates |
 |---|---|
-| `MIT OR Apache-2.0` | 22 |
-| `MIT` | 8 |
+| `MIT OR Apache-2.0` | 24 |
+| `MIT` | 10 |
 | `Apache-2.0 OR MIT` | 2 |
 | `Unlicense OR MIT` | 2 |
 | `(MIT OR Apache-2.0) AND Unicode-3.0` | 1 |
@@ -33,7 +33,7 @@ and takes the MIT option.
 **An `AND` is not a choice.** Every part of an expression joined by `AND`
 applies, whichever option is taken for the rest: `unicode-ident`.
 
-Proc-macro crates (`serde_derive`) run inside the compiler and put no code of their
+Proc-macro crates (`serde_derive`, `thiserror-impl`) run inside the compiler and put no code of their
 own in the binary. They are listed because cargo resolves them as
 normal dependencies all the same.
 
@@ -46,7 +46,9 @@ normal dependencies all the same.
 | `hashbrown` | 0.17.1 | `MIT OR Apache-2.0` |
 | `indexmap` | 2.14.2 | `Apache-2.0 OR MIT` |
 | `itoa` | 1.0.18 | `MIT OR Apache-2.0` |
+| `libm` | 0.2.16 | `MIT` |
 | `memchr` | 2.8.3 | `Unlicense OR MIT` |
+| `pklr` | 5.2.1 | `MIT` |
 | `proc-macro2` | 1.0.107 | `MIT OR Apache-2.0` |
 | `quote` | 1.0.47 | `MIT OR Apache-2.0` |
 | `regex` | 1.13.1 | `MIT OR Apache-2.0` |
@@ -63,6 +65,8 @@ normal dependencies all the same.
 | `streaming-iterator` | 0.1.9 | `MIT OR Apache-2.0` |
 | `syn` | 3.0.6 | `MIT OR Apache-2.0` |
 | `text-size` | 1.1.1 | `MIT OR Apache-2.0` |
+| `thiserror` | 2.0.21 | `MIT OR Apache-2.0` |
+| `thiserror-impl` (proc-macro) | 2.0.21 | `MIT OR Apache-2.0` |
 | `toml` | 1.1.4+spec-1.1.0 | `MIT OR Apache-2.0` |
 | `toml_datetime` | 1.1.1+spec-1.1.0 | `MIT OR Apache-2.0` |
 | `toml_parser` | 1.1.3+spec-1.1.0 | `MIT OR Apache-2.0` |
@@ -86,31 +90,6 @@ grammars -- and none of their code is in `xnl`.
 | `cc` | 1.4.7 | `MIT OR Apache-2.0` |
 | `find-msvc-tools` | 0.1.13 | `MIT OR Apache-2.0` |
 | `shlex` | 2.0.1 | `MIT OR Apache-2.0` |
-
-## Vendored tree-sitter grammars
-
-**1 grammars** are compiled from C vendored beside the crate that uses
-them (`languages:V121`), because none is on crates.io in a form this
-workspace can link. Each directory keeps upstream's licence file verbatim
-and an `UPSTREAM` record of where it came from and what, if anything, was
-patched.
-
-### `tree-sitter-pkl`
-
-- vendored in [`languages/ci/pkl/vendor/tree-sitter-pkl`](../languages/ci/pkl/vendor/tree-sitter-pkl/UPSTREAM)
-- upstream: <https://github.com/apple/tree-sitter-pkl> at `5893fb5dc832ea51a9bff3f84462528c766ecd7d`
-- licence: Apache-2.0 (LICENSE.txt, NOTICE.txt beside this file, verbatim)
-- [`LICENSE.txt`](../languages/ci/pkl/vendor/tree-sitter-pkl/LICENSE.txt), verbatim
-- [`NOTICE.txt`](../languages/ci/pkl/vendor/tree-sitter-pkl/NOTICE.txt), verbatim
-
-The `NOTICE.txt` upstream ships with it, reproduced as its licence
-asks:
-
-```text
-Copyright © 2024 Apple Inc. and the Pkl project authors
-
-The tree-sitter-pkl binary includes libraries that may be distributed under a different license.
-```
 
 ## Tools the nix package runs
 
