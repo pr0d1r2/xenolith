@@ -43,6 +43,7 @@ fn a_single_expression_statement_is_trivial() {
         "  print(1)  \n",
         "# what it does\nprint(1)\n",
         "__import__('json').dumps({})\n",
+        "f'{f\"{1}\"}'\n",
     ] {
         assert!(trivial(body), "{body:?}");
     }
