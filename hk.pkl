@@ -493,7 +493,13 @@ local all = (fast) {
   // purpose: it must run even when nothing the narrow glob names changed.
   ["dev-generated-full"] {
     glob = List("**/*")
-    depends = List("test")
+    // The generator is itself a cargo run. Keep it after every other cargo
+    // consumer of the shared target directory, or a concurrent rebuild can
+    // fail before xenolith-dev gets a chance to report anything.
+    depends = List("test", "deny", "hack-test", "hack-no-dev-deps")
+    // A failed check can report on stdout or stderr; retain both so hk can
+    // explain the failure even when the command exits without stderr.
+    output_summary = "combined"
     check = "cargo run -q -p xenolith-dev -- --check"
     fix = "cargo run -q -p xenolith-dev -- --fix"
   }
