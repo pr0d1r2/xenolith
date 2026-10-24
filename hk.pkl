@@ -496,7 +496,7 @@ local all = (fast) {
     // The generator is itself a cargo run. Keep it after every other cargo
     // consumer of the shared target directory, or a concurrent rebuild can
     // fail before xenolith-dev gets a chance to report anything.
-    depends = List("test", "deny", "hack-test", "hack-no-dev-deps")
+    depends = List("test", "deny", "hack-test", "hack-no-dev-deps", "coverage", "lint-debt")
     // A failed check can report on stdout or stderr; retain both so hk can
     // explain the failure even when the command exits without stderr.
     output_summary = "combined"
