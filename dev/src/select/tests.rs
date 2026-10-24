@@ -118,6 +118,24 @@ fn the_hk_glob_is_the_union_of_every_outputs_inputs() {
 }
 
 #[test]
+fn the_full_generated_check_explains_failures_and_follows_cargo_steps() {
+    let hk = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../hk.pkl"))
+        .unwrap_or_else(|e| panic!("hk.pkl: {e}"));
+    let step = hk
+        .split("[\"dev-generated-full\"] {")
+        .nth(1)
+        .unwrap_or_else(|| panic!("no dev-generated-full step"));
+    let step = step
+        .split("\n  }")
+        .next()
+        .unwrap_or_else(|| panic!("unterminated dev-generated-full step"));
+    assert!(step.contains("output_summary = \"combined\""));
+    assert!(step.contains("\"deny\""));
+    assert!(step.contains("\"hack-test\""));
+    assert!(step.contains("\"hack-no-dev-deps\""));
+}
+
+#[test]
 fn a_name_prefix_pattern_matches_any_name_starting_so() {
     assert!(matches("**/LICENSE*", "LICENSE"));
     assert!(matches("**/LICENSE*", "a/vendor/g/LICENSE-MIT"));
