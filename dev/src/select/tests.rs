@@ -133,6 +133,8 @@ fn the_full_generated_check_explains_failures_and_follows_cargo_steps() {
     assert!(step.contains("\"deny\""));
     assert!(step.contains("\"hack-test\""));
     assert!(step.contains("\"hack-no-dev-deps\""));
+    assert!(step.contains("\"coverage\""));
+    assert!(step.contains("\"lint-debt\""));
 }
 
 #[test]
