@@ -6,8 +6,7 @@
 language: en-US
 reviews:
   profile: chill
-  auto_approvals:
-    enabled: false
+  request_changes_workflow: false
   poem: false
   sequence_diagrams: false
   changed_files_summary: false
