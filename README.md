@@ -78,8 +78,9 @@ with those linters wrapped in.
 ### From a flake
 
 `packages.<system>.default` is `xnl`, for `aarch64-darwin`, `x86_64-linux`
-and `aarch64-linux`, wrapped with the linters of its compiled-in languages
-on `PATH`. Take it as an input and make it follow your `nixpkgs-lock`, so
+and `aarch64-linux` -- and `x86_64-darwin`, which CI does not build and the
+cache does not carry, so it builds from source -- wrapped with the linters
+of its compiled-in languages on `PATH`. Take it as an input and make it follow your `nixpkgs-lock`, so
 both flakes share one nixpkgs revision and the binary comes from the cache
 instead of being rebuilt:
 
@@ -304,8 +305,9 @@ page is planned (`src/config:T89`).
 
 ## Languages
 
-Six languages are compiled in by default; each is a cargo feature and a
-crate of its own under [`languages/`](languages/SPEC.md).
+Seven languages are compiled in by default -- the six hosts below and
+python, a guest only; each is a cargo feature and a crate of its own under
+[`languages/`](languages/SPEC.md).
 
 | host | files it claims | where it finds embeds | guest | `xnl extract` |
 |---|---|---|---|---|
@@ -319,7 +321,7 @@ crate of its own under [`languages/`](languages/SPEC.md).
 "Report only" means `xnl check` flags the embed and tells you where it is,
 but `xnl extract` refuses it with exit 2 and a reason until that host's
 load line is decided (`src/extract:T177`). An embed whose language is
-recognised but not compiled in -- a `python3 <<` heredoc in a shell script,
+recognised but not compiled in -- a `ruby <<` heredoc in a shell script,
 say -- stops the run with exit 2 naming the missing language, unless
 `[langs] missing_guest` says otherwise.
 
@@ -413,12 +415,13 @@ a language can be added without touching the engines
 
 ## Status
 
-**`0.1.0` -- the first public release** (odd rung: functional, not yet for
-production; see the ladder in [CHANGELOG.md](CHANGELOG.md)). What this
+**`0.2.0` -- the 0.1 surface, settled** (even rung; see the ladder in
+[CHANGELOG.md](CHANGELOG.md)): every host read by pure Rust, valid Tcl no
+longer refused, a package for Intel Macs, and python as a guest. What this
 page describes is what that release builds; anything planned is marked
 with the spec task that will deliver it.
 
-`0.1.0` is milestone M3 of [`SPEC.md`](SPEC.md): the six languages above,
+`0.1.0` was milestone M3 of [`SPEC.md`](SPEC.md): the six languages above,
 the public doc set, the release machinery ([`release.toml`](release.toml))
 and the crates published in dependency order (`.:T32`). What comes after
 is ordered by the language survey -- CI languages next, then data, web and

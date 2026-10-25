@@ -18,7 +18,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # this crate's own (`src/lexer.rs`, `src/parse.rs`): no grammar, no
 # generated C, no FFI.
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 
 [lints]
 workspace = true

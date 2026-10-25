@@ -18,7 +18,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # this crate's own (`src/script.rs`, on `src/syntax.rs`): no grammar, no
 # generated C, no FFI.
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 
 # The tcl check (`languages/shells/tcl:V198`): Tcl's `info complete` in
 # Rust, so a host file is checked with no `tclsh` on PATH. A bin because

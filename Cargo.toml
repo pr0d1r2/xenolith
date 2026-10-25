@@ -28,7 +28,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 # Edition 2024 and the rustc pinned in nixpkgs-lock, stated rather than
 # discovered (`src:C2`, `src:V18`). No rust-toolchain.toml, no rust-overlay:
 # the flake already decides the toolchain, and a second declaration is a
@@ -106,7 +106,7 @@ path = "src/main.rs"
 # The contract every language crate implements. The root crate holds the
 # registry and the engines, so it depends on the api and on each language
 # crate -- never the reverse (`languages/api:V32`).
-xenolith-lang-api = { path = "languages/api", version = "0.1.0" }
+xenolith-lang-api = { path = "languages/api", version = "0.2.0" }
 # JSON output (`src/cli` §I). serde_json rather than a hand-rolled writer:
 # escaping is the part everyone gets wrong, and its default map is a
 # BTreeMap, so keys come out sorted and the bytes are stable without a
@@ -125,13 +125,13 @@ toml = { version = "1", default-features = false, features = ["std", "parse", "s
 # (`src:C1`, `nix:C8`), so a consumer can compile a binary carrying only
 # the grammars they use -- a tree-sitter grammar is the largest thing in
 # this closure, and `xnl` with two languages should not ship eighteen.
-xenolith-lang-just = { path = "languages/ci/just", version = "0.1.0", optional = true }
-xenolith-lang-nix = { path = "languages/ci/nix", version = "0.1.0", optional = true }
-xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.1.0", optional = true }
-xenolith-lang-python = { path = "languages/data/python", version = "0.1.0", optional = true }
-xenolith-lang-shell = { path = "languages/shells/shell", version = "0.1.0", optional = true }
-xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.1.0", optional = true }
-xenolith-lang-xml = { path = "languages/data/xml", version = "0.1.0", optional = true }
+xenolith-lang-just = { path = "languages/ci/just", version = "0.2.0", optional = true }
+xenolith-lang-nix = { path = "languages/ci/nix", version = "0.2.0", optional = true }
+xenolith-lang-pkl = { path = "languages/ci/pkl", version = "0.2.0", optional = true }
+xenolith-lang-python = { path = "languages/data/python", version = "0.2.0", optional = true }
+xenolith-lang-shell = { path = "languages/shells/shell", version = "0.2.0", optional = true }
+xenolith-lang-tcl = { path = "languages/shells/tcl", version = "0.2.0", optional = true }
+xenolith-lang-xml = { path = "languages/data/xml", version = "0.2.0", optional = true }
 
 # `default` = every language, so `xnl` works out of the box and a subset
 # is an explicit `default-features = false` choice (`src:C1`). A feature

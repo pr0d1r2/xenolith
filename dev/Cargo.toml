@@ -33,7 +33,7 @@ path = "src/main.rs"
 # `LangId::ALL` rather than a second list typed here (`dev:V340`). The api,
 # not the root crate: the ids are all this reads, and the root crate would
 # bring every grammar into a tool that parses none.
-xenolith-lang-api = { path = "../languages/api", version = "0.1.0" }
+xenolith-lang-api = { path = "../languages/api", version = "0.2.0" }
 # `cargo metadata` and the nix tool table both answer in JSON, and the
 # notices are rendered from both (`dev:V347`). Already in the lock as the
 # root crate's JSON writer.
