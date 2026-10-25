@@ -21,7 +21,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # language crate -- nix NAMES its guest as `LangId::Shell` and never links
 # the shell crate (`languages:C24`).
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 # rnix, not tree-sitter-nix and not a regex (`languages:C4`). It is a
 # lossless rowan tree, so every byte of the host -- whitespace, comments,
 # the `''` of an indented string -- is a token with a range, and a site's

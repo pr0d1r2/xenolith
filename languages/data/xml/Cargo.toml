@@ -20,7 +20,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # reader. The guest is NAMED as `LangId::Shell` and never linked
 # (`languages:C24`).
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 # quick-xml (MIT), pure Rust, its only default dependency `memchr`: a
 # streaming reader whose events carry raw bytes and positions, so element
 # text, entity references and CDATA sections are events, never a regex

@@ -31,7 +31,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # the path locally and rewrites to the registry version in the published
 # manifest (`src:C1`, lockstep versions).
 [dependencies]
-xenolith-shebang = { path = "../shebang", version = "0.1.0" }
+xenolith-shebang = { path = "../shebang", version = "0.2.0" }
 
 # NO FEATURES, deliberately (`languages/api:V33`). `LangId` names every
 # known language regardless of which crates a build compiles in, so a host

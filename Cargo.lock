@@ -365,7 +365,7 @@ checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 
 [[package]]
 name = "xenolith"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
  "toml",
@@ -381,7 +381,7 @@ dependencies = [
 
 [[package]]
 name = "xenolith-dev"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
  "xenolith-lang-api",
@@ -389,21 +389,21 @@ dependencies = [
 
 [[package]]
 name = "xenolith-lang-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "xenolith-shebang",
 ]
 
 [[package]]
 name = "xenolith-lang-just"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "xenolith-lang-api",
 ]
 
 [[package]]
 name = "xenolith-lang-nix"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "rnix",
  "xenolith-lang-api",
@@ -411,7 +411,7 @@ dependencies = [
 
 [[package]]
 name = "xenolith-lang-pkl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "pklr",
  "xenolith-lang-api",
@@ -419,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "xenolith-lang-python"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "tree-sitter",
  "tree-sitter-python",
@@ -428,7 +428,7 @@ dependencies = [
 
 [[package]]
 name = "xenolith-lang-shell"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "tree-sitter",
  "tree-sitter-bash",
@@ -437,14 +437,14 @@ dependencies = [
 
 [[package]]
 name = "xenolith-lang-tcl"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "xenolith-lang-api",
 ]
 
 [[package]]
 name = "xenolith-lang-xml"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "quick-xml",
  "xenolith-lang-api",
@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "xenolith-shebang"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
 ]

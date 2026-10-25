@@ -18,7 +18,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # grammar. Same tree-sitter as the shell crate's, so the workspace carries
 # one copy of it.
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 tree-sitter = "0.27"
 tree-sitter-python = "0.25"
 

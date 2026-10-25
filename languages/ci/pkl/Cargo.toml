@@ -20,7 +20,7 @@ include = ["Cargo.toml", "README.md", "src/**", "tests/**"]
 # `thiserror`. Pinned exactly: its API moves between majors often, and a
 # bump is its own commit.
 [dependencies]
-xenolith-lang-api = { path = "../../api", version = "0.1.0" }
+xenolith-lang-api = { path = "../../api", version = "0.2.0" }
 pklr = { version = "=5.2.1", default-features = false }
 
 [lints]

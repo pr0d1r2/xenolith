@@ -20,7 +20,7 @@ fleet. The parity describes the *release*, not the work that went into it.
 | version | parity | what you can rely on | status |
 |---|---|---|---|
 | `0.1` | odd | **first public artifact.** Every verb over six languages -- nix, pkl and shell end to end, just, tcl and xml as the fleet hooks they replace -- each a crate behind its own `lang-*` feature; extraction for nix, pkl and just hosts; the nix package with its linters; the public doc set and the release machinery | reached |
-| `0.2` | even | that surface settled: what the first users find, fixed before anything new lands | planned |
+| `0.2` | even | that surface settled: what the first users found, fixed -- no grammar vendored as C, valid Tcl no longer refused, a package for Intel Macs -- plus python as the first guest from the data family | reached |
 | later | -- | one language family per milestone, in the order the language survey sets (`.:C25`): CI, data, web and application languages, then test hosts | planned |
 | `1.0` | -- | the contract frozen: the CLI surface, the JSON output, the `xenolith.toml` schema and the library API | planned |
 
@@ -32,9 +32,29 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
-- The xml host reads documents with `quick-xml`, a pure-Rust XML reader,
-  instead of tree-sitter-xml: no C is compiled for it. Its reports on 37
-  real-world XML and property-list files are unchanged.
+## [0.2.0] - 2026-10-25
+
+The 0.1 surface, settled: every host is now read by pure Rust, so no
+crate in the workspace compiles C; valid Tcl the old grammar refused is
+read; Intel Macs get a flake package; and python joins as a guest. Even
+rung (CHANGELOG ladder, `nix:V110`). A minor rather than a patch because
+the just, pkl and tcl crates drop their public `grammar` module and the pkl
+host refuses files 0.1.0 read (`nix:V111`).
+
+### Added
+
+- Python as a guest (`lang-python`, on by default): a python heredoc,
+  `-c` argument, just shebang recipe or nix `writers.writePython3` body is
+  judged instead of stopping `xnl check` with exit 2. One expression
+  statement stays inline; anything more is flagged, and an extract is a
+  `*.py` file run by `python3`, linted by `ruff check` and
+  `ruff format --check`. A new crate, `xenolith-lang-python`.
+- The `x86_64-darwin` package output for Intel Mac consumers. It is
+  declared, not tier-1: CI does not build it and the cache does not carry
+  it, so it builds from source (`nix:C7`).
+
+### Changed
+
 - The pkl host reads files with `pklr`, a pure-Rust Pkl parser, instead
   of a vendored tree-sitter grammar: no generated C, no `build.rs`, no
   `unsafe`, and with this no crate in the workspace vendors a grammar.
@@ -45,20 +65,22 @@ behind the full gate, and never by hand.
   and a recursive descent over just's own grammar) instead of a vendored
   tree-sitter grammar: no generated C, no `build.rs`, no `unsafe`. Over
   204 real-world justfiles it reports exactly what the grammar did.
-- Add python as a guest (`lang-python`, on by default): a python heredoc,
-  `-c` argument, just shebang recipe or nix `writers.writePython3` body is
-  judged instead of stopping `xnl check` with exit 2. One expression
-  statement stays inline; anything more is flagged, and an extract is a
-  `*.py` file run by `python3`, linted by `ruff check` and
-  `ruff format --check`.
+- The xml host reads documents with `quick-xml`, a pure-Rust XML reader,
+  instead of tree-sitter-xml: no C is compiled for it. Its reports on 37
+  real-world XML and property-list files are unchanged.
 - The tcl host reads Tcl with its own pure-Rust word parser instead of a
   vendored tree-sitter grammar: no generated C, no `build.rs`, no
-  `unsafe`. Valid Tcl the grammar rejected no longer fails a whole file:
+  `unsafe`.
+- `xenolith-lang-just`, `xenolith-lang-pkl` and `xenolith-lang-tcl` no
+  longer export a `grammar` module.
+
+### Fixed
+
+- Valid Tcl the old grammar rejected no longer fails a whole file:
   `regexp` with a switch (`-line`, `-all`, `-nocase`, `-start i`, `--`)
   or a braced string, a parenthesis in a word (`set x {(a)}`,
   `puts (a)`), `set x a(b)`, `[f]($y)`. A quote inside a bare word
   (`a"b"`) is text, as in Tcl, so `exec sh -c a"b"` is a site.
-- Add the `x86_64-darwin` package output for Intel Mac consumers.
 
 ## [0.1.0] - 2026-09-27
 
