@@ -22,6 +22,11 @@ sib|languages/shells/tcl|tcl grammar (expect dialect), `exec`/`spawn` sinks, gue
 - `[extract.shell] strict` ∈ `preserve` (default) \| `enforce`: `enforce` → prelude `set -euo pipefail` always, diff marks it `Judgment`.
 - placement ? (T86): bash host → `<host_dir>/<host_stem>.<name>.<ext>`, load via `"$(dirname "${BASH_SOURCE[0]}")/..."` (V3).
 
+## §R RESEARCH
+
+id|topic|finding|src
+R311|brush-parser trial 2026-10-25|`brush-parser` 0.4.0 is MIT, rust-version 1.88, and its public AST has locations for commands, words, heredocs and redirects. Its `SourcePosition::index` is a character index, while xenolith `Span` is byte-indexed; therefore every non-ASCII source needs a conversion layer before sites can be compared. The crate's default dependency tree is 10 direct entries (bon, cached, getrandom, indenter, insta, peg, thiserror, tracing, utf8-chars, uuid), versus the current `tree-sitter` + `tree-sitter-bash` pair. Repo corpus at trial time: 38 shell-extension files, 38 shell-shebang files, 74 files matching shell-host embed shapes; no real-world-repository corpus was available in this checkout. Acceptance/site parity was therefore not established, so the decision gate fails and tree-sitter-bash remains authoritative.|`cargo info brush-parser --verbose`; `brush-parser` 0.4.0 `source.rs`/`ast.rs`; read-only corpus scan 2026-10-25
+
 ## §V INVARIANTS
 
 V3: sink w/ single simple command (argv, optional leading `NAME=value`; generated load may use exactly `"$(dirname "${BASH_SOURCE[0]}")"` as path prefix; else ⊥ `|`, `&&`, `\|\|`, `;`, `$(`, backtick, redirect, `if`/`for`/`while`/`case`, heredoc, subshell, function def) = allowed. ≥1 control construct = violation unless ∈ `[threshold.shell] allow` (`src/config` §I). via tree-sitter-bash AST, ⊥ substring grep.
