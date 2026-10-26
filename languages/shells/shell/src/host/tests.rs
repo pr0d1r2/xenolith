@@ -58,6 +58,20 @@ fn bash_valid_forms_do_not_hide_embedded_sites() {
 }
 
 #[test]
+fn site_spans_remain_byte_offsets_after_unicode() {
+    let src = "echo é\npython3 -c 'print(1)'\n";
+    let sites = match ShellHost.sites(src) {
+        Ok(sites) => sites,
+        Err(error) => panic!("{error}"),
+    };
+    let [site] = sites.as_slice() else {
+        panic!("expected one site");
+    };
+    assert_eq!(site.delim.open, Span::new(19, 20));
+    assert_eq!(site.delim.body.of(src), Some("print(1)"));
+}
+
+#[test]
 fn a_heredoc_with_a_second_stdin_is_not_a_site() {
     assert!(found("python3 <<'PY' <input.txt\nprint(1)\nPY\n").is_empty());
     assert!(found("python3 <<'PY'\nprint(1)\nPY\n").len() == 1);
