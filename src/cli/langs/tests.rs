@@ -46,11 +46,14 @@ fn human_is_one_line_per_language_in_langid_order() {
         } else {
             "compiled-out"
         };
-        let expected = existing_feature(*id).map_or_else(
-            || vec![id.as_str(), state],
-            |feature| vec![id.as_str(), state, feature.as_str()],
-        );
-        assert_eq!(words, expected, "{line:?}");
+        match existing_feature(*id) {
+            Some(feature) => assert_eq!(
+                words,
+                vec![id.as_str(), state, feature.as_str()],
+                "{line:?}"
+            ),
+            None => assert_eq!(words, vec![id.as_str(), state], "{line:?}"),
+        }
     }
 }
 
