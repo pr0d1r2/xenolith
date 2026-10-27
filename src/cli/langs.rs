@@ -18,13 +18,15 @@ use serde_json::{Value, json};
 use xenolith_lang_api::LangId;
 
 use crate::model::SCHEMA;
-use crate::registry::{compiled_in, feature};
+use crate::registry::{compiled_in, existing_feature};
 
 #[cfg(test)]
 mod tests;
 
 fn state(id: LangId) -> &'static str {
-    if compiled_in(id) {
+    if existing_feature(id).is_none() {
+        "planned"
+    } else if compiled_in(id) {
         "compiled-in"
     } else {
         "compiled-out"
@@ -32,7 +34,7 @@ fn state(id: LangId) -> &'static str {
 }
 
 /// One line per language, in `LangId` order, columns aligned:
-/// `<id>  compiled-in|compiled-out  lang-<id>`.
+/// `<id>  compiled-in|compiled-out  lang-<id>` or `<id>  planned`.
 #[must_use]
 pub fn human() -> String {
     let id_width = LangId::ALL
@@ -44,13 +46,24 @@ pub fn human() -> String {
     let mut out = String::new();
     for id in LangId::ALL {
         // Writing to a String cannot fail.
-        let _ = writeln!(
-            out,
-            "{:<id_width$}  {:<state_width$}  {}",
-            id.as_str(),
-            state(*id),
-            feature(*id)
-        );
+        match existing_feature(*id) {
+            Some(feature) => {
+                let _ = writeln!(
+                    out,
+                    "{:<id_width$}  {:<state_width$}  {feature}",
+                    id.as_str(),
+                    state(*id),
+                );
+            }
+            None => {
+                let _ = writeln!(
+                    out,
+                    "{:<id_width$}  {:<state_width$}",
+                    id.as_str(),
+                    state(*id),
+                );
+            }
+        }
     }
     out
 }
@@ -64,11 +77,21 @@ pub fn json() -> String {
     let langs: Vec<Value> = LangId::ALL
         .iter()
         .map(|id| {
-            json!({
-                "compiled_in": compiled_in(*id),
-                "feature": feature(*id),
-                "id": id.as_str(),
-            })
+            existing_feature(*id).map_or_else(
+                || {
+                    json!({
+                        "compiled_in": false,
+                        "id": id.as_str(),
+                    })
+                },
+                |feature| {
+                    json!({
+                        "compiled_in": compiled_in(*id),
+                        "feature": feature,
+                        "id": id.as_str(),
+                    })
+                },
+            )
         })
         .collect();
     let envelope = json!({
