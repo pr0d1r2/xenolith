@@ -101,7 +101,7 @@ pub fn json() -> String {
         "warnings": [],
     });
     let mut out = serde_json::to_string_pretty(&envelope)
-        .unwrap_or_else(|_| format!("{{\"schema\": {SCHEMA}}}"));
+        .expect("JSON values are always serializable");
     out.push('\n');
     out
 }
