@@ -11,7 +11,7 @@ use serde_json::Value;
 use xenolith_lang_api::LangId;
 
 use super::{human, json};
-use crate::registry::feature;
+use crate::registry::existing_feature;
 
 /// What the build says, stated independently of the code under test.
 fn built_with(id: LangId) -> bool {
@@ -39,12 +39,18 @@ fn human_is_one_line_per_language_in_langid_order() {
     assert_eq!(lines.len(), LangId::ALL.len(), "{text}");
     for (line, id) in lines.iter().zip(LangId::ALL) {
         let words: Vec<&str> = line.split_whitespace().collect();
-        let state = if built_with(*id) {
+        let state = if existing_feature(*id).is_none() {
+            "planned"
+        } else if built_with(*id) {
             "compiled-in"
         } else {
             "compiled-out"
         };
-        assert_eq!(words, vec![id.as_str(), state, &feature(*id)], "{line:?}");
+        let expected = existing_feature(*id).map_or_else(
+            || vec![id.as_str(), state],
+            |feature| vec![id.as_str(), state, feature.as_str()],
+        );
+        assert_eq!(words, expected, "{line:?}");
     }
 }
 
@@ -55,7 +61,11 @@ fn human_columns_line_up() {
     let text = human();
     let starts: Vec<usize> = text
         .lines()
-        .map(|line| line.find("compiled-").unwrap_or(0))
+        .map(|line| {
+            line.find("compiled-")
+                .or_else(|| line.find("planned"))
+                .unwrap_or(0)
+        })
         .collect();
     let first = starts.first().copied().unwrap_or(0);
     assert!(first > 0, "{text}");
@@ -121,9 +131,15 @@ fn json_entries_carry_exactly_id_feature_and_compiled_in() {
             .as_object()
             .map(|o| o.keys().map(String::as_str).collect())
             .unwrap_or_default();
-        assert_eq!(keys, vec!["compiled_in", "feature", "id"], "{entry}");
-        assert_eq!(*field(entry, "feature"), feature(*id), "{entry}");
-        assert_eq!(*field(entry, "compiled_in"), built_with(*id), "{entry}");
+        if let Some(feature) = existing_feature(*id) {
+            assert_eq!(keys, vec!["compiled_in", "feature", "id"], "{entry}");
+            assert_eq!(*field(entry, "feature"), feature, "{entry}");
+            assert_eq!(*field(entry, "compiled_in"), built_with(*id), "{entry}");
+        } else {
+            assert_eq!(keys, vec!["compiled_in", "id"], "{entry}");
+            assert_eq!(*field(entry, "compiled_in"), false, "{entry}");
+            assert_eq!(*field(entry, "feature"), Value::Null, "{entry}");
+        }
     }
 }
 
