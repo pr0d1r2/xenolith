@@ -16,11 +16,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793001493,
-        "narHash": "sha256-DVP9cVkubAAzffzW8VHMP3OE+9G2jAAJPx1Mu/NIX18=",
+        "lastModified": 1793105183,
+        "narHash": "sha256-QYMq/ZCDb/Z7tEIIUCkaLVpTiUnk0dOnfdTCEoqeVQg=",
         "owner": "pr0d1r2",
         "repo": "itok",
-        "rev": "7359691b29ec902308c7b4c551304c8c0661b4c7",
+        "rev": "2e34fe1e74b139edda86d2238411902544931efd",
         "type": "github"
       },
       "original": {
@@ -76,11 +76,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793046842,
-        "narHash": "sha256-UXeoFV1RqO2Rpf4PLpbr2QMT+WCDLR9zz09GTSm4CbE=",
+        "lastModified": 1793102576,
+        "narHash": "sha256-vCQWWSanEEgkoc9y4yodwkr0mEhxuzuLvmTTMMLxJso=",
         "owner": "pr0d1r2",
         "repo": "microlith",
-        "rev": "9e3d13ad10dfa447a30ca4c44c1ea14398e3d904",
+        "rev": "60644bda2525722bd1d6a01e85f68af400d6a10d",
         "type": "github"
       },
       "original": {
