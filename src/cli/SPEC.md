@@ -39,7 +39,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - cmd: `xnl init` → write minimal `xenolith.toml` (`version = 1`) in cwd; ⊥ overwrite; prints detected languages & suggested deviations, writes none (convention over configuration).
 - cmd: `xnl migrate [--write]` → root `.<lang>-embedded-shell-allowlist` (`.nix-...`, `.pkl-...` & siblings; line = repo path, `#` = comment) lists FILES, `src/config:V9` ⊥ wildcard ∴ `xenolith::check` (defaults) over listed files → 1 `[[allow]]` ∀ flagged site keyed per `src/config:V10`; `reason` = `migrated from <file>` [`: <comment above entry>`]; listed file missing \| ⊥ flagged site → warning `legacy-missing` \| `legacy-no-site`; ∃ `xenolith.toml` → exit 2, ⊥ merge; default prints diff, exit 1 if non-empty.
 - cmd: `xnl inline [--write] <extract>...` → put extract body back into host via lens inverse (`languages/api/src/lens:V34`); default prints diff; refuses (exit 2) if extract loaded by >1 host.
-- json (`xnl langs`): envelope + `langs`: `[{"id": "shell", "role": "both", "compiled_in": true, "feature": "lang-shell", "sinks": [...], "delims": [...], "checks": [...], "fixers": [...]}]`.
+- json (`xnl langs`): envelope + `langs`: existing languages carry their `id`, `compiled_in`, and `feature` (plus the registry fields `role`, `sinks`, `delims`, `checks`, and `fixers`); planned languages carry only `id` and `compiled_in: false` until a feature exists. For example: `[ {"id": "shell", "compiled_in": true, "feature": "lang-shell", ...}, {"id": "sql", "compiled_in": false} ]`.
 - human (`graph`, `lint`): one line per item `file:line:col <rule|check>: <message>`, summary line last (`N edges, N violations` \| `N checks, N failed`), silent on success unless `--verbose`.
 
 ## §V INVARIANTS
