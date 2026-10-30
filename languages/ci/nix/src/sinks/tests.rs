@@ -464,6 +464,10 @@ fn a_positional_builder_argument_is_a_sink_only_at_its_position() {
     assert_eq!(sink_of(src, r#""n""#), None);
     assert_eq!(sink_of(src, r#""b""#), Some(Sink::WriteShellScript));
 
+    let src = r#"writeShellScriptBin "n" (''x | y
+z'')"#;
+    assert_eq!(sink_of(src, "''x | y\nz''"), Some(Sink::WriteShellScript));
+
     let src = r#"pkgs.runCommand "n" "e" "b""#;
     assert_eq!(sink_of(src, r#""n""#), None);
     assert_eq!(sink_of(src, r#""e""#), None);

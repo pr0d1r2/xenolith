@@ -425,11 +425,9 @@ fn a_path_nix_cannot_load_back_is_refused() {
 }
 
 #[test]
-fn a_string_the_author_parenthesised_is_no_site_to_rewrite() {
-    // So every parenthesis `inline` takes away is one `rewrite` added,
-    // and the lens stays exact.
+fn a_parenthesised_builder_body_is_a_site_to_rewrite() {
     let src = "{ pkgs }: pkgs.writeShellScript \"n\" (''\n  a\n  b\n'')";
-    assert_eq!(NIX.sites(src), Ok(Vec::new()));
+    assert_eq!(NIX.sites(src).map(|sites| sites.len()), Ok(1));
 }
 
 #[test]
