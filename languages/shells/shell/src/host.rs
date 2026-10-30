@@ -15,7 +15,11 @@
 //! terminator -- and which argv holds a program is `sinks`'s, as is the
 //! dialect and options a shell site runs under (`languages/shells/shell:T83`).
 
-use std::{collections::HashMap, io::Write, path::{Path, PathBuf}};
+use std::{
+    collections::HashMap,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use tree_sitter::{Node, Parser, Tree};
 use xenolith_lang_api::{
@@ -240,37 +244,50 @@ fn parse(src: &str) -> Result<Tree> {
 }
 
 fn assignments(src: &str) -> HashMap<&str, &str> {
-    src.lines().filter_map(|line| {
-        let (name, value) = line.trim().split_once('=')?;
-        name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
-            .then_some((name, value.trim().trim_matches(['\'', '"'])))
-    }).collect()
+    src.lines()
+        .filter_map(|line| {
+            let (name, value) = line.trim().split_once('=')?;
+            name.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_')
+                .then_some((name, value.trim().trim_matches(['\'', '"'])))
+        })
+        .collect()
 }
 
 fn collect_loads(node: Node<'_>, src: &str, vars: &HashMap<&str, &str>, found: &mut Vec<LoadRef>) {
     if node.kind() == "command" {
         let name_node = node.child_by_field_name("name");
         let mut cursor = node.walk();
-        let args: Vec<_> = node.named_children(&mut cursor)
+        let args: Vec<_> = node
+            .named_children(&mut cursor)
             .filter(|n| Some(*n) != name_node)
-            .filter(|n| n.kind() != "redirect").collect();
+            .filter(|n| n.kind() != "redirect")
+            .collect();
         if let Some(name) = name_node {
             let command = text(name.named_child(0).unwrap_or(name), src);
             let candidate = if matches!(command, "." | "source" | "bash" | "sh" | "exec") {
                 args.first().copied()
             } else if is_path(command) {
                 name.named_child(0)
-            } else { None };
+            } else {
+                None
+            };
             if let Some(word) = candidate {
                 let path = resolve_path(text(word, src), vars);
                 if is_path(&path) {
-                    found.push(LoadRef { span: span(word), path: PathBuf::from(path), guest: LangId::Shell });
+                    found.push(LoadRef {
+                        span: span(word),
+                        path: PathBuf::from(path),
+                        guest: LangId::Shell,
+                    });
                 }
             }
         }
     }
     let mut cursor = node.walk();
-    for child in node.named_children(&mut cursor) { collect_loads(child, src, vars, found); }
+    for child in node.named_children(&mut cursor) {
+        collect_loads(child, src, vars, found);
+    }
 }
 
 fn is_path(value: &str) -> bool {
