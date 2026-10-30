@@ -208,6 +208,20 @@ pub(crate) fn is_builder(callee: &str) -> bool {
 /// concatenated sink value is in the sink (`languages/ci/nix:T155`).
 pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
     let value = sink_value(string);
+    let value = match value.parent() {
+        Some(parent) if parent.kind() == SyntaxKind::NODE_PAREN => {
+            let expression = parenthesized_expression(&value);
+            if expression
+                .parent()
+                .is_some_and(|p| p.kind() == SyntaxKind::NODE_APPLY)
+            {
+                expression
+            } else {
+                value
+            }
+        }
+        _ => value,
+    };
     let parent = value.parent()?;
     match parent.kind() {
         SyntaxKind::NODE_ATTRPATH_VALUE => attr_value_sink(&parent).or_else(|| {
@@ -246,6 +260,20 @@ pub(crate) fn classify(string: &SyntaxNode) -> Option<Sink> {
         }
         _ => None,
     }
+}
+
+/// The expression represented by `value`, including any parentheses that
+/// group it. Parentheses do not change which sink receives a value, including
+/// the common nixfmt shape around a multi-line builder argument.
+fn parenthesized_expression(value: &SyntaxNode) -> SyntaxNode {
+    let mut expression = value.clone();
+    while let Some(parent) = expression.parent() {
+        if parent.kind() != SyntaxKind::NODE_PAREN {
+            break;
+        }
+        expression = parent;
+    }
+    expression
 }
 
 /// The node that stands in sink position for `string`: the string
