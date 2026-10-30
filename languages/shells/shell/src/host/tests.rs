@@ -20,6 +20,38 @@ fn found(src: &str) -> Vec<Site> {
 }
 
 #[test]
+fn shell_loads_report_resolvable_and_unresolvable_paths() {
+    let src = r#"ROOT=scripts
+. "$(dirname "$0")/$ROOT/used.sh"
+source "$ROOT/also.sh"
+bash scripts/bash.sh
+sh scripts/sh.sh
+exec scripts/exec.sh
+scripts/command.sh
+. "$SOME_ENV/x.sh"
+"#;
+    let loads = ShellHost
+        .loads(src)
+        .unwrap_or_else(|error| panic!("shell loads: {error}"));
+    let paths: Vec<_> = loads
+        .iter()
+        .map(|load| load.path.to_string_lossy())
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            "scripts/used.sh",
+            "scripts/also.sh",
+            "scripts/bash.sh",
+            "scripts/sh.sh",
+            "scripts/exec.sh",
+            "scripts/command.sh",
+            "$SOME_ENV/x.sh",
+        ]
+    );
+}
+
+#[test]
 fn the_walk_reaches_commands_at_any_depth() {
     let src = "f() { for x in 1; do (python3 -c 'print(1)'); done; }\n";
     let sinks: Vec<String> = found(src).into_iter().map(|site| site.sink).collect();
@@ -258,7 +290,6 @@ fn unoffered_operations_are_refused_by_name() {
         guest: LangId::Python,
     };
     let invoke = Invoke { argv: Vec::new() };
-    assert_eq!(ShellHost.loads("").err(), refused("loads"));
     assert_eq!(ShellHost.inline("", &load, "").err(), refused("inline"));
     let rewritten = ShellHost.rewrite("", &site, &invoke, Path::new("x"));
     assert_eq!(rewritten.err(), refused("rewrite"));
