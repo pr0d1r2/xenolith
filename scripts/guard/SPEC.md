@@ -35,7 +35,7 @@ V353: `tdd-order` exemption = closed list `scripts/guard/tdd-order.exempt`: full
 | M3 | publication | T115 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
-T115|.|`scripts/guard/history-audit.sh [REF...]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
+T115|x|`scripts/guard/history-audit.sh [REF...]` + bats: default refs `main` + ∀ tag, any other ref refused (V117); scans ref names, annotated-tag msgs, `git log -p -m --text --format=fuller` (∀ msg, path, blob, merge) vs `.private-names` (`--denylist FILE`); report = denylist line, hit count, commit ids, ⊥ name; ∄ list \| ∄ pattern → FAIL (⊥ vacuous pass); run once before first push|V117,V23
 
 ## §B BUGS
 
