@@ -209,6 +209,46 @@ fn a_depth_below_one_is_refused() {
     assert_eq!(e.key, "extract.depth");
 }
 
+#[test]
+fn rule_templates_are_closed_relative_paths() {
+    for (field, value) in [
+        ("path", "/tmp/{name}"),
+        ("companion", "../{name}"),
+        ("path", "out/{unknown}"),
+        ("companion", "out/{unknown}"),
+    ] {
+        let text =
+            format!("version = 1\n[[extract.rule]]\nguest = \"python\"\n{field} = \"{value}\"\n");
+        let e = err(&text);
+        assert!(e.key.starts_with("extract.rule[0]."), "{e}");
+    }
+}
+
+#[test]
+fn invoke_allows_load_time_template_variables() {
+    let config = ok(
+        "version = 1\n[[extract.rule]]\nguest = \"python\"\ninvoke = [\"run\", \"{path_stem}\"]\n",
+    );
+    let invoke = config
+        .extract
+        .rules
+        .iter()
+        .flat_map(|rule| rule.invoke.as_deref().unwrap_or(&[]))
+        .nth(1)
+        .map(String::as_str);
+    assert_eq!(invoke, Some("{path_stem}"));
+}
+
+#[test]
+fn stale_rules_are_the_rules_matching_no_site() {
+    let config = ok(
+        "version = 1\n[[extract.rule]]\nguest = \"python\"\n[[extract.rule]]\n\
+         sink = \"systemd.*.*.script\"\n",
+    );
+    let stale = config.stale_rules([(LangId::Nix, "systemd.services.web.script", LangId::Shell)]);
+    assert_eq!(stale, vec![0]);
+}
+
 // ---------------------------------------------------------------------
 // [[allow]] (`src/config:V9`, `src/config:V10`)
 // ---------------------------------------------------------------------

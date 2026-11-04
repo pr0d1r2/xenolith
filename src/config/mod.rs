@@ -430,6 +430,33 @@ pub enum Source {
 }
 
 impl Config {
+    /// Return 0-based rule indexes that match no observed extraction site
+    /// (`src/config:V44`). Sites are `(host, sink, guest)` and are compared
+    /// against all present match keys; omitted keys match every site.
+    #[must_use]
+    pub fn stale_rules<'a, I>(&self, sites: I) -> Vec<usize>
+    where
+        I: IntoIterator<Item = (LangId, &'a str, LangId)>,
+    {
+        let sites: Vec<_> = sites.into_iter().collect();
+        self.extract
+            .rules
+            .iter()
+            .enumerate()
+            .filter_map(|(index, rule)| {
+                let matched = sites.iter().any(|(host, sink, guest)| {
+                    rule.host.is_none_or(|value| value == *host)
+                        && rule.guest.is_none_or(|value| value == *guest)
+                        && rule
+                            .sink
+                            .as_deref()
+                            .is_none_or(|glob| sink_glob_matches(glob, sink))
+                });
+                (!matched).then_some(index)
+            })
+            .collect()
+    }
+
     /// The effective value of a concrete dotted key (`threshold.nix.max_lines`,
     /// `lint.shell.extend`), or `None` for a key the table does not hold
     /// or one resolved per site (`extract.rule.base`).
@@ -532,6 +559,22 @@ impl Config {
             Source::Default
         })
     }
+}
+
+fn sink_glob_matches(glob: &str, sink: &str) -> bool {
+    let g: Vec<_> = glob.split('.').collect();
+    let s: Vec<_> = sink.split('.').collect();
+    g.len() == s.len()
+        && g.iter().zip(s).all(|(g, s)| {
+            let mut rest = s;
+            for part in g.split('*') {
+                let Some(at) = rest.find(part) else {
+                    return false;
+                };
+                rest = &rest[at + part.len()..];
+            }
+            true
+        })
 }
 
 /// A guest id usable in `[threshold.<guest>]`: any language but shell
@@ -801,7 +844,54 @@ fn parse_rule(at: &str, t: &Table) -> Result<ExtractRule, ConfigError> {
             "a rule needs at least one of host, sink, guest to match on",
         ));
     }
+    if let Some(path) = &rule.path {
+        validate_template(&format!("{at}.path"), path, true, false)?;
+    }
+    if let Some(path) = &rule.companion {
+        validate_template(&format!("{at}.companion"), path, true, true)?;
+    }
+    if let Some(argv) = &rule.invoke {
+        for (i, arg) in argv.iter().enumerate() {
+            validate_template(&format!("{at}.invoke[{i}]"), arg, false, true)?;
+        }
+    }
     Ok(rule)
+}
+
+/// Validate a placement template while it is loaded (`src/config:V44`).
+fn validate_template(
+    key: &str,
+    template: &str,
+    path_like: bool,
+    allow_load: bool,
+) -> Result<(), ConfigError> {
+    if path_like && template.starts_with('/') {
+        return Err(ConfigError::new(
+            key,
+            "path must be relative to the repository root",
+        ));
+    }
+    let mut rest = template;
+    while let Some(open) = rest.find('{') {
+        let after = &rest[open + 1..];
+        let close = after
+            .find('}')
+            .ok_or_else(|| ConfigError::new(key, "template has an unclosed `{`; expected `}`"))?;
+        let name = &after[..close];
+        let allowed = ["name", "ext", "host_dir", "host_stem", "sink", "guest"];
+        let load_only = ["path", "path_stem"];
+        if !(allowed.contains(&name) || allow_load && load_only.contains(&name)) {
+            return Err(ConfigError::new(
+                key,
+                format!("unknown template variable `{{{name}}}`"),
+            ));
+        }
+        rest = &after[close + 1..];
+    }
+    if path_like && template.split('/').any(|part| part == "..") {
+        return Err(ConfigError::new(key, "path escapes the repository root"));
+    }
+    Ok(())
 }
 
 /// Keys that would pin an allow to a POSITION (`src/config:V10`).
