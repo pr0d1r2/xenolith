@@ -32,6 +32,8 @@ enum Flavour {
     Sound,
     /// `loads` is unsupported.
     NoLoads,
+    /// `loads` cannot parse the rewritten host.
+    LoadsParse,
     /// `rewrite` is unsupported.
     NoRewrite,
     /// `inline` loses the body.
@@ -140,6 +142,9 @@ impl Host for Toy {
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
         if self.flavour == Flavour::NoLoads {
             return Err(Error::unsupported(LangId::Just, "loads"));
+        }
+        if self.flavour == Flavour::LoadsParse {
+            return Err(Error::parse(LangId::Just, "a toy load syntax error"));
         }
         let mut loads = Vec::new();
         for (start, line) in lines(src) {
@@ -818,6 +823,17 @@ fn a_host_that_cannot_read_its_loads_cannot_prove_the_rewrite() {
     assert!(why.contains("src/extract:V4"), "{why}");
     assert!(why.contains("load idiom stays a Judgment"), "{why}");
     assert!(why.contains("does not support `loads`"), "{why}");
+}
+
+#[test]
+fn a_host_load_parse_error_is_not_called_a_judgment() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    put(&root, "a.loadsparse", "build=shell: make && make test\n");
+    let why = only_refusal(&plan(&sandbox, &root, &["a.loadsparse"]));
+    assert!(why.contains("cannot prove the rewrite lossless"), "{why}");
+    assert!(!why.contains("load idiom stays a Judgment"), "{why}");
+    assert!(why.contains("parse failed"), "{why}");
 }
 
 #[test]
