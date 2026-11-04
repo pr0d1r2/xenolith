@@ -963,12 +963,17 @@ fn prelude(p: &Planned<'_>) -> Result<Prelude, String> {
 /// (`src/extract:V5`).
 fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result<(), String> {
     let host = file.host;
-    let loads = host.loads(after).map_err(|e| {
-        format!(
+    let loads = host.loads(after).map_err(|e| match e {
+        xenolith_lang_api::Error::Unsupported { .. } => format!(
             "cannot prove the rewrite lossless (src/extract:V4): the {} host's load idiom \
              stays a Judgment, so extraction is refused; it cannot read its loads back: {e}",
             host.id()
-        )
+        ),
+        e => format!(
+            "cannot prove the rewrite lossless (src/extract:V4): the {} host's loads \
+             could not be read back: {e}",
+            host.id()
+        ),
     })?;
     let mut back = after.to_owned();
     // Loads in `ready` order are back to front already.
