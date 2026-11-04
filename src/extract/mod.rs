@@ -969,7 +969,7 @@ fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result
              stays a Judgment, so extraction is refused; it cannot read its loads back: {e}",
             host.id()
         ),
-        e => format!(
+        e @ xenolith_lang_api::Error::Parse { .. } => format!(
             "cannot prove the rewrite lossless (src/extract:V4): the {} host's loads \
              could not be read back: {e}",
             host.id()
