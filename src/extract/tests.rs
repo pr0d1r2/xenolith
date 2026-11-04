@@ -53,6 +53,10 @@ const NO_LOADS: Toy = Toy {
     ext: "noloads",
     flavour: Flavour::NoLoads,
 };
+const LOADS_PARSE: Toy = Toy {
+    ext: "loadsparse",
+    flavour: Flavour::LoadsParse,
+};
 const NO_REWRITE: Toy = Toy {
     ext: "norewrite",
     flavour: Flavour::NoRewrite,
@@ -335,7 +339,15 @@ impl Guest for Sh {
     }
 }
 
-const HOSTS: &[&dyn Host] = &[&SOUND, &NO_LOADS, &NO_REWRITE, &LOSSY, &STICKY, &PARAMS];
+const HOSTS: &[&dyn Host] = &[
+    &SOUND,
+    &NO_LOADS,
+    &LOADS_PARSE,
+    &NO_REWRITE,
+    &LOSSY,
+    &STICKY,
+    &PARAMS,
+];
 const GUESTS: &[&dyn Guest] = &[&Sh];
 
 /// The toy hosts and the `sh` guest, for the engines that read loads
