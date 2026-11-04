@@ -255,8 +255,11 @@ fn a_rule_matching_a_site_is_not_stale() {
         "version = 1\n[[extract.rule]]\nhost = \"nix\"\nsink = \"systemd.*.*.script\"\n\
          guest = \"shell\"\n",
     );
-    assert!(config.stale_rules([(LangId::Nix, "systemd.services.web.script", LangId::Shell)])
-        .is_empty());
+    assert!(
+        config
+            .stale_rules([(LangId::Nix, "systemd.services.web.script", LangId::Shell)])
+            .is_empty()
+    );
 }
 
 // ---------------------------------------------------------------------
