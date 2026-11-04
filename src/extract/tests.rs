@@ -816,6 +816,8 @@ fn a_host_that_cannot_read_its_loads_cannot_prove_the_rewrite() {
     put(&root, "a.noloads", "build=shell: make && make test\n");
     let why = only_refusal(&plan(&sandbox, &root, &["a.noloads"]));
     assert!(why.contains("src/extract:V4"), "{why}");
+    assert!(why.contains("load idiom stays a Judgment"), "{why}");
+    assert!(why.contains("does not support `loads`"), "{why}");
 }
 
 #[test]

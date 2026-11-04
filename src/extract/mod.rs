@@ -965,8 +965,8 @@ fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result
     let host = file.host;
     let loads = host.loads(after).map_err(|e| {
         format!(
-            "cannot prove the rewrite lossless (src/extract:V4): the {} host cannot read its \
-             loads back: {e}",
+            "cannot prove the rewrite lossless (src/extract:V4): the {} host's load idiom \
+             stays a Judgment, so extraction is refused; it cannot read its loads back: {e}",
             host.id()
         )
     })?;
