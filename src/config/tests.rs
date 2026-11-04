@@ -249,6 +249,16 @@ fn stale_rules_are_the_rules_matching_no_site() {
     assert_eq!(stale, vec![0]);
 }
 
+#[test]
+fn a_rule_matching_a_site_is_not_stale() {
+    let config = ok(
+        "version = 1\n[[extract.rule]]\nhost = \"nix\"\nsink = \"systemd.*.*.script\"\n\
+         guest = \"shell\"\n",
+    );
+    assert!(config.stale_rules([(LangId::Nix, "systemd.services.web.script", LangId::Shell)])
+        .is_empty());
+}
+
 // ---------------------------------------------------------------------
 // [[allow]] (`src/config:V9`, `src/config:V10`)
 // ---------------------------------------------------------------------
@@ -738,6 +748,7 @@ fn the_derived_rule_base_is_overridable_per_rule() {
     assert!(matches!(entry.map(|e| &e.value), Some(Setting::Derived(_))));
     let config = ok("version = 1\n[[extract.rule]]\nhost = \"nix\"\nbase = \"host\"\n");
     assert_eq!(nth(&config.extract.rules, 0).base, Some(Base::Host));
+    assert_eq!(config.source("extract.rule.base"), Some(Source::Default));
 }
 
 #[test]
