@@ -18,7 +18,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §C CONSTRAINTS
 
-- C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`); `sherd` = crates.io release built in nix (V351), ⊥ flake input. `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other declared input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges, when declared by the tool revision, follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
+- C6: nix flake. inputs ! `nixpkgs-lock` (`github:pr0d1r2/nixpkgs-lock`), `nix-hk` (`github:pr0d1r2/nix-hk`), `nix-cargo-release` (`github:pr0d1r2/nix-cargo-release`), `itok` (`github:pr0d1r2/itok`), `microlith` (`github:pr0d1r2/microlith`); `sherd` = crates.io release built in nix (V351), ⊥ flake input. `nixpkgs.follows = "nixpkgs-lock/nixpkgs"`; ∀ other declared input follows root `nixpkgs-lock` & `nix-hk`; tool→tool edges, when declared by the tool revision, follow root. ⊥ other nixpkgs edge. `flake.lock` committed, pure eval, ⊥ IFD. tool inputs = dev/guardrail only, ⊥ in `packages.default` closure.
 - C7: systems: declared 4 (`aarch64-darwin`, `x86_64-darwin`, `x86_64-linux`, `aarch64-linux`); tier-1 3 (⊥ `x86_64-darwin`) built + pushed cachix `pr0d1r2` from `main` only (mirror `nix-hk`).
 - C8: consumers take `xenolith` as flake input w/ `inputs.nixpkgs-lock.follows = "nixpkgs-lock"` ∴ same rev, cache hit. consumer picks language subset → `lang-*` features ∴ binary carries only those grammars & sinks. subset ≠ default → built locally (cachix holds default = all only), trade: smaller & faster binary vs cache miss.
 - C20: cycle risk: itok, microlith, sherd may later adopt xenolith as guard → flake input cycle. ∴ those edges ! be devShell-only & `follows` root; ⊥ lib (cargo) dep on each other ?. decide before first consumer adopts.
@@ -31,7 +31,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §V INVARIANTS
 
-V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith` (+ valid follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
+V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `nix-cargo-release`, `itok`, `microlith` (+ valid follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 V96: `packages.default` = `xnl` wrapped w/ PATH ⊇ ∀ confirmed (non-`?`) default check & fixer of compiled-in languages & hosts; `languages` override drops tools of excluded languages; dev-only inputs still excluded (V29).

@@ -17,7 +17,7 @@
     ];
   };
 
-  # FOUR declared inputs, ONE nixpkgs (`nix:C6`, `nix:V17`). `nixpkgs-lock` is
+  # FIVE declared inputs, ONE nixpkgs (`nix:C6`, `nix:V17`). `nixpkgs-lock` is
   # the fleet's sole nixpkgs authority and every other input follows it, so
   # this repo names no revision of its own and the agreement is a property of
   # the graph rather than of matching strings in four files.
@@ -37,6 +37,11 @@
 
     nix-hk = {
       url = "github:pr0d1r2/nix-hk";
+      inputs.nixpkgs-lock.follows = "nixpkgs-lock";
+    };
+
+    nix-cargo-release = {
+      url = "github:pr0d1r2/nix-cargo-release";
       inputs.nixpkgs-lock.follows = "nixpkgs-lock";
     };
 
@@ -69,6 +74,7 @@
       self,
       nixpkgs,
       nix-hk,
+      nix-cargo-release,
       itok,
       microlith,
       ...
@@ -93,7 +99,9 @@
           system:
           f {
             inherit system;
-            pkgs = nixpkgs.legacyPackages.${system}.extend nix-hk.overlays.default;
+            pkgs =
+              (nixpkgs.legacyPackages.${system}.extend nix-hk.overlays.default).extend
+                nix-cargo-release.overlays.default;
           }
         );
 
