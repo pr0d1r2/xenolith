@@ -348,7 +348,7 @@ same failure as a gap you cannot.
 | crate metadata for every crate, checked rather than reviewed | `nix:T111` |
 | each `.crate` run from its unpacked tarball, not only compiled | `nix:T112` |
 | the `Unreleased` rule of the changelog has no runner yet | `nix:T109` |
-| `cargo-release` is not in the dev shell; the first release brings it | `.:T32` |
+| the release runner is pinned in the dev shell; bumping it is a Nix toolchain change | `nix:V109` |
 | `--format sarif` | `src/cli:T103` |
 
 ## Deeper
