@@ -16,3 +16,9 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" != *"input 'microlith' has an override for a non-existent input 'itok'"* ]]
 }
+
+@test "the dev shell carries cargo-release 1.1.6" {
+  run nix develop --no-write-lock-file --command cargo release --version
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"cargo-release 1.1.6"* ]]
+}
