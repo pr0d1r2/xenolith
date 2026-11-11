@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# The mirrored test also exercises the dev-shell tool pin.
 #
 # The flake output check: evaluate the Intel Darwin package and verify that
 # its derivation targets the declared system (`nix:C7`).

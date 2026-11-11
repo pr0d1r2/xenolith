@@ -113,7 +113,9 @@ in
 
     # The release runner `release.toml` configures (`nix:V109`), as in every
     # published sibling. It lives here so the runbook runs from the one
-    # pinned toolchain; the release is still cut by hand from `main`.
+    # pinned toolchain; the release is still cut by hand from `main`. Held at
+    # 1.1.6 by the nix-cargo-release overlay in `flake.nix`, dropped when the
+    # channel's own cargo-release builds (`nix-cargo-release/T2`).
     pkgs.cargo-release
 
     # Tools for steps that touch files no compiler reads.
