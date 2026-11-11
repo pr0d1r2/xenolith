@@ -31,7 +31,7 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 
 ## §V INVARIANTS
 
-V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `nix-cargo-release`, `itok`, `microlith` (+ valid follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
+V17: flake inputs ! exactly `nixpkgs-lock`, `nix-hk`, `itok`, `microlith` (+ valid follows per C6); `flake.lock` holds exactly 1 nixpkgs node, rev ≡ nixpkgs-lock rev; check fails otherwise.
 V29: `packages.default` closure ∌ itok, microlith, sherd, hk (dev-only inputs, C6).
 V31: nix `languages` subset exact: `xnl langs` of subset build lists exactly subset as compiled in; unknown name → eval error listing supported names, ⊥ silent drop; empty list = eval error.
 V96: `packages.default` = `xnl` wrapped w/ PATH ⊇ ∀ confirmed (non-`?`) default check & fixer of compiled-in languages & hosts; `languages` override drops tools of excluded languages; dev-only inputs still excluded (V29).
