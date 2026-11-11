@@ -22,3 +22,8 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"cargo-release 1.1.6"* ]]
 }
+
+@test "the flake checks its exact root input set" {
+  run nix build --no-write-lock-file --no-link .#checks.x86_64-linux.input-set
+  [ "$status" -eq 0 ]
+}

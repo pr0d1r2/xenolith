@@ -75,7 +75,7 @@
   };
 
   outputs =
-    {
+    inputs@{
       self,
       nixpkgs,
       nix-hk,
@@ -85,6 +85,15 @@
       ...
     }:
     let
+      rootInputNames = builtins.attrNames (builtins.removeAttrs inputs [ "self" ]);
+      expectedRootInputNames = [
+        "itok"
+        "microlith"
+        "nix-cargo-release"
+        "nix-hk"
+        "nixpkgs"
+        "nixpkgs-lock"
+      ];
       # Four systems are declared, three are tier-1 (`nix:C7`). Intel Darwin
       # remains declared for consumers even though CI builds the other three.
       systems = [
@@ -134,9 +143,16 @@
       # packaged `xnl check` over the whole tree (`nix/checks.nix`).
       checks = forAll (
         { pkgs, system }:
-        import ./nix/checks.nix {
+        (import ./nix/checks.nix {
           inherit pkgs;
           package = self.packages.${system}.default;
+        })
+        // {
+          input-set = pkgs.runCommand "xenolith-input-set" { } ''
+            test "${builtins.concatStringsSep " " (builtins.sort builtins.lessThan rootInputNames)}" \
+              = "${builtins.concatStringsSep " " expectedRootInputNames}"
+            touch $out
+          '';
         }
       );
 
