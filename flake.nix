@@ -148,11 +148,8 @@
           package = self.packages.${system}.default;
         })
         // {
-          input-set = pkgs.runCommand "xenolith-input-set" { } ''
-            test "${builtins.concatStringsSep " " (builtins.sort builtins.lessThan rootInputNames)}" \
-              = "${builtins.concatStringsSep " " expectedRootInputNames}"
-            touch $out
-          '';
+          input-set = assert builtins.sort builtins.lessThan rootInputNames == expectedRootInputNames;
+            pkgs.runCommand "xenolith-input-set" { } "touch $out";
         }
       );
 
