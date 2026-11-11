@@ -148,7 +148,8 @@
           package = self.packages.${system}.default;
         })
         // {
-          input-set = assert builtins.sort builtins.lessThan rootInputNames == expectedRootInputNames;
+          input-set =
+            assert builtins.sort builtins.lessThan rootInputNames == expectedRootInputNames;
             pkgs.runCommand "xenolith-input-set" { } "touch $out";
         }
       );
