@@ -76,11 +76,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793781308,
-        "narHash": "sha256-VXZz0U1Qu7UuqzgmfkiErKrREBEwWGrpMUnkDmIibWM=",
+        "lastModified": 1794350284,
+        "narHash": "sha256-Z2zoQ7PQQmq3UFrGHAjJq8pxcWD+ocQSVY3736iBeRA=",
         "owner": "pr0d1r2",
         "repo": "microlith",
-        "rev": "751b558eb74acddfdd1c444c5dd2bd2339f095e1",
+        "rev": "74dad95d511e090d909917fe66a654363e78fe9f",
         "type": "github"
       },
       "original": {
@@ -101,11 +101,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792764389,
-        "narHash": "sha256-A1sYRpNqyjgR70kyJiMOile1tlAmnFS1XS/X2oid5Oc=",
+        "lastModified": 1794111757,
+        "narHash": "sha256-XLyQRpoYkJXYCKT4ojhaPqqga7ScaA1bi2qqBq8d9kI=",
         "owner": "pr0d1r2",
         "repo": "nix-hk",
-        "rev": "f4a98a5bc459827c68f27efa357688120ea0a633",
+        "rev": "80fc71583b941ba1d8e7df0d7f89ba52c0edd22d",
         "type": "github"
       },
       "original": {
