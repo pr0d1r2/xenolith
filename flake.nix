@@ -40,6 +40,11 @@
       inputs.nixpkgs-lock.follows = "nixpkgs-lock";
     };
 
+    # A HOLD, not a tool pin: cargo-release 1.1.6. nixos-26.05 ships 1.1.7,
+    # which needs rustc 1.97 while the channel has 1.95.0, so the channel's
+    # `pkgs.cargo-release` does not build. Its overlay makes
+    # `pkgs.cargo-release` the held build, cached on cachix. Drop the input
+    # once the channel's own cargo-release builds (`nix-cargo-release/T2`).
     nix-cargo-release = {
       url = "github:pr0d1r2/nix-cargo-release";
       inputs.nixpkgs-lock.follows = "nixpkgs-lock";
