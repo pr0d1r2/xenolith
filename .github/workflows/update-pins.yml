@@ -37,7 +37,7 @@ jobs:
 
       - name: open update pull request
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.UPDATE_PINS_TOKEN }}
         run: |
           if git diff --quiet -- flake.lock; then
             exit 0
