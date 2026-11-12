@@ -46,6 +46,7 @@ jobs:
           git switch -C "$branch"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          gh auth setup-git
           git add flake.lock
           git commit -m "chore(nix): refresh flake pins"
           git push --force-with-lease --set-upstream origin "$branch"
