@@ -12,7 +12,6 @@ setup() {
   SCRIPT="${BATS_TEST_DIRNAME}/../../../../scripts/nix/dogfood.sh"
   BIN="${BATS_TEST_TMPDIR}/bin"
   SRC="${BATS_TEST_TMPDIR}/src"
-  MISSING="${BATS_TEST_TMPDIR}/missing-${BATS_TEST_NUMBER}"
   OUT="${BATS_TEST_TMPDIR}/out"
   mkdir -p "$BIN" "$SRC"
 }
@@ -70,7 +69,7 @@ run_dogfood() {
 
 @test "a source directory that does not exist fails before xnl runs" {
   stub_xnl
-  run_dogfood "$MISSING" "$OUT"
+  run_dogfood "${BATS_TEST_TMPDIR}/missing" "$OUT"
   [ "$status" -ne 0 ]
   [ ! -f "${BATS_TEST_TMPDIR}/xnl-calls" ]
   [ ! -e "$OUT" ]
