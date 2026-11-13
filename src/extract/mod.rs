@@ -57,6 +57,7 @@ use crate::registry;
 use self::place::{Ask, Field, Placed, Vars};
 
 pub(crate) mod back;
+mod bytes;
 pub mod diff;
 pub mod inline;
 pub mod lock;
@@ -988,7 +989,7 @@ fn prove(file: &Read<'_>, after: &str, ready: &[(&Planned<'_>, Move)]) -> Result
             )
         })?;
     }
-    if words(&back) != words(&file.text) {
+    if !bytes::equivalent(back.as_bytes(), file.text.as_bytes()) {
         return Err(
             "inlining the extracts does not give the host back, so the rewrite is not \
              lossless (src/extract:V4)"
@@ -1040,12 +1041,6 @@ fn unread_load(p: &Planned<'_>, m: &Move, host: LangId) -> String {
             m.load
         ),
     }
-}
-
-/// Text compared with whitespace normalised (`src/extract:V4`, until
-/// `src/extract:T67`).
-fn words(text: &str) -> Vec<&str> {
-    text.split_whitespace().collect()
 }
 
 /// `--verbose`: each field of the site's placement and the layer that

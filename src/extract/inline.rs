@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::back::{again, back, loaders};
-use super::{Edit, ExtractError, Gone, HostEdit, Read, Refusal, excluded, position, scan, words};
+use super::{Edit, ExtractError, Gone, HostEdit, Read, Refusal, bytes, excluded, position, scan};
 use crate::check::{Langs, repo_name};
 use crate::config::{Config, Tree, Verb};
 use crate::discover::discover_with;
@@ -202,7 +202,7 @@ fn inline_file(
         }
         let extract = b.extract.clone();
         let proof = again(root, name, &mut read, &extract).map_err(&refused)?;
-        if words(&proof.after) != words(&text) {
+        if !bytes::equivalent(proof.after.as_bytes(), text.as_bytes()) {
             return Err(refused(
                 "extracting its site again does not give the host back, so putting it back \
                  is not the exact inverse (src/extract:V101)"
