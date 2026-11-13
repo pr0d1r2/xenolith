@@ -69,8 +69,10 @@ run_dogfood() {
 
 @test "a source directory that does not exist fails before xnl runs" {
   stub_xnl
-  run_dogfood "${BATS_TEST_TMPDIR}/missing" "$OUT"
+  missing="${BATS_TEST_TMPDIR}/missing-${BATS_TEST_NUMBER}"
+  run_dogfood "$missing" "$OUT"
   [ "$status" -ne 0 ]
+  [[ "$output" == *"dogfood: source directory does not exist: $missing"* ]]
   [ ! -f "${BATS_TEST_TMPDIR}/xnl-calls" ]
   [ ! -e "$OUT" ]
 }
