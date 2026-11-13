@@ -24,6 +24,9 @@ setup() {
 }
 
 @test "the flake checks its exact root input set" {
-  run nix build --no-write-lock-file --no-link .#checks.x86_64-linux.input-set
+  # The check is an `assert` the attribute forces at eval time, so evaluating
+  # its drvPath proves it on every host. Building it would need an
+  # x86_64-linux builder, which the arm and macOS runners do not have.
+  run nix eval --no-write-lock-file --raw .#checks.x86_64-linux.input-set.drvPath
   [ "$status" -eq 0 ]
 }
