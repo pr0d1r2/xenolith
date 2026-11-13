@@ -22,11 +22,6 @@ fi
 src="$1"
 out="$2"
 
-if [ ! -d "$src" ]; then
-  echo "dogfood: source directory does not exist: $src" >&2
-  exit 1
-fi
-
 cd "$src"
 # Not `exec`: the output is created only after a clean run, and a failing
 # run keeps its own exit code (1 = findings, 2 = refused) under `set -e`.
