@@ -32,56 +32,11 @@ behind the full gate, and never by hand.
 
 ## [Unreleased]
 
-## [0.2.1] - 2026-11-10
-
-A patch on the `0.2` rung, off the ladder (`nix:V110`): the next rung,
-`0.3`, is milestone M4 (CI languages -- yaml, dockerfile), which has not
-landed. What a caller can observe: `xnl graph` follows a shell script's
-own loads (`. lib.sh`, `bash ./x.sh`) and can flag one that dangles; a nix
-builder whose body sits in parentheses is now a site; a bad
-`[[extract.rule]]` template is refused when `xenolith.toml` loads; and
-`xnl langs` marks languages with no feature yet as `planned`.
-`cargo semver-checks` finds no API break against `v0.2.0` (`nix:V111`),
-but a repository that passed `xnl check` or `xnl graph` under 0.2.0 can
-fail under 0.2.1 -- each such failure is an embed or load 0.2.0 missed.
-
-### Added
-
-- `xnl graph` reads loads out of shell hosts: `.` / `source`, `bash`,
-  `sh` or `exec` followed by a path, and a script run by its path
-  (`./x.sh`, `lib/y.bash`). `$VAR` and `${VAR}` set earlier in the file
-  and a leading `$(dirname "$0")/` or `$(dirname "${BASH_SOURCE[0]}")/`
-  are resolved; a load whose file does not exist is a `dangling-load`, and
-  a shell host that does not parse is a host error in `xnl graph` rather
-  than being counted as unknown.
-- `[[extract.rule]]` templates are validated when the config loads:
-  `path`, `companion` and each `invoke` argument may use only the known
-  template variables (`{name}`, `{ext}`, `{host_dir}`, `{host_stem}`,
-  `{sink}`, `{guest}`, plus `{path}` / `{path_stem}` in `companion` and
-  `invoke`); an unclosed `{`, an absolute path or a `..` that leaves the
-  repository is a config error naming the key.
-- The library gains `Config::stale_rules`, the extract rules that match no
-  observed site. The CLI does not report `stale-rule` findings yet.
-
-### Changed
-
-- `xnl langs` shows a language with no `lang-*` feature yet as `planned`,
-  with no feature column (and no `feature` field in `--format json`),
-  instead of `compiled-out` with a feature name that does not exist.
-- An `xnl extract` refusal for a host whose loads cannot be read back now
-  says why: its load idiom is still unsupported, or the rewritten file's
-  loads failed to parse.
-
-### Fixed
-
-- A nix builder whose body is parenthesised, as nixfmt writes it --
-  `pkgs.writeShellScript "n" (''...'')` -- is now a site: it is checked
-  and can be extracted, where 0.2.0 skipped it.
-
 ## [0.2.0] - 2026-10-25
 
-The 0.1 surface, settled: every host is now read by pure Rust, so no
-crate in the workspace compiles C; valid Tcl the old grammar refused is
+The 0.1 surface, settled: every host formerly backed by a vendored grammar
+is now read by pure Rust; the shell and Python guests still use their
+published tree-sitter grammar crates. Valid Tcl the old grammar refused is
 read; Intel Macs get a flake package; and python joins as a guest. Even
 rung (CHANGELOG ladder, `nix:V110`). A minor rather than a patch because
 the just, pkl and tcl crates drop their public `grammar` module and the pkl
