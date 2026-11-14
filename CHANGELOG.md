@@ -34,8 +34,9 @@ behind the full gate, and never by hand.
 
 ## [0.2.0] - 2026-10-25
 
-The 0.1 surface, settled: every host is now read by pure Rust, so no
-crate in the workspace compiles C; valid Tcl the old grammar refused is
+The 0.1 surface, settled: every host formerly backed by a vendored grammar
+is now read by pure Rust; the shell and Python guests still use their
+published tree-sitter grammar crates. Valid Tcl the old grammar refused is
 read; Intel Macs get a flake package; and python joins as a guest. Even
 rung (CHANGELOG ladder, `nix:V110`). A minor rather than a patch because
 the just, pkl and tcl crates drop their public `grammar` module and the pkl
