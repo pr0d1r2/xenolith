@@ -31,6 +31,7 @@ self|.|-
 R1|local corpus 2026-11-14|8 anonymised sibling checkouts; tracked-file language proxy totals: Rust 724, shell 221 (`.sh` + `.bash`), Nix 151, YAML 119 (`.yml` + `.yaml`), TOML 98, Pkl 21, XML 1, plist 5, jq 4, awk 1; Markdown 732 is documentation and excluded from host-language prioritisation per `languages:C18`|read-only `git ls-files` aggregation, counts only (`scripts/guard:C17`)
 R2|local corpus 2026-11-14|the available executable survey found 7 expected xenolith violations in one checkout (Nix hosts with shell guests); no crash, lens-law break, wrong-guest, false-positive or false-negative shape was observed; unrelated checkout roots were refused by the binary's root-containment interface and are not claimed as measured|read-only `xnl check --format json`, counts and failure shapes only (`tests:V118`)
 R3|M3+ ordering 2026-11-14|prioritise CI hosts (YAML, Dockerfile), then data hosts (Python, SQL, jq, awk), then web (HTML, JS/CSS), then application hosts (Rust, Ruby); sparse XML/plist and jq/awk counts do not justify reordering the already federated M3+ groups; Rust's high file count supports leaving application hosts last until the smaller host families are complete|derived from R1, deterministic tie-break = existing `.:C25` milestone groups
+R4|publication identity recheck 2026-11-14|`github.com/pr0d1r2/xenolith` already exists; crates.io already serves `xenolith` 0.2.0 and its `xenolith-lang-*` workspace dependencies, so the names are no longer free; the checked-out history has one commit and no `lydite` message to retain or remove; root Cargo metadata already names the GitHub repository|read-only repository/package checks; no rename or history rewrite was performed
 
 ## §V INVARIANTS
 V19: xenolith repo passes own `xnl check`, `xnl graph`, `xnl lint` (dogfood, C19).
@@ -46,7 +47,7 @@ V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only 
 
 id|status|task|cites
 T32|x|release 0.2.0: version & CHANGELOG via PR, then tag, crates.io publish ∀ workspace crate in dependency order shebang → api → languages → root (new crate `xenolith-lang-python`), lockstep version; publish = owner|`src:C1`, `nix:V109`
-T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src:C1`
+T116|x|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src:C1`
 
 ## §B BUGS
 id|date|cause|fix
