@@ -41,12 +41,11 @@ V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end |  | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M2 | language survey & corpus run | T95 | counts & failure shapes recorded, every finding filed as a fixture (`tests:V118`) |
+| M2 | language survey & corpus run |  | counts & failure shapes recorded, every finding filed as a fixture (`tests:V118`) |
 | M3 | publication | T32, T116 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 
 id|status|task|cites
 T32|x|release 0.2.0: version & CHANGELOG via PR, then tag, crates.io publish ∀ workspace crate in dependency order shebang → api → languages → root (new crate `xenolith-lang-python`), lockstep version; publish = owner|`src:C1`, `nix:V109`
-T95|x|M2 language survey: aggregate language & embed counts over sibling local repos, ⊥ names in repo; propose M3+ groups|C25
 T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; decide whether commit messages citing the unrelated `lydite` project stay|`src:C1`
 
 ## §B BUGS
