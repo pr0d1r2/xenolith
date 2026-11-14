@@ -47,7 +47,7 @@ V90: ∀ sherd node dir ∃ `xenolith.toml` (≥ `version = 1`, deviations only 
 
 id|status|task|cites
 T32|x|release 0.2.0: version & CHANGELOG via PR, then tag, crates.io publish ∀ workspace crate in dependency order shebang → api → languages → root (new crate `xenolith-lang-python`), lockstep version; publish = owner|`src:C1`, `nix:V109`
-T116|.|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; record the decision to retain historical commit messages citing the unrelated `lydite` project|`src:C1`
+T116|x|before first publish: recheck crates.io / nixpkgs / Homebrew for `xenolith`, `xenolith-lang-*`, `xenolith-shebang`, `xnl` (free 2026-09-19); create `github.com/pr0d1r2/xenolith`; rename checkout dir; record the decision to retain historical commit messages citing the unrelated `lydite` project|`src:C1`
 
 ## §B BUGS
 id|date|cause|fix
