@@ -61,14 +61,13 @@ V127: ONE writer: `extract --write` (& `--relocate`, `xnl inline`) takes an advi
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
 | M1 | nix + pkl + shell end-to-end | T51, T65 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
-| M3 | publication | T67 | public doc set, release machinery, history audit green, crates published (`.:T32`) |
+| M3 | publication | — | public doc set, release machinery, history audit green, crates published (`.:T32`) |
 | M4 | CI languages -- yaml, dockerfile | T23 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
 T23|.|`extract` remaining hosts (Dockerfile, rust, ruby, html)|V4,V5,V6
 T51|.|companion creation under `--write` w/ V4--V6 laws|V49
 T65|.|fixpoint extraction w/ depth limit; fixture nix → shell → python (3 levels) & one over limit|V65
-T67|x|byte fidelity (CRLF, BOM, trailing newline, non-UTF-8) via dedicated crate in preparation, ⊥ public yet (unnamed per `scripts/guard:C17`); until then V4 compares normalized whitespace|V4,`scripts/guard:C17`
 
 ## §B BUGS
 
