@@ -415,12 +415,10 @@ a language can be added without touching the engines
 
 ## Status
 
-**`0.2.1` -- the 0.1 surface, settled** (even rung; see the ladder in
+**`0.2.0` -- the 0.1 surface, settled** (even rung; see the ladder in
 [CHANGELOG.md](CHANGELOG.md)): every host read by pure Rust, valid Tcl no
 longer refused, a package for Intel Macs, and python as a guest; the
-`0.2.1` patch adds shell loads to `xnl graph` and reads parenthesised nix
-builder bodies. What this
-page describes is what that release builds; anything planned is marked
+This page describes what that release builds; anything planned is marked
 with the spec task that will deliver it.
 
 `0.1.0` was milestone M3 of [`SPEC.md`](SPEC.md): the six languages above,
