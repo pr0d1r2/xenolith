@@ -793,6 +793,11 @@ fn an_unparseable_bash_body_in_a_nix_script_is_flagged_and_extractable() {
     let Some(direction) = violation.directions.first() else {
         panic!("expected an extraction direction: {violation:?}")
     };
+    assert_eq!(
+        direction.kind,
+        crate::model::Fix::Mechanical,
+        "{violation:?}"
+    );
     assert!(
         direction.action.contains("`xnl extract broken.nix:2`"),
         "{violation:?}"
