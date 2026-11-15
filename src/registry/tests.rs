@@ -133,6 +133,17 @@ fn the_tcl_host_claims_tcl_and_expect_files_alone() {
     assert!(!claiming("scripts/a.sh", "#!/usr/bin/env bash").contains(&LangId::Tcl));
 }
 
+#[cfg(feature = "lang-shell")]
+#[test]
+fn a_file_can_be_claimed_by_tcl_and_shell() {
+    let claiming = hosts()
+        .iter()
+        .filter(|host| host.claims(Path::new("bin/tool.exp"), "#!/usr/bin/env bash"))
+        .map(|host| host.id())
+        .collect::<Vec<_>>();
+    assert_eq!(claiming, [LangId::Shell, LangId::Tcl]);
+}
+
 /// The xml HOST claims text plists and `.xml`, never a binary plist
 /// (`languages/data/xml:V188`), and no other host claims either.
 #[cfg(feature = "lang-xml")]
