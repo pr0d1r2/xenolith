@@ -17,7 +17,6 @@
 
 use std::{
     collections::HashMap,
-    io::Write,
     path::{Path, PathBuf},
 };
 
@@ -100,18 +99,12 @@ impl Host for ShellHost {
     /// Every heredoc fed to an interpreter as its program, and every
     /// `-c`/`-e` argument, sorted by span (`languages/shells/shell:V139`).
     ///
-    /// ANY parse error fails the whole file, as nix's host does: spans
-    /// inside and after an `ERROR` node are the parser's guess, and a site
-    /// built on a guess rewrites the wrong bytes (`languages:V78`).
+    /// Sites inside an `ERROR`/`MISSING` region are skipped because their
+    /// spans are unreliable; valid sibling regions remain discoverable
+    /// (`languages:V78`). File-level parse policy is applied by the caller.
     fn sites(&self, src: &str) -> Result<Vec<Site>> {
         let tree = parse(src)?;
         let root = tree.root_node();
-        if root.has_error() && !bash_accepts(src) {
-            return Err(Error::parse(
-                LangId::Shell,
-                "the file is not valid shell, so none of its sites were read",
-            ));
-        }
         let mut found = Vec::new();
         walk(root, src, &mut found);
         found.sort_by_key(|site| site.delim.open);
@@ -189,31 +182,6 @@ impl Host for ShellHost {
     fn fixers(&self) -> Vec<LintCmd> {
         vec![raw(&["shfmt", "--write"])]
     }
-}
-
-/// tree-sitter-bash 0.25.1 rejects several valid bash parameter expansions
-/// and read-write redirects. Bash remains the authority for whether the host
-/// itself is syntactically valid; the tree is still used for site discovery.
-fn bash_accepts(src: &str) -> bool {
-    let mut command = std::process::Command::new("bash");
-    command
-        .arg("-n")
-        .stdin(std::process::Stdio::piped())
-        // Syntax diagnostics are an implementation detail here. The caller
-        // reports the parse failure if bash rejects the file; leaking bash's
-        // stderr would make xnl's diagnostic noisy.
-        .stderr(std::process::Stdio::null());
-    let Ok(mut child) = command.spawn() else {
-        return false;
-    };
-    let Some(mut stdin) = child.stdin.take() else {
-        return false;
-    };
-    if stdin.write_all(src.as_bytes()).is_err() {
-        return false;
-    }
-    drop(stdin);
-    child.wait().is_ok_and(|status| status.success())
 }
 
 /// Whether a shebang runs zsh: its resolved interpreter's basename, the
@@ -330,10 +298,16 @@ fn hole(node: Node<'_>, src: &str) -> Span {
 
 /// Every site at or under `node`.
 fn walk(node: Node<'_>, src: &str, out: &mut Vec<Site>) {
-    match node.kind() {
-        "command" => out.extend(argv_site(node, src)),
-        "redirected_statement" => out.extend(heredoc_site(node, src)),
-        _ => {}
+    // Spans below tree-sitter's ERROR/MISSING recovery nodes are not
+    // trustworthy (`languages:V78`).  Do not report a site from a damaged
+    // candidate, but keep walking: siblings before and after the damaged
+    // region remain independently usable.
+    if !node.has_error() {
+        match node.kind() {
+            "command" => out.extend(argv_site(node, src)),
+            "redirected_statement" => out.extend(heredoc_site(node, src)),
+            _ => {}
+        }
     }
     let mut cursor = node.walk();
     for child in node.named_children(&mut cursor) {
