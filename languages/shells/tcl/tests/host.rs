@@ -51,6 +51,15 @@ fn other_files_are_not_claimed() {
 }
 
 #[test]
+fn claim_fixtures_cover_overlap_none_and_shebang_only() {
+    // This shell-looking path remains a Tcl claim because the shebang names
+    // Tcl; the registry therefore keeps both host claims (`languages:V56`).
+    assert!(claims("bin/tool.sh", "#!/usr/bin/env tclsh"));
+    assert!(!claims("notes.txt", ""));
+    assert!(claims("bin/tool", "#!/usr/bin/env tclsh"));
+}
+
+#[test]
 fn an_exp_file_is_the_expect_dialect() {
     // T199: `.exp` → dialect expect, as is an expect shebang; plain tcl
     // names no dialect.

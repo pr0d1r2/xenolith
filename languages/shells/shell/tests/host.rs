@@ -130,6 +130,17 @@ fn other_files_are_not_claimed() {
 }
 
 #[test]
+fn claim_fixtures_cover_overlap_none_and_shebang_only() {
+    // A `.sh` path with a Tcl shebang is intentionally claimed by both
+    // hosts; the registry must retain both claims (`languages:V56`).
+    assert!(claims("bin/tool.sh", "#!/usr/bin/env tclsh"));
+    // Neither a shell suffix/name nor a shell shebang means no claim.
+    assert!(!claims("notes.txt", ""));
+    // An interpreter line alone is enough for an anonymous shell file.
+    assert!(claims("bin/tool", "#!/usr/bin/env bash"));
+}
+
+#[test]
 fn the_host_checks_its_own_files_with_shellcheck_and_shfmt() {
     // `languages/shells/shell` §G: the default linters. The dialect is the
     // file's own shebang or extension, which both tools read themselves.
