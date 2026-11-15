@@ -761,6 +761,60 @@ fn a_nix_script_calling_a_package_moves_with_its_hole_through_replace_strings() 
 
 #[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
 #[test]
+fn an_unparseable_bash_body_in_a_nix_script_is_flagged_and_extractable() {
+    // `languages:V77`: the Nix host is parseable, but the Bash guest is not.
+    // Check must report the guest parse error, while extract must still move
+    // the bytes so the guest linter can report the same error on its own
+    // file.
+    let sandbox = Sandbox::new();
+    let root = sandbox.plain("r");
+    let module = concat!(
+        "{\n  systemd.services.broken.script = ''\n",
+        "    if true; then\n      echo broken\n  '';\n}\n",
+    );
+    put(&root, "broken.nix", module);
+
+    let report = crate::check::check(
+        &root,
+        &Config::default(),
+        &crate::check::Options {
+            paths: vec!["broken.nix".into()],
+            ..crate::check::Options::default()
+        },
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let [violation] = report.violations() else {
+        panic!("expected one violation, got {report:?}")
+    };
+    assert!(
+        violation.why.starts_with("unparseable shell"),
+        "{violation:?}"
+    );
+    let Some(direction) = violation.directions.first() else {
+        panic!("expected an extraction direction: {violation:?}")
+    };
+    assert!(
+        direction.action.contains("`xnl extract broken.nix:2`"),
+        "{violation:?}"
+    );
+
+    let edit = real(&sandbox, &root, &["broken.nix"]);
+    assert!(edit.refusals.is_empty(), "{}", refusals(&edit));
+    let [host] = edit.hosts.as_slice() else {
+        panic!("{:?}", edit.hosts)
+    };
+    assert!(
+        host.after
+            .contains("builtins.readFile ./broken/broken-script.sh")
+    );
+    let [extract] = host.extracts.as_slice() else {
+        panic!("{:?}", host.extracts)
+    };
+    assert!(extract.text.contains("if true; then\n  echo broken"));
+}
+
+#[cfg(all(feature = "lang-nix", feature = "lang-shell"))]
+#[test]
 fn a_nix_hole_in_single_quotes_stays_a_judgement() {
     let sandbox = Sandbox::new();
     let root = sandbox.plain("r");
