@@ -1,0 +1,3 @@
+# The Nix host remains parseable while the Bash guest is not: V77 belongs to
+# the cross-language check/extract engine, not to host site discovery.
+systemd.services.broken.script | '' | bash errexit | - | "\n    if true; then\n      echo broken\n  "
