@@ -256,21 +256,20 @@ fn sites_are_sorted_by_span() {
 }
 
 #[test]
-fn a_file_that_does_not_parse_is_an_error_not_a_clean_file() {
-    // `languages:V78`: spans inside and after an ERROR node are not
-    // trustworthy enough to cut a file on, so the file is reported as
-    // broken rather than scanned in part.
-    let found = ShellHost.sites("python3 -c 'print(1)'\nif then fi (\n");
-    assert!(
-        matches!(
-            found,
-            Err(Error::Parse {
-                lang: LangId::Shell,
-                ..
-            })
-        ),
-        "{found:?}"
+fn sites_inside_a_host_error_region_are_skipped() {
+    // `languages:V78`: the parser's recovery span is not safe to rewrite,
+    // but intact sibling commands remain independently discoverable.
+    let src = concat!(
+        "python3 -c 'print(\"before\")'\n",
+        "if then python3 -c 'print(\"inside\")' fi\n",
+        "python3 -c 'print(\"after\")'\n",
     );
+    let found = ShellHost.sites(src).unwrap_or_else(|e| panic!("{e}"));
+    let bodies: Vec<_> = found
+        .iter()
+        .filter_map(|site| site.delim.body.of(src))
+        .collect();
+    assert_eq!(bodies, ["print(\"before\")", "print(\"after\")"]);
 }
 
 #[test]
