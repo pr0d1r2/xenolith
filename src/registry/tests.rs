@@ -133,7 +133,7 @@ fn the_tcl_host_claims_tcl_and_expect_files_alone() {
     assert!(!claiming("scripts/a.sh", "#!/usr/bin/env bash").contains(&LangId::Tcl));
 }
 
-#[cfg(feature = "lang-shell")]
+#[cfg(all(feature = "lang-shell", feature = "lang-tcl"))]
 #[test]
 fn a_file_can_be_claimed_by_tcl_and_shell() {
     let claiming = hosts()
