@@ -58,7 +58,7 @@ V129: languages grouped by family under hubs `languages/{shells,ci,data,web}` (`
 | M4 | CI languages -- yaml, dockerfile | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
-T57|.|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
+T57|x|`claims` ∀ host + fixtures: file claimed by 2 hosts, by none, by shebang only|V56
 T77|.|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
