@@ -53,12 +53,11 @@ V129: languages grouped by family under hubs `languages/{shells,ci,data,web}` (`
 
 | id | scope | tasks | done-when |
 |----|-------|-------|-----------|
-| M1 | nix + pkl + shell end-to-end | T77, T78, T82, T120 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
+| M1 | nix + pkl + shell end-to-end | T78, T82, T120 | `xnl check`/`extract`/`graph`/`lint` green on this repo for nix, pkl & shell (`.:V19`) |
 | M2 | kinship & test hosts | T128, T130| ∀ `base` & `lookalike` edge carries its fixtures (`languages:V130`, `languages:V131`) |
 | M4 | CI languages -- yaml, dockerfile | T86 | each host claims its files & extracts w/ fixtures (`languages:V56`) |
 
 id|status|task|cites
-T77|x|unparseable guest body flagged & extracted; fixture: broken bash in nix `script`|V77
 T78|.|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
 T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
 T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/ci/yaml:V75`
