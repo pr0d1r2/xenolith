@@ -110,7 +110,7 @@ fn shebang_cannot_override_forced_detection() {
             tag: None,
             rejects: &[],
         }),
-        Some(LangId::Shell)
+        None
     );
 }
 
