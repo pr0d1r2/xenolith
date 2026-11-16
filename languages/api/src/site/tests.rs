@@ -99,6 +99,22 @@ fn shebang_overrides_explicit_context() {
 }
 
 #[test]
+fn shebang_cannot_override_forced_detection() {
+    let candidates = [LangId::Shell, LangId::Python];
+    assert_eq!(
+        detect_guest(Detection {
+            candidates: &candidates,
+            forced: Some(LangId::Shell),
+            context: None,
+            shebang: Some(LangId::Python),
+            tag: None,
+            rejects: &[],
+        }),
+        Some(LangId::Shell)
+    );
+}
+
+#[test]
 fn heredoc_tag_narrows_candidates() {
     let candidates = [LangId::Shell, LangId::Python, LangId::Sql];
     assert_eq!(
