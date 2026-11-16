@@ -1,3 +1,3 @@
-build/placement/compile.sh | run: bash .github/scripts/placement/compile.sh
-build/placement/run-checks.sh | run: bash .github/scripts/placement/run-checks.sh
-build/placement/build-2.sh | run: bash .github/scripts/placement/build-2.sh
+build/placement/compile.sh | run: bash .github/scripts/input/compile.sh
+build/placement/run-checks.sh | run: bash .github/scripts/input/run-checks.sh
+build/placement/build-2.sh | run: bash .github/scripts/input/build-2.sh
