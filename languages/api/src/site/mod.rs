@@ -194,12 +194,7 @@ pub fn detect_guest(input: Detection<'_>) -> Option<LangId> {
         // A body shebang is authoritative over an interpreter inferred from
         // the host context.  It still cannot introduce a guest the host did
         // not offer as a candidate.
-        remaining = input
-            .candidates
-            .iter()
-            .copied()
-            .filter(|candidate| *candidate == lang)
-            .collect();
+        remaining.retain(|candidate| *candidate == lang);
     }
     if let Some(lang) = input.tag {
         remaining.retain(|candidate| *candidate == lang);
