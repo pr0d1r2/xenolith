@@ -34,7 +34,7 @@ V97: GH `${{ }}` holes → step `env:` entries `NAME: ${{ expr }}` (NAME per `la
 
 id|status|task|cites
 T14|.|host yaml GH Actions `run:` + fixtures|`languages/shells/shell:V3`,`tests:V14`,`tests:V15`
-T74|.|GH Actions placement + fixture w/ step `id`, named step, anonymous step|`languages:V74`,V75
+T74|x|GH Actions placement + fixture w/ step `id`, named step, anonymous step|`languages:V74`,V75
 T100|.|holes → step `env:`; fixture: `${{ github.event.issue.title }}` in `run:` → env entry, zizmor clean after|V97
 
 ## §B BUGS

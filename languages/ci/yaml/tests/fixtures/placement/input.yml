@@ -1,0 +1,12 @@
+name: placement
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - id: compile
+        run: make build
+      - name: Run checks
+        run: |
+          make check
+          make test
+      - run: echo anonymous

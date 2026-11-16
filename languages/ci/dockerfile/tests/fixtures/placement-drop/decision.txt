@@ -1,0 +1,3 @@
+drop: Dockerfile -> docker/<stage>-<n>.sh
+reason: COPY uses the build context, while the proposed extract is relative to the Dockerfile; multi-stage and alternate contexts make the /tmp load ambiguous.
+contract: no placement until a Dockerfile-native load preserves HostDir.
