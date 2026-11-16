@@ -37,7 +37,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 pub use crate::shebang::{Prelude, Shebang};
-pub use crate::site::{Delim, DelimKind, GuestEnv, Placement, Site};
+pub use crate::site::{Delim, DelimKind, Detection, GuestEnv, Placement, Site, detect_guest};
 
 /// Every language xenolith knows, whether or not this build compiled its
 /// crate in.

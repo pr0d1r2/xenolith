@@ -59,7 +59,7 @@ V129: languages grouped by family under hubs `languages/{shells,ci,data,web}` (`
 
 id|status|task|cites
 T78|x|host `ERROR` regions skipped; fixtures: site before/inside/after syntax error|V78
-T82|.|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
+T82|x|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
 T86|.|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/ci/yaml:V75`
 T120|.|vendoring harness: `cc` build, rev+license record, notices hook, `cargo package` proves the C ships (`nix:V113`)|V121,`docs:V108`
 T128|.|kinship table in api + fixture pairs ∀ `base` & ∀ `lookalike` edge (2 per base, 1 pair per lookalike)|V130,V131,`languages/api:V33`,`tests:V15`

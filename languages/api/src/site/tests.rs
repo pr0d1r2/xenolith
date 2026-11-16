@@ -1,7 +1,8 @@
 //! Unit tests for `site` (`src:C139`): the one function the site types
 //! carry, [`DelimKind::runs_line_by_line`] (`languages/api/src/site` §I).
 
-use super::DelimKind;
+use super::{DelimKind, Detection, detect_guest};
+use crate::LangId;
 
 /// Every delimiter kind, one of each; the `match` stops compiling when a
 /// kind is added, which is when its answer has to be decided.
@@ -69,4 +70,65 @@ fn only_the_just_recipe_body_runs_line_by_line() {
         .filter(DelimKind::runs_line_by_line)
         .collect();
     assert_eq!(line_by_line, vec![DelimKind::JustRecipe]);
+}
+
+fn detection(
+    candidates: &[LangId],
+    context: Option<&[LangId]>,
+    shebang: Option<LangId>,
+    tag: Option<LangId>,
+) -> Option<LangId> {
+    detect_guest(Detection {
+        candidates,
+        forced: None,
+        context,
+        shebang,
+        tag,
+        rejects: &[],
+    })
+}
+
+#[test]
+fn shebang_overrides_explicit_context() {
+    let candidates = [LangId::Shell, LangId::Python];
+    let context = [LangId::Shell];
+    assert_eq!(
+        detection(&candidates, Some(&context), Some(LangId::Python), None),
+        Some(LangId::Python)
+    );
+}
+
+#[test]
+fn heredoc_tag_narrows_candidates() {
+    let candidates = [LangId::Shell, LangId::Python, LangId::Sql];
+    assert_eq!(
+        detection(&candidates, None, None, Some(LangId::Sql)),
+        Some(LangId::Sql)
+    );
+}
+
+#[test]
+fn ambiguous_detection_keeps_host_order() {
+    let candidates = [LangId::Python, LangId::Shell];
+    assert_eq!(
+        detection(&candidates, None, None, None),
+        Some(LangId::Python)
+    );
+}
+
+#[test]
+fn no_candidate_is_unknown() {
+    let candidates = [LangId::Shell];
+    let rejects = [LangId::Shell];
+    assert_eq!(
+        detect_guest(Detection {
+            candidates: &candidates,
+            forced: None,
+            context: None,
+            shebang: None,
+            tag: None,
+            rejects: &rejects
+        }),
+        None
+    );
 }
