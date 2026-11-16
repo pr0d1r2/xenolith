@@ -24,7 +24,7 @@ sib|languages/ci/yaml|yaml parser, GH Actions sinks, placement
 ## §V INVARIANTS
 
 V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `Containerfile.*`.
-V88: Dockerfile offers no placement until a load idiom preserves the `HostDir` base (`languages:V74`) across build contexts and multi-stage rewrites; the dropped prototype is covered by `tests/fixtures/placement-drop`.
+V88: Dockerfile offers no placement until a load idiom preserves the `HostDir` base (`languages:V74`) across build contexts and multi-stage rewrites; the dropped prototype is documented by `tests/fixtures/placement-drop`.
 
 ## §T TASKS
 
