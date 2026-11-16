@@ -17,11 +17,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794736173,
-        "narHash": "sha256-EGqLTAb4B9xnCdcqqU0cRiNjI9C8/FMxSZT853ypdfM=",
+        "lastModified": 1794783416,
+        "narHash": "sha256-yZQPHGFm9AnHMfdvoeJ7L7KAFSQDKHcIztuTVCgudG4=",
         "owner": "pr0d1r2",
         "repo": "itok",
-        "rev": "6dac287a92a060582f897bbabdee0498ec506007",
+        "rev": "27bdbf6b0342125a8a5f1b41ab4375bd10d5ea61",
         "type": "github"
       },
       "original": {
