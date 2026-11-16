@@ -19,18 +19,12 @@ sib|languages/ci/yaml|yaml parser, GH Actions sinks, placement
 ## §I INTERFACES
 
 - sinks: `RUN` > single simple command, `RUN <<EOF` heredoc → guest shell (dialect per `SHELL`, default `sh -c`); load after extract: `COPY` + `RUN sh /tmp/<name>.sh` (prototype, `languages` §I).
-- placement: ⊥ for now. The prototype (`<dockerfile_dir>/docker/<stage>-<n>.sh` plus
-  `COPY`/`RUN bash /tmp/<name>.sh`) is dropped: `COPY` is resolved from the
-  build context while the extract is host-relative, and the rewrite would
-  silently depend on context layout and stage ordering. Revisit with a
-  Dockerfile-native load contract and fixtures before offering placement.
+- placement: ⊥ for now. The prototype (`<dockerfile_dir>/docker/<stage>-<n>.sh` plus `COPY`/`RUN bash /tmp/<name>.sh`) is dropped: `COPY` is resolved from the build context while the extract is host-relative, and the rewrite would silently depend on context layout and stage ordering. Revisit with a Dockerfile-native load contract and fixtures before offering placement.
 
 ## §V INVARIANTS
 
 V87: `claims`: `Dockerfile`, `Dockerfile.*`, `*.dockerfile`, `Containerfile`, `Containerfile.*`.
-V88: Dockerfile offers no placement until a load idiom preserves the
-`HostDir` base (`languages:V74`) across build contexts and multi-stage
-rewrites; the dropped prototype is covered by `tests/fixtures/placement-drop`.
+V88: Dockerfile offers no placement until a load idiom preserves the `HostDir` base (`languages:V74`) across build contexts and multi-stage rewrites; the dropped prototype is covered by `tests/fixtures/placement-drop`.
 
 ## §T TASKS
 
