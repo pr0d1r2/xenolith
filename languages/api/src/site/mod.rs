@@ -159,3 +159,51 @@ pub struct GuestEnv {
     /// Effective options at the site: `errexit`, `nounset`, `pipefail`.
     pub options: Vec<String>,
 }
+
+/// Inputs to the deterministic guest exclusion pipeline (`languages:V81`).
+/// Every slice is already ordered by the host; detection only removes
+/// candidates and never ranks them.
+#[derive(Debug, Clone, Copy)]
+pub struct Detection<'a> {
+    /// The ordered candidates from the host sink.
+    pub candidates: &'a [LangId],
+    /// A matching `[[detect]]` rule, if any.
+    pub forced: Option<LangId>,
+    /// Languages permitted by explicit interpreter context.
+    pub context: Option<&'a [LangId]>,
+    /// The language named by a shebang in the guest body.
+    pub shebang: Option<LangId>,
+    /// The language named by a heredoc tag.
+    pub tag: Option<LangId>,
+    /// Guest vetoes, evaluated after contextual filters.
+    pub rejects: &'a [LangId],
+}
+
+/// Select a guest by exclusion, returning `None` for the `unknown` judgment.
+/// The stages are fixed: forced rule, explicit context, shebang, tag, vetoes.
+#[must_use]
+pub fn detect_guest(input: Detection<'_>) -> Option<LangId> {
+    let mut remaining = input.candidates.to_vec();
+    if let Some(lang) = input.forced {
+        remaining.retain(|candidate| *candidate == lang);
+    }
+    if let Some(context) = input.context {
+        remaining.retain(|candidate| context.contains(candidate));
+    }
+    if let Some(lang) = input.shebang {
+        // A body shebang is authoritative over an interpreter inferred from
+        // the host context.  It still cannot introduce a guest the host did
+        // not offer as a candidate.
+        remaining = input
+            .candidates
+            .iter()
+            .copied()
+            .filter(|candidate| *candidate == lang)
+            .collect();
+    }
+    if let Some(lang) = input.tag {
+        remaining.retain(|candidate| *candidate == lang);
+    }
+    remaining.retain(|candidate| !input.rejects.contains(candidate));
+    remaining.into_iter().next()
+}
