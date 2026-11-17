@@ -394,6 +394,16 @@ pub fn vendored(root: &Path) -> Result<Vec<notices::Vendored>, String> {
         .iter()
         .map(|record| {
             let dir = record.trim_end_matches("/UPSTREAM").to_string();
+            let upstream = read(root, record)?;
+            for field in ["repo", "rev", "license"] {
+                if notices::upstream_field(&upstream, field)
+                    .is_none_or(|value| value.trim().is_empty())
+                {
+                    return Err(format!(
+                        "xenolith-dev: {record}: UPSTREAM missing {field} (languages:V121)"
+                    ));
+                }
+            }
             let mut files: Vec<String> = walk(&root.join(&dir), &|p| {
                 !p.contains('/') && (select::is_notice_name(p))
             });
@@ -403,7 +413,7 @@ pub fn vendored(root: &Path) -> Result<Vec<notices::Vendored>, String> {
                 None => None,
             };
             Ok(notices::Vendored {
-                upstream: read(root, record)?,
+                upstream,
                 dir,
                 files,
                 notice,
