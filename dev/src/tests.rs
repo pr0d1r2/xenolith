@@ -280,7 +280,7 @@ fn notices_write_check_and_refuse_a_hand_edit() {
     for expected in [
         "| `a-tool-crate` | 1.2.3 | `MIT` |",
         "### `tree-sitter-n`",
-        "- upstream: <https://example.org/n> at `unrecorded`",
+        "- upstream: <https://example.org/n> at `main`",
         "```text\nCopyright N\n```",
         "| `shellcheck` | shellcheck | 0.11.0 | `GPL-3.0-or-later` |",
     ] {
@@ -316,6 +316,12 @@ fn notices_name_an_owner_that_cannot_be_read() {
 fn vendored_grammars_are_found_with_their_licence_files() {
     let repo = Repo::new();
     repo.write("languages/ci/nix/vendor/tree-sitter-n/src/parser.c", "");
+    repo.write(
+        "languages/ci/nix/vendor/tree-sitter-n/UPSTREAM",
+        "repo: https://example.org/n\nrev: main\nlicense: MIT\n",
+    );
+    repo.write("languages/ci/nix/vendor/tree-sitter-n/LICENSE", "MIT\n");
+    repo.write("languages/ci/nix/vendor/tree-sitter-n/NOTICE.txt", "Copyright N\n");
     repo.write("docs/vendor/UPSTREAM.md", "");
     let v = vendored(&repo.dir).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(v.len(), 1);
@@ -323,6 +329,14 @@ fn vendored_grammars_are_found_with_their_licence_files() {
     assert_eq!(first.dir, "languages/ci/nix/vendor/tree-sitter-n");
     assert_eq!(first.files, vec!["LICENSE", "NOTICE.txt"]);
     assert_eq!(first.notice.as_deref(), Some("Copyright N\n"));
+}
+
+#[test]
+fn vendored_grammar_requires_upstream_identity() {
+    let repo = Repo::new();
+    repo.write("languages/ci/nix/vendor/tree-sitter-n/UPSTREAM", "repo: https://example.org/n\n");
+    let err = vendored(&repo.dir).err().unwrap_or_default();
+    assert!(err.contains("rev") && err.contains("UPSTREAM"), "{err}");
 }
 
 /// The hooks' entry point: every job runs, each failure is named, and
