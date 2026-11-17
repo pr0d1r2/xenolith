@@ -1,0 +1,1 @@
+@test "child syntax accepted by shell grammar" { run echo ok; }

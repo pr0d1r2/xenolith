@@ -55,12 +55,20 @@ pub use crate::site::{Delim, DelimKind, Detection, GuestEnv, Placement, Site, de
 pub enum LangId {
     /// AWK, a guest only.
     Awk,
+    /// Bats, a test-host language based on shell.
+    Bats,
     /// CSS, a guest of HTML.
     Css,
     /// Dockerfile, a host whose `RUN` lines hold shell.
     Dockerfile,
+    /// GNU awk's dialect, based on awk.
+    Gawk,
+    /// gojq's dialect, based on jq.
+    Gojq,
     /// HTML, a host of inline script and style.
     Html,
+    /// jaq's dialect, based on jq.
+    Jaq,
     /// jq, a guest only.
     Jq,
     /// JavaScript, a guest of HTML.
@@ -73,6 +81,8 @@ pub enum LangId {
     Perl,
     /// Pkl, a host of hk steps and other command strings.
     Pkl,
+    /// `PostgreSQL`'s SQL dialect.
+    Postgres,
     /// Python, a guest only.
     Python,
     /// Ruby, a host of SQL, shell and JavaScript heredocs.
@@ -95,15 +105,20 @@ impl LangId {
     /// Every variant, in sort order.
     pub const ALL: &'static [LangId] = &[
         LangId::Awk,
+        LangId::Bats,
         LangId::Css,
         LangId::Dockerfile,
+        LangId::Gawk,
+        LangId::Gojq,
         LangId::Html,
+        LangId::Jaq,
         LangId::Jq,
         LangId::Js,
         LangId::Just,
         LangId::Nix,
         LangId::Perl,
         LangId::Pkl,
+        LangId::Postgres,
         LangId::Python,
         LangId::Ruby,
         LangId::Rust,
@@ -124,15 +139,20 @@ impl LangId {
     pub const fn as_str(self) -> &'static str {
         match self {
             LangId::Awk => "awk",
+            LangId::Bats => "bats",
             LangId::Css => "css",
             LangId::Dockerfile => "dockerfile",
+            LangId::Gawk => "gawk",
+            LangId::Gojq => "gojq",
             LangId::Html => "html",
+            LangId::Jaq => "jaq",
             LangId::Jq => "jq",
             LangId::Js => "js",
             LangId::Just => "just",
             LangId::Nix => "nix",
             LangId::Perl => "perl",
             LangId::Pkl => "pkl",
+            LangId::Postgres => "postgres",
             LangId::Python => "python",
             LangId::Ruby => "ruby",
             LangId::Rust => "rust",
@@ -153,6 +173,30 @@ impl LangId {
     #[must_use]
     pub fn from_name(name: &str) -> Option<LangId> {
         LangId::ALL.iter().copied().find(|id| id.as_str() == name)
+    }
+
+    /// The language this dialect is based on, if any (`languages:V130`).
+    #[must_use]
+    pub const fn base_of(self) -> Option<LangId> {
+        match self {
+            Self::Bats => Some(Self::Shell),
+            Self::Gawk => Some(Self::Awk),
+            Self::Gojq | Self::Jaq => Some(Self::Jq),
+            Self::Postgres => Some(Self::Sql),
+            _ => None,
+        }
+    }
+
+    /// Languages whose surface can be mistaken for `self` (`languages:V131`).
+    #[must_use]
+    pub const fn lookalikes(self) -> &'static [LangId] {
+        match self {
+            Self::Awk | Self::Jq | Self::Perl => &[Self::Shell],
+            Self::Nix => &[Self::Pkl],
+            Self::Pkl => &[Self::Nix],
+            Self::Shell => &[Self::Awk, Self::Jq, Self::Perl],
+            _ => &[],
+        }
     }
 }
 

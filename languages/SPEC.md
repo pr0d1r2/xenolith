@@ -62,7 +62,7 @@ T78|x|host `ERROR` regions skipped; fixtures: site before/inside/after syntax er
 T82|x|detection pipeline; fixtures: shebang overrides context, tag narrows, ambiguous → host order, none → `unknown`|V81
 T86|x|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/ci/yaml:V75`,`languages/ci/dockerfile:V88`
 T120|x|vendoring harness: `cc` build, rev+license record, notices hook, `cargo package` proves the C ships (`nix:V113`)|V121,`docs:V108`
-T128|.|kinship table in api + fixture pairs ∀ `base` & ∀ `lookalike` edge (2 per base, 1 pair per lookalike)|V130,V131,`languages/api:V33`,`tests:V15`
+T128|x|kinship table in api + fixture pairs ∀ `base` & ∀ `lookalike` edge (2 per base, 1 pair per lookalike)|V130,V131,`languages/api:V33`,`tests:V15`
 T130|.|evaluate tree-sitter `injections.scm` as a CANDIDATE source ?: upstream grammars already declare which node holds which language ∴ `Host::candidates` could READ them than restate sinks by hand. decide: consume, vendor-and-consume, or reject w/ reason|V81,`languages/api/src/site` §I
 
 ## §B BUGS

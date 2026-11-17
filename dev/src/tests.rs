@@ -200,7 +200,7 @@ fn readme_writes_then_checks_clean_and_is_idempotent() {
     for expected in [
         "direct_dependencies-2",
         "federated_nodes-2",
-        "languages-1_built,_17_planned",
+        "languages-1_built,_22_planned",
         "| nix | default build | `lang-nix` | [`languages/ci/nix`](languages/ci/nix/SPEC.md) |",
         "| awk | planned | -- | -- |",
     ] {
