@@ -1,1 +1,1 @@
-def jaq_only: .;
+def true: .; true
