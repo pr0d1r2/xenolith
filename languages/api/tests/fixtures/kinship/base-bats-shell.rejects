@@ -1,0 +1,1 @@
+@test "child syntax" { setup_file() { true; } }

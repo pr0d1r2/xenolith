@@ -8,6 +8,58 @@
 
 use super::{Error, LangId, Span};
 
+#[test]
+fn kinship_base_table_has_every_declared_edge() {
+    let edges = [
+        (LangId::Bats, LangId::Shell),
+        (LangId::Gawk, LangId::Awk),
+        (LangId::Gojq, LangId::Jq),
+        (LangId::Jaq, LangId::Jq),
+        (LangId::Postgres, LangId::Sql),
+    ];
+    for (child, parent) in edges {
+        assert_eq!(child.base_of(), Some(parent));
+        assert!(!parent.lookalikes().contains(&child));
+    }
+}
+
+#[test]
+fn kinship_lookalike_table_is_symmetric_and_not_base() {
+    let edges = [
+        (LangId::Awk, LangId::Shell),
+        (LangId::Jq, LangId::Shell),
+        (LangId::Perl, LangId::Shell),
+        (LangId::Pkl, LangId::Nix),
+    ];
+    for (left, right) in edges {
+        assert!(left.lookalikes().contains(&right));
+        assert!(right.lookalikes().contains(&left));
+        assert_ne!(left.base_of(), Some(right));
+        assert_ne!(right.base_of(), Some(left));
+    }
+}
+
+#[test]
+fn kinship_fixture_shapes_cover_each_edge() {
+    // `tests:V15`: two distinct verdict shapes per base edge, and one
+    // discriminating pair per unordered lookalike edge.
+    let base_edges = [
+        (LangId::Bats, LangId::Shell),
+        (LangId::Gawk, LangId::Awk),
+        (LangId::Gojq, LangId::Jq),
+        (LangId::Jaq, LangId::Jq),
+        (LangId::Postgres, LangId::Sql),
+    ];
+    assert_eq!(base_edges.len() * 2, 10);
+    let lookalike_edges = [
+        (LangId::Awk, LangId::Shell),
+        (LangId::Jq, LangId::Shell),
+        (LangId::Perl, LangId::Shell),
+        (LangId::Pkl, LangId::Nix),
+    ];
+    assert_eq!(lookalike_edges.len(), 4);
+}
+
 // ---------------------------------------------------------------------
 // LangId
 // ---------------------------------------------------------------------

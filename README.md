@@ -6,7 +6,7 @@
 [![MSRV 1.95](https://img.shields.io/badge/MSRV-1.95-000000?logo=rust&logoColor=white)](Cargo.toml)
 [![direct dependencies 8](https://img.shields.io/badge/direct_dependencies-8-brightgreen)](docs/THIRD-PARTY-NOTICES.md)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-brightgreen)](Cargo.toml)
-[![languages 7 built, 11 planned](https://img.shields.io/badge/languages-7_built,_11_planned-6E4AFF)](languages/SPEC.md)
+[![languages 7 built, 16 planned](https://img.shields.io/badge/languages-7_built,_16_planned-6E4AFF)](languages/SPEC.md)
 
 [![gate hk](https://img.shields.io/badge/gate-hk-6E4AFF)](hk.pkl)
 [![gate steps 46](https://img.shields.io/badge/gate_steps-46-6E4AFF)](hk.pkl)
@@ -333,15 +333,20 @@ langs` prints, plus where each one's rules live:
 | language | in `xnl` | cargo feature | spec |
 |---|---|---|---|
 | awk | planned | -- | [`languages/data/awk`](languages/data/awk/SPEC.md) |
+| bats | planned | -- | [`languages/shells/bats`](languages/shells/bats/SPEC.md) |
 | css | planned | -- | [`languages/web/css`](languages/web/css/SPEC.md) |
 | dockerfile | planned | -- | [`languages/ci/dockerfile`](languages/ci/dockerfile/SPEC.md) |
+| gawk | planned | -- | -- |
+| gojq | planned | -- | -- |
 | html | planned | -- | [`languages/web/html`](languages/web/html/SPEC.md) |
+| jaq | planned | -- | -- |
 | jq | planned | -- | [`languages/data/jq`](languages/data/jq/SPEC.md) |
 | js | planned | -- | [`languages/web/js`](languages/web/js/SPEC.md) |
 | just | default build | `lang-just` | [`languages/ci/just`](languages/ci/just/SPEC.md) |
 | nix | default build | `lang-nix` | [`languages/ci/nix`](languages/ci/nix/SPEC.md) |
 | perl | planned | -- | [`languages/data/perl`](languages/data/perl/SPEC.md) |
 | pkl | default build | `lang-pkl` | [`languages/ci/pkl`](languages/ci/pkl/SPEC.md) |
+| postgres | planned | -- | -- |
 | python | default build | `lang-python` | [`languages/data/python`](languages/data/python/SPEC.md) |
 | ruby | planned | -- | [`languages/ruby`](languages/ruby/SPEC.md) |
 | rust | planned | -- | [`languages/rust`](languages/rust/SPEC.md) |

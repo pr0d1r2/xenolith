@@ -24,15 +24,20 @@ fn lang_id_names_every_language_in_the_federation() {
     // adding its variant fails here (`languages/api:V33`).
     for (id, name) in [
         (LangId::Awk, "awk"),
+        (LangId::Bats, "bats"),
         (LangId::Css, "css"),
         (LangId::Dockerfile, "dockerfile"),
+        (LangId::Gawk, "gawk"),
+        (LangId::Gojq, "gojq"),
         (LangId::Html, "html"),
         (LangId::Jq, "jq"),
         (LangId::Js, "js"),
+        (LangId::Jaq, "jaq"),
         (LangId::Just, "just"),
         (LangId::Nix, "nix"),
         (LangId::Perl, "perl"),
         (LangId::Pkl, "pkl"),
+        (LangId::Postgres, "postgres"),
         (LangId::Python, "python"),
         (LangId::Ruby, "ruby"),
         (LangId::Rust, "rust"),
@@ -52,7 +57,7 @@ fn lang_id_all_is_complete_and_sorted() {
     // The registry iterates in `LangId` order (`src/registry:V41`), so the order
     // has to be a property of this type rather than of each caller.
     let all = LangId::ALL;
-    assert_eq!(all.len(), 18, "a language was added without a variant");
+    assert_eq!(all.len(), 23, "a language was added without a variant");
     let mut sorted = all.to_vec();
     sorted.sort_unstable();
     assert_eq!(sorted.as_slice(), all, "LangId::ALL must be sorted");
