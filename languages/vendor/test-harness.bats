@@ -6,6 +6,7 @@ setup() {
   printf '%s\n' '[package]' 'name = "fixture-grammar"' 'version = "0.1.0"' 'edition = "2021"' 'license = "MIT"' 'include = ["Cargo.toml", "build.rs", "src/**", "UPSTREAM", "LICENSE"]' >"${fixture}/Cargo.toml"
   printf '%s\n' '[build-dependencies]' 'cc = "1"' >>"${fixture}/Cargo.toml"
   printf '%s\n' 'fn main() { cc::Build::new().file("src/parser.c").compile("fixture-grammar"); }' >"${fixture}/build.rs"
+  printf '%s\n' 'pub fn fixture_parser() {}' >"${fixture}/src/lib.rs"
   printf '%s\n' 'int fixture_parser(void) { return 0; }' >"${fixture}/src/parser.c"
   printf '%s\n' 'repo: https://example.invalid/tree-sitter-fixture' 'rev: deadbeef' 'license: MIT' >"${fixture}/UPSTREAM"
   printf '%s\n' 'MIT License' >"${fixture}/LICENSE"
