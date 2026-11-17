@@ -58,6 +58,47 @@ fn kinship_fixture_shapes_cover_each_edge() {
         (LangId::Pkl, LangId::Nix),
     ];
     assert_eq!(lookalike_edges.len(), 4);
+
+    let fixture_dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/kinship");
+    let mut actual = std::fs::read_dir(&fixture_dir)
+        .unwrap_or_else(|error| panic!("read {}: {error}", fixture_dir.display()))
+        .map(|entry| {
+            let entry = entry.unwrap_or_else(|error| panic!("read kinship fixture entry: {error}"));
+            entry.file_name().to_string_lossy().into_owned()
+        })
+        .filter(|name| name != "README.md")
+        .collect::<Vec<_>>();
+    actual.sort_unstable();
+
+    let mut expected = base_edges
+        .into_iter()
+        .flat_map(|(child, parent)| {
+            [
+                format!("base-{}-{}.accepts", child.as_str(), parent.as_str()),
+                format!("base-{}-{}.rejects", child.as_str(), parent.as_str()),
+            ]
+        })
+        .chain(lookalike_edges.into_iter().flat_map(|(left, right)| {
+            [
+                format!(
+                    "lookalike-{}-{}.{}",
+                    left.as_str(),
+                    right.as_str(),
+                    left.as_str()
+                ),
+                format!(
+                    "lookalike-{}-{}.{}",
+                    left.as_str(),
+                    right.as_str(),
+                    right.as_str()
+                ),
+            ]
+        }))
+        .collect::<Vec<_>>();
+    expected.sort_unstable();
+
+    assert_eq!(actual, expected, "kinship fixture inventory drifted");
 }
 
 // ---------------------------------------------------------------------
