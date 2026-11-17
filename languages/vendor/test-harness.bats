@@ -66,7 +66,10 @@ vendoring_harness() {
     echo "vendoring: could not unpack crate" >&2
     return 1
   }
-  (cd "${unpacked}" && cargo test --offline --target-dir "${work}/unpacked-target" >/dev/null)
+  (cd "${unpacked}" && cargo test --offline --target-dir "${work}/unpacked-target" >/dev/null) || {
+    echo "vendoring: unpacked crate tests failed" >&2
+    return 1
+  }
   echo "vendoring: ${crate} metadata, cc build, and packaged C passed"
 }
 
@@ -80,4 +83,11 @@ vendoring_harness() {
   run vendoring_harness "${fixture}"
   [ "${status}" -ne 0 ]
   [[ "${output}" == *"rev"* ]]
+}
+
+@test "vendoring harness rejects failing unpacked crate tests" {
+  printf '%s\n' '#[cfg(test)] mod tests { #[test] fn fails() { panic!("fixture failure"); } }' >>"${fixture}/src/lib.rs"
+  run vendoring_harness "${fixture}"
+  [ "${status}" -ne 0 ]
+  [[ "${output}" == *"unpacked crate tests failed"* ]]
 }
