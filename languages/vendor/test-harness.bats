@@ -3,13 +3,14 @@
 setup() {
   fixture="${BATS_TEST_TMPDIR}/grammar"
   mkdir -p "${fixture}/src"
-  printf '%s\n' '[package]' 'name = "fixture-grammar"' 'version = "0.1.0"' 'edition = "2021"' 'license = "MIT"' 'include = ["Cargo.toml", "build.rs", "src/**", "UPSTREAM", "LICENSE"]' >"${fixture}/Cargo.toml"
+  mkdir -p "${fixture}/vendor/tree-sitter-fixture"
+  printf '%s\n' '[package]' 'name = "fixture-grammar"' 'version = "0.1.0"' 'edition = "2021"' 'license = "MIT"' 'include = ["Cargo.toml", "build.rs", "src/**", "vendor/**"]' >"${fixture}/Cargo.toml"
   printf '%s\n' '[build-dependencies]' 'cc = "1"' >>"${fixture}/Cargo.toml"
   printf '%s\n' 'fn main() { cc::Build::new().file("src/parser.c").compile("fixture-grammar"); }' >"${fixture}/build.rs"
   printf '%s\n' 'pub fn fixture_parser() {}' >"${fixture}/src/lib.rs"
   printf '%s\n' 'int fixture_parser(void) { return 0; }' >"${fixture}/src/parser.c"
-  printf '%s\n' 'repo: https://example.invalid/tree-sitter-fixture' 'rev: deadbeef' 'license: MIT' >"${fixture}/UPSTREAM"
-  printf '%s\n' 'MIT License' >"${fixture}/LICENSE"
+  printf '%s\n' 'repo: https://example.invalid/tree-sitter-fixture' 'rev: deadbeef' 'license: MIT' >"${fixture}/vendor/tree-sitter-fixture/UPSTREAM"
+  printf '%s\n' 'MIT License' >"${fixture}/vendor/tree-sitter-fixture/LICENSE"
 }
 
 vendoring_harness() {
@@ -18,14 +19,19 @@ vendoring_harness() {
     return 2
   fi
   crate=$1
-  for file in Cargo.toml build.rs UPSTREAM; do
+  for file in Cargo.toml build.rs; do
     [[ -f "${crate}/${file}" ]] || {
       echo "vendoring: missing ${file}" >&2
       return 1
     }
   done
+  grammar=${crate}/vendor/tree-sitter-fixture
+  [[ -f "${grammar}/UPSTREAM" ]] || {
+    echo "vendoring: missing vendor/tree-sitter-fixture/UPSTREAM" >&2
+    return 1
+  }
   for field in repo rev license; do
-    rg -q "^${field}:[[:space:]]*[^[:space:]]" "${crate}/UPSTREAM" || {
+    rg -q "^${field}:[[:space:]]*[^[:space:]]" "${grammar}/UPSTREAM" || {
       echo "vendoring: UPSTREAM missing ${field}" >&2
       return 1
     }
@@ -34,7 +40,7 @@ vendoring_harness() {
     echo "vendoring: build.rs does not use cc::Build" >&2
     return 1
   }
-  find "${crate}" -maxdepth 1 -type f -iname 'LICENSE*' -print -quit | grep -q . || {
+  find "${grammar}" -maxdepth 1 -type f -iname 'LICENSE*' -print -quit | grep -q . || {
     echo "vendoring: missing license file" >&2
     return 1
   }
@@ -48,6 +54,10 @@ vendoring_harness() {
   }
   tar -tf "${crate_file}" | grep -q '/src/parser.c$' || {
     echo "vendoring: packaged crate does not contain src/parser.c" >&2
+    return 1
+  }
+  tar -tf "${crate_file}" | grep -q '/vendor/tree-sitter-fixture/UPSTREAM$' || {
+    echo "vendoring: packaged crate does not contain grammar metadata" >&2
     return 1
   }
   tar -xf "${crate_file}" -C "${work}"
@@ -66,7 +76,7 @@ vendoring_harness() {
 }
 
 @test "vendoring harness rejects a missing revision" {
-  sed -i '/^rev:/d' "${fixture}/UPSTREAM"
+  sed -i '/^rev:/d' "${fixture}/vendor/tree-sitter-fixture/UPSTREAM"
   run vendoring_harness "${fixture}"
   [ "${status}" -ne 0 ]
   [[ "${output}" == *"rev"* ]]
