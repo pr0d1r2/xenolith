@@ -413,8 +413,8 @@ pub fn vendored(root: &Path) -> Result<Vec<notices::Vendored>, String> {
                 None => None,
             };
             Ok(notices::Vendored {
-                upstream,
                 dir,
+                upstream,
                 files,
                 notice,
             })

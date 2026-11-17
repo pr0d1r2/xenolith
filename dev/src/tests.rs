@@ -88,7 +88,7 @@ impl Repo {
             ("README.md", README),
             (
                 "languages/ci/nix/vendor/tree-sitter-n/UPSTREAM",
-                "repo:     https://example.org/n\n",
+                "repo:     https://example.org/n\nrev:      main\nlicense:  MIT\n",
             ),
             (
                 "languages/ci/nix/vendor/tree-sitter-n/LICENSE",
@@ -321,7 +321,10 @@ fn vendored_grammars_are_found_with_their_licence_files() {
         "repo: https://example.org/n\nrev: main\nlicense: MIT\n",
     );
     repo.write("languages/ci/nix/vendor/tree-sitter-n/LICENSE", "MIT\n");
-    repo.write("languages/ci/nix/vendor/tree-sitter-n/NOTICE.txt", "Copyright N\n");
+    repo.write(
+        "languages/ci/nix/vendor/tree-sitter-n/NOTICE.txt",
+        "Copyright N\n",
+    );
     repo.write("docs/vendor/UPSTREAM.md", "");
     let v = vendored(&repo.dir).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(v.len(), 1);
@@ -334,7 +337,10 @@ fn vendored_grammars_are_found_with_their_licence_files() {
 #[test]
 fn vendored_grammar_requires_upstream_identity() {
     let repo = Repo::new();
-    repo.write("languages/ci/nix/vendor/tree-sitter-n/UPSTREAM", "repo: https://example.org/n\n");
+    repo.write(
+        "languages/ci/nix/vendor/tree-sitter-n/UPSTREAM",
+        "repo: https://example.org/n\n",
+    );
     let err = vendored(&repo.dir).err().unwrap_or_default();
     assert!(err.contains("rev") && err.contains("UPSTREAM"), "{err}");
 }
