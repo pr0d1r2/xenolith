@@ -69,6 +69,19 @@ bash "${VAR:-./scripts/default.sh}"
 }
 
 #[test]
+fn shell_loads_expand_overlapping_variable_names_deterministically() {
+    let src = r#"A=wrong
+AB=scripts
+bash "$AB/loaded.sh"
+"#;
+    let loads = ShellHost
+        .loads(src)
+        .unwrap_or_else(|error| panic!("shell loads: {error}"));
+    assert_eq!(loads.len(), 1);
+    assert_eq!(loads[0].path, Path::new("scripts/loaded.sh"));
+}
+
+#[test]
 fn the_walk_reaches_commands_at_any_depth() {
     let src = "f() { for x in 1; do (python3 -c 'print(1)'); done; }\n";
     let sinks: Vec<String> = found(src).into_iter().map(|site| site.sink).collect();
