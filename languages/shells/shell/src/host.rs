@@ -111,8 +111,8 @@ impl Host for ShellHost {
         Ok(found)
     }
 
-    /// Report lexical shell loads; unresolved expansions remain loads so graph
-    /// can report them instead of guessing that they are absent.
+    /// Report shell loads whose paths can be resolved statically. Unresolved
+    /// expansions are omitted because graph cannot safely name their target.
     fn loads(&self, src: &str) -> Result<Vec<LoadRef>> {
         let tree = parse(src)?;
         let vars = assignments(src);
@@ -269,6 +269,11 @@ fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> Option<String> {
     let mut value = raw.trim_matches(['\'', '"']).to_owned();
     value = value.replace("$(dirname \"$0\")/", "");
     value = value.replace("$(dirname \"${BASH_SOURCE[0]}\")/", "");
+    // Expand longer names first: `$AB` must not become the replacement for
+    // `$A` followed by the literal `B`. Sorting also keeps the result
+    // independent of HashMap iteration order.
+    let mut vars: Vec<_> = vars.iter().collect();
+    vars.sort_unstable_by_key(|(name, _)| std::cmp::Reverse(name.len()));
     for (name, replacement) in vars {
         value = value.replace(&format!("${name}"), replacement);
         value = value.replace(&format!("${{{name}}}"), replacement);
