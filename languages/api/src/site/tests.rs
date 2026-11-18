@@ -133,6 +133,16 @@ fn ambiguous_detection_keeps_host_order() {
 }
 
 #[test]
+fn candidate_set_is_explicit_not_inferred_from_site_context() {
+    // Tree-sitter injection queries describe editor highlighting ranges; they
+    // do not replace the host's ordered, sink-specific candidate contract.
+    // Detection must therefore consume exactly the candidates the host gives
+    // it, even when the context contains no additional signal.
+    let candidates = [LangId::Sql];
+    assert_eq!(detection(&candidates, None, None, None), Some(LangId::Sql));
+}
+
+#[test]
 fn no_candidate_is_unknown() {
     let candidates = [LangId::Shell];
     let rejects = [LangId::Shell];

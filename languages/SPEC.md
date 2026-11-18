@@ -36,6 +36,10 @@ sib|dev|repo-maintaining tooling, `publish = false`: README generated blocks, th
 - C23: language set closed (`LangId`, `languages/api:V33`); third-party language crates / plugins = potential ?, ⊥ now -- revisit once api traits are stable semver surface.
 - C26: markdown as GUEST = potential ? (M3+ per `.` C25): md embedded in host string literals, e.g. rust tests holding spec fixtures (`const SOURCE: &str = "# SPEC\n\n## §G..."`) → extract to `tests/fixtures/<name>.md` + `include_str!`; detection by exclusion (`languages:V81`) via heading/table shape; checks `markdownlint`, `mth check` for SPEC-shaped bodies. markdown as HOST stays per C18 (fenced code = docs).
 
+## §R RESEARCH
+
+- R130: reject `injections.scm` as a candidate source. Tree-sitter injection queries are optional loader/editor query files: they identify ranges and may name a language, but do not encode xenolith's sink identity, delimiter, runtime base, host interpolation holes, or the ordered candidate set used by `languages:V81`. Grammar crates also do not expose a portable query-file interface. Consuming them would therefore bypass `Site`/`GuestEnv`; vendoring them would add a query runtime and versioned query data without supplying the missing host contract. Hosts keep explicit deterministic candidates, locked by `languages/api/src/site` tests.
+
 ## §V INVARIANTS
 
 V2: detection uses parser AST (C4). ⊥ regex over raw source ∀ host. test ! prove: embed inside comment | inert data string ⊥ flagged.
@@ -63,7 +67,7 @@ T82|x|detection pipeline; fixtures: shebang overrides context, tag narrows, ambi
 T86|x|evaluate placement prototypes: fixtures per host, decide & promote each to a node V or drop|V74,`languages/ci/yaml:V75`,`languages/ci/dockerfile:V88`
 T120|x|vendoring harness: `cc` build, rev+license record, notices hook, `cargo package` proves the C ships (`nix:V113`)|V121,`docs:V108`
 T128|x|kinship table in api + fixture pairs ∀ `base` & ∀ `lookalike` edge (2 per base, 1 pair per lookalike)|V130,V131,`languages/api:V33`,`tests:V15`
-T130|.|evaluate tree-sitter `injections.scm` as a CANDIDATE source ?: upstream grammars already declare which node holds which language ∴ `Host::candidates` could READ them than restate sinks by hand. decide: consume, vendor-and-consume, or reject w/ reason|V81,`languages/api/src/site` §I
+T130|x|evaluate tree-sitter `injections.scm` as a CANDIDATE source ?: upstream grammars already declare which node holds which language ∴ `Host::candidates` could READ them than restate sinks by hand. decide: consume, vendor-and-consume, or reject w/ reason|V81,`languages/api/src/site` §I
 
 ## §B BUGS
 
