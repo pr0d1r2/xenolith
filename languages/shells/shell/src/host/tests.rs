@@ -46,9 +46,26 @@ scripts/command.sh
             "scripts/sh.sh",
             "scripts/exec.sh",
             "scripts/command.sh",
-            "$SOME_ENV/x.sh",
         ]
     );
+}
+
+#[test]
+fn shell_loads_skip_paths_only_known_at_runtime() {
+    let src = r#"manifest="$(jq -r .verify "${MANIFEST:-/etc/app/manifest.json}")"
+verify="$manifest"
+while IFS=$'\t' read -r name; do
+  bash "$verify" upgrade "$name"
+done <list.tsv
+lib="$(git rev-parse --show-toplevel)/scripts/lib.sh"
+bash "$lib"
+bash "$PWD/scripts/pwd.sh"
+bash "${VAR:-./scripts/default.sh}"
+"#;
+    let loads = ShellHost
+        .loads(src)
+        .unwrap_or_else(|error| panic!("shell loads: {error}"));
+    assert!(loads.is_empty(), "runtime paths were reported: {loads:?}");
 }
 
 #[test]
