@@ -240,15 +240,15 @@ fn collect_loads(node: Node<'_>, src: &str, vars: &HashMap<&str, &str>, found: &
             } else {
                 None
             };
-            if let Some(word) = candidate {
-                let path = resolve_path(text(word, src), vars);
-                if is_path(&path) {
-                    found.push(LoadRef {
-                        span: span(word),
-                        path: PathBuf::from(path),
-                        guest: LangId::Shell,
-                    });
-                }
+            if let Some(word) = candidate
+                && let Some(path) = resolve_path(text(word, src), vars)
+                && is_path(&path)
+            {
+                found.push(LoadRef {
+                    span: span(word),
+                    path: PathBuf::from(path),
+                    guest: LangId::Shell,
+                });
             }
         }
     }
@@ -265,7 +265,7 @@ fn is_path(value: &str) -> bool {
             .is_some_and(|ext| matches!(ext.to_str(), Some("sh" | "bash" | "zsh")))
 }
 
-fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> String {
+fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> Option<String> {
     let mut value = raw.trim_matches(['\'', '"']).to_owned();
     value = value.replace("$(dirname \"$0\")/", "");
     value = value.replace("$(dirname \"${BASH_SOURCE[0]}\")/", "");
@@ -273,7 +273,11 @@ fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> String {
         value = value.replace(&format!("${name}"), replacement);
         value = value.replace(&format!("${{{name}}}"), replacement);
     }
-    value
+    if value.contains("$(") || value.contains('`') || value.contains('$') {
+        None
+    } else {
+        Some(value)
+    }
 }
 
 fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
