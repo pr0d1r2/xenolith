@@ -77,8 +77,10 @@ bash "$AB/loaded.sh"
     let loads = ShellHost
         .loads(src)
         .unwrap_or_else(|error| panic!("shell loads: {error}"));
-    assert_eq!(loads.len(), 1);
-    assert_eq!(loads[0].path, Path::new("scripts/loaded.sh"));
+    let [load] = loads.as_slice() else {
+        panic!("expected one load, got {loads:?}");
+    };
+    assert_eq!(load.path, Path::new("scripts/loaded.sh"));
 }
 
 #[test]
