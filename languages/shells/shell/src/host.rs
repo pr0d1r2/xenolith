@@ -270,20 +270,58 @@ fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> Option<String> {
     let mut value = raw.trim_matches(['\'', '"']).to_owned();
     value = value.replace("$(dirname \"$0\")/", "");
     value = value.replace("$(dirname \"${BASH_SOURCE[0]}\")/", "");
-    // Expand longer names first: `$AB` must not become the replacement for
-    // `$A` followed by the literal `B`. Sorting also keeps the result
-    // independent of HashMap iteration order.
-    let mut vars: Vec<_> = vars.iter().collect();
-    vars.sort_unstable_by_key(|(name, _)| std::cmp::Reverse(name.len()));
-    for (name, replacement) in vars {
-        value = value.replace(&format!("${name}"), replacement);
-        value = value.replace(&format!("${{{name}}}"), replacement);
-    }
+    value = expand_known_vars(&value, vars);
     if !single_quoted && (value.contains("$(") || value.contains('`') || value.contains('$')) {
         None
     } else {
         Some(value)
     }
+}
+
+fn expand_known_vars(value: &str, vars: &HashMap<&str, &str>) -> String {
+    let bytes = value.as_bytes();
+    let mut out = String::with_capacity(value.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes.get(index) != Some(&b'$') {
+            let next = value[index..]
+                .char_indices()
+                .nth(1)
+                .map_or(value.len(), |(offset, _)| index + offset);
+            out.push_str(&value[index..next]);
+            index = next;
+            continue;
+        }
+
+        let (name_start, name_end, end) = if bytes.get(index + 1) == Some(&b'{') {
+            let Some(close) = value[index + 2..].find('}') else {
+                out.push('$');
+                index += 1;
+                continue;
+            };
+            (index + 2, index + 2 + close, index + 3 + close)
+        } else {
+            let mut end = index + 1;
+            while end < bytes.len()
+                && bytes
+                    .get(end)
+                    .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+            {
+                end += 1;
+            }
+            (index + 1, end, end)
+        };
+
+        let name = &value[name_start..name_end];
+        if let Some(replacement) = vars.get(name) {
+            out.push_str(replacement);
+            index = end;
+        } else {
+            out.push_str(&value[index..end]);
+            index = end;
+        }
+    }
+    out
 }
 
 fn text<'s>(node: Node<'_>, src: &'s str) -> &'s str {
