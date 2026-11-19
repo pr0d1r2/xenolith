@@ -336,10 +336,7 @@ fn a_load_of_a_missing_file_is_dangling_with_every_field() {
 #[test]
 fn a_substitution_placeholder_load_is_not_dangling() {
     let sandbox = Sandbox::new();
-    let root = tree(
-        &sandbox,
-        &[("a.fake", "load @stateDir@/token.env\n")],
-    );
+    let root = tree(&sandbox, &[("a.fake", "load @stateDir@/token.env\n")]);
     let graph = ok(&sandbox, &root, &Config::default(), &["a.fake"]);
     assert!(graph.edges.is_empty());
     assert!(graph.report.violations().is_empty(), "{:?}", graph.report);
