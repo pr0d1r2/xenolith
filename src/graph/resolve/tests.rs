@@ -101,6 +101,29 @@ fn a_load_through_a_symlink_is_dangling() {
     assert!(why.contains("symlink"), "{why}");
 }
 
+#[cfg(unix)]
+#[test]
+fn a_dot_load_only_falls_back_when_missing_from_the_host_directory() {
+    use std::os::unix::fs::symlink;
+
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["x.sh"]);
+    std::fs::create_dir(root.join("sub")).unwrap();
+    std::fs::create_dir(root.join("sub/x.sh")).unwrap();
+    assert_eq!(
+        resolve(&root, "sub/h.pkl", Path::new("./x.sh")),
+        Err(Dangling::NotAFile("sub/x.sh".to_owned()))
+    );
+
+    let root = tree(&sandbox, &["x.sh"]);
+    std::fs::create_dir(root.join("sub")).unwrap();
+    symlink(root.join("x.sh"), root.join("sub/x.sh")).unwrap();
+    assert_eq!(
+        resolve(&root, "sub/h.pkl", Path::new("./x.sh")),
+        Err(Dangling::Symlink("sub/x.sh".to_owned()))
+    );
+}
+
 #[test]
 fn a_load_naming_the_root_itself_is_not_a_file() {
     // `.` from a host at the root names no component at all: the root
