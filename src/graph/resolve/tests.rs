@@ -66,6 +66,16 @@ fn a_missing_file_is_dangling_and_named() {
 }
 
 #[test]
+fn a_substitution_placeholder_is_unknown_at_runtime() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("@stateDir@/token.env")),
+        Err(Dangling::Unknown)
+    );
+}
+
+#[test]
 fn a_load_outside_the_root_is_dangling() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);
