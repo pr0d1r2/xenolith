@@ -50,7 +50,7 @@ impl fmt::Display for Dangling {
 ///
 /// [`Dangling`], naming why the load does not resolve.
 pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling> {
-    let mut parts: Vec<String> = Path::new(host)
+    let from_host = Path::new(host)
         .parent()
         .into_iter()
         .flat_map(Path::components)
@@ -59,6 +59,14 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
             _ => None,
         })
         .collect();
+    let result = resolve_from(root, from_host, load);
+    if result.is_ok() || !matches!(load.components().next(), Some(Component::CurDir)) {
+        return result;
+    }
+    resolve_from(root, Vec::new(), load)
+}
+
+fn resolve_from(root: &Path, mut parts: Vec<String>, load: &Path) -> Result<String, Dangling> {
     for component in load.components() {
         match component {
             Component::CurDir => {}
