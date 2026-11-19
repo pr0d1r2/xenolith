@@ -69,6 +69,18 @@ bash "${VAR:-./scripts/default.sh}"
 }
 
 #[test]
+fn shell_loads_preserve_literal_expansion_characters() {
+    let src = "bash 'scripts/$literal.sh'\nbash \"$UNKNOWN/lib.sh\"\n";
+    let loads = ShellHost
+        .loads(src)
+        .unwrap_or_else(|error| panic!("shell loads: {error}"));
+    let [load] = loads.as_slice() else {
+        panic!("expected one load, got {loads:?}");
+    };
+    assert_eq!(load.path, Path::new("scripts/$literal.sh"));
+}
+
+#[test]
 fn shell_loads_expand_overlapping_variable_names_deterministically() {
     let src = r#"A=wrong
 AB=scripts
