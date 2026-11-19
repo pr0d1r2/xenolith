@@ -46,6 +46,16 @@ fn a_missing_dot_load_is_retried_from_the_repository_root() {
 }
 
 #[test]
+fn a_root_retry_keeps_the_host_missing_error_when_it_escapes_root() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    assert_eq!(
+        resolve(&root, "sub/h.sh", Path::new("./../missing.sh")),
+        Err(Dangling::Missing("missing.sh".to_owned()))
+    );
+}
+
+#[test]
 fn a_missing_file_is_dangling_and_named() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);

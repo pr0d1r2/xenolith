@@ -51,3 +51,4 @@ id|date|cause|fix
 B1|2026-09-26|shell host registered (`src/registry:B11`), `loads` ⊥ ∴ `loads-unsupported` warned on named-path runs & rootless trees, where no orphan scan runs|warn only when a scan would run: whole-tree ∧ ≥1 root
 B2|2026-09-27|edge `sink` always `""` (§I json example names it): `LoadRef` ∌ sink & edge ⊥ read back|sink from judge's read-back (V98) site; ⊥ read back → body put back as is
 B3|2026-11-19|`./` loads were resolved only from the host directory, although shell execution resolves them from the caller's working directory|retry a missing `./` load from the repository root
+B4|2026-11-19|root retry of a missing `./` load could escape above the root and replace the host-directory missing diagnostic with `Outside`|keep the host-directory dangling reason when the root retry cannot resolve inside the root
