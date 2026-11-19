@@ -96,6 +96,17 @@ bash "$AB/loaded.sh"
 }
 
 #[test]
+fn shell_loads_do_not_expand_a_known_prefix_of_an_unknown_variable() {
+    let src = r#"A=scripts
+bash "$AB/loaded.sh"
+"#;
+    let loads = ShellHost
+        .loads(src)
+        .unwrap_or_else(|error| panic!("shell loads: {error}"));
+    assert!(loads.is_empty(), "runtime paths were reported: {loads:?}");
+}
+
+#[test]
 fn the_walk_reaches_commands_at_any_depth() {
     let src = "f() { for x in 1; do (python3 -c 'print(1)'); done; }\n";
     let sinks: Vec<String> = found(src).into_iter().map(|site| site.sink).collect();
