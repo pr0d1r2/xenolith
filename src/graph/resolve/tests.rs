@@ -36,6 +36,16 @@ fn a_load_resolves_from_the_host_files_directory() {
 }
 
 #[test]
+fn a_missing_dot_load_is_retried_from_the_repository_root() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["scripts/lib.sh"]);
+    assert_eq!(
+        resolve(&root, "sub/a.sh", Path::new("./scripts/lib.sh")),
+        Ok("scripts/lib.sh".to_owned())
+    );
+}
+
+#[test]
 fn a_missing_file_is_dangling_and_named() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);
