@@ -108,16 +108,17 @@ fn a_dot_load_only_falls_back_when_missing_from_the_host_directory() {
 
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &["x.sh"]);
-    std::fs::create_dir(root.join("sub")).unwrap();
-    std::fs::create_dir(root.join("sub/x.sh")).unwrap();
+    std::fs::create_dir(root.join("sub")).unwrap_or_else(|e| panic!("{e}"));
+    std::fs::create_dir(root.join("sub/x.sh")).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         resolve(&root, "sub/h.pkl", Path::new("./x.sh")),
         Err(Dangling::NotAFile("sub/x.sh".to_owned()))
     );
 
+    let sandbox = Sandbox::new();
     let root = tree(&sandbox, &["x.sh"]);
-    std::fs::create_dir(root.join("sub")).unwrap();
-    symlink(root.join("x.sh"), root.join("sub/x.sh")).unwrap();
+    std::fs::create_dir(root.join("sub")).unwrap_or_else(|e| panic!("{e}"));
+    symlink(root.join("x.sh"), root.join("sub/x.sh")).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         resolve(&root, "sub/h.pkl", Path::new("./x.sh")),
         Err(Dangling::Symlink("sub/x.sh".to_owned()))

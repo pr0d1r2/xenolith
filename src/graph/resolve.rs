@@ -60,7 +60,9 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
         })
         .collect();
     let result = resolve_from(root, from_host, load);
-    if result.is_ok() || !matches!(load.components().next(), Some(Component::CurDir)) {
+    if !matches!(result, Err(Dangling::Missing(_)))
+        || !matches!(load.components().next(), Some(Component::CurDir))
+    {
         return result;
     }
     resolve_from(root, Vec::new(), load)
