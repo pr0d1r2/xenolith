@@ -86,6 +86,16 @@ fn at_signs_in_different_path_components_are_static() {
 }
 
 #[test]
+fn an_empty_placeholder_pair_in_a_filename_is_static() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["assets@@2.sh"]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("assets@@2.sh")),
+        Ok("assets@@2.sh".to_owned())
+    );
+}
+
+#[test]
 fn a_load_outside_the_root_is_dangling() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);

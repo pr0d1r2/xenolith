@@ -80,11 +80,17 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
 fn has_placeholder(path: &Path) -> bool {
     path.components().any(|component| {
         let mut open = false;
+        let mut named = false;
         for byte in component.as_os_str().to_string_lossy().bytes() {
             match (open, byte) {
-                (false, b'@') => open = true,
-                (true, b'@') => return true,
-                _ => {}
+                (false, b'@') => {
+                    open = true;
+                    named = false;
+                }
+                (true, b'@') if named => return true,
+                (true, b'@') => open = false,
+                (true, _) => named = true,
+                (false, _) => {}
             }
         }
         false
