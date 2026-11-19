@@ -65,7 +65,10 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
     {
         return result;
     }
-    resolve_from(root, Vec::new(), load)
+    match resolve_from(root, Vec::new(), load) {
+        Err(Dangling::Outside) => result,
+        retry => retry,
+    }
 }
 
 fn resolve_from(root: &Path, mut parts: Vec<String>, load: &Path) -> Result<String, Dangling> {
