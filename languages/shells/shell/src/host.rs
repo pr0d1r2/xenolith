@@ -266,6 +266,7 @@ fn is_path(value: &str) -> bool {
 }
 
 fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> Option<String> {
+    let single_quoted = raw.starts_with('\'') && raw.ends_with('\'');
     let mut value = raw.trim_matches(['\'', '"']).to_owned();
     value = value.replace("$(dirname \"$0\")/", "");
     value = value.replace("$(dirname \"${BASH_SOURCE[0]}\")/", "");
@@ -278,7 +279,7 @@ fn resolve_path(raw: &str, vars: &HashMap<&str, &str>) -> Option<String> {
         value = value.replace(&format!("${name}"), replacement);
         value = value.replace(&format!("${{{name}}}"), replacement);
     }
-    if value.contains("$(") || value.contains('`') || value.contains('$') {
+    if !single_quoted && (value.contains("$(") || value.contains('`') || value.contains('$')) {
         None
     } else {
         Some(value)
