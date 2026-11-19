@@ -78,15 +78,17 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
 }
 
 fn has_placeholder(path: &Path) -> bool {
-    let mut open = false;
-    for byte in path.as_os_str().to_string_lossy().bytes() {
-        match (open, byte) {
-            (false, b'@') => open = true,
-            (true, b'@') => return true,
-            _ => {}
+    path.components().any(|component| {
+        let mut open = false;
+        for byte in component.as_os_str().to_string_lossy().bytes() {
+            match (open, byte) {
+                (false, b'@') => open = true,
+                (true, b'@') => return true,
+                _ => {}
+            }
         }
-    }
-    false
+        false
+    })
 }
 
 fn resolve_from(root: &Path, mut parts: Vec<String>, load: &Path) -> Result<String, Dangling> {

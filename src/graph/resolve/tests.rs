@@ -76,6 +76,16 @@ fn a_substitution_placeholder_is_unknown_at_runtime() {
 }
 
 #[test]
+fn at_signs_in_different_path_components_are_static() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["a@v1/b@v2.sh"]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("a@v1/b@v2.sh")),
+        Ok("a@v1/b@v2.sh".to_owned())
+    );
+}
+
+#[test]
 fn a_load_outside_the_root_is_dangling() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);
