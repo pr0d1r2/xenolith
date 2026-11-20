@@ -88,7 +88,7 @@ fn has_placeholder(path: &Path) -> bool {
                     named = false;
                 }
                 (true, b'@') if named => return true,
-                (true, b'@') => open = false,
+                (true, b'@') => open = true,
                 (true, _) => named = true,
                 (false, _) => {}
             }
