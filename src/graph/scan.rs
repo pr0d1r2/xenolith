@@ -144,6 +144,7 @@ impl<'a> Scan<'a> {
                     params: Vec::new(),
                 });
             }
+            Err(resolve::Dangling::Unknown) => {}
             Err(why) => self.report.push(Violation {
                 rule: Rule::DanglingLoad,
                 file: PathBuf::from(name),
