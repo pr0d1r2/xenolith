@@ -343,6 +343,16 @@ fn a_substitution_placeholder_load_is_not_dangling() {
     assert_eq!(graph.exit_code(), 0);
 }
 
+#[test]
+fn a_placeholder_after_an_empty_at_pair_is_not_dangling() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[("a.fake", "load @@stateDir@/token.env\n")]);
+    let graph = ok(&sandbox, &root, &Config::default(), &["a.fake"]);
+    assert!(graph.edges.is_empty());
+    assert!(graph.report.violations().is_empty(), "{:?}", graph.report);
+    assert_eq!(graph.exit_code(), 0);
+}
+
 #[cfg(unix)]
 #[test]
 fn a_load_through_a_symlink_is_dangling() {

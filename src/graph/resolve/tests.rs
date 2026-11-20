@@ -76,6 +76,16 @@ fn a_substitution_placeholder_is_unknown_at_runtime() {
 }
 
 #[test]
+fn a_placeholder_after_an_empty_at_pair_is_unknown_at_runtime() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("@@stateDir@/token.env")),
+        Err(Dangling::Unknown)
+    );
+}
+
+#[test]
 fn at_signs_in_different_path_components_are_static() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &["a@v1/b@v2.sh"]);
