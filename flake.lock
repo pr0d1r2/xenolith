@@ -78,11 +78,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794982599,
-        "narHash": "sha256-mLzmuEIJZ5vU2I0G6Ifzbey5+UDEzlOrKrRLCK6GzoM=",
+        "lastModified": 1795167958,
+        "narHash": "sha256-2Zathl7h5xLuosTALyJ/F//nJWyiO5wju+f2yFuAE4g=",
         "owner": "pr0d1r2",
         "repo": "microlith",
-        "rev": "2c7ba6ac36ab61a08245bff58ca14af2e82243e5",
+        "rev": "6123bb805ecca9d9e8eee5268437fa4aeae87887",
         "type": "github"
       },
       "original": {
