@@ -144,6 +144,24 @@ fn a_keep_glob_suppresses_inlineable_for_an_owned_extract() {
 }
 
 #[test]
+fn a_nested_keep_glob_applies_to_an_extract_in_that_subtree() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nexec make\n"),
+            (
+                "a/xenolith.toml",
+                "version = 1\n[[keep]]\nglob = \"*.sh\"\nreason = \"owned runners\"\n",
+            ),
+        ],
+    );
+    let found = judged(&sandbox, &root, &Config::default(), &[]);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
 fn a_threshold_that_relaxes_the_body_makes_it_inlineable() {
     let sandbox = Sandbox::new();
     let root = repo(

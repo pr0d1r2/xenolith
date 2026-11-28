@@ -113,7 +113,7 @@ pub(crate) fn judge<'a>(
         let once = count.get(l.extract.as_str()) == Some(&1);
         if once
             && !tree
-                .config_for(&l.name)
+                .config_for(&l.extract)
                 .keep
                 .iter()
                 .any(|keep| keep.matches(&l.extract))
