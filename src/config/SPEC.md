@@ -32,7 +32,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api/src/holes:V40`).
 - `[parse] host_errors` ∈ `error` (default) \| `warn` \| `ignore`: claimed host file ⊥ parsed (`ERROR` nodes, BOM, ⊥ UTF-8) ∴ ⊥ checked; default ⊥ silent pass.
 - `[[exclude]]`: `glob`, `reason` (required) -- tracked files ∀ verb skips; default = scan ∀ tracked file.
-- `[[keep]]`: `glob`, `reason` (required) -- matching extracts remain extracted and do not receive `inlineable-extract`.
+- `[[keep]]`: `glob`, `reason` (required) -- matching extracts do not receive `inlineable-extract`; an explicitly named extract may still be removed by `xnl inline`.
 - per-verb exclusion lists `[check] exclude`, `[extract] exclude`, `[lint] exclude`, `[graph] exclude` = `[{ glob, reason }]`, applied on top of `[[exclude]]`.
 - `[[detect]]`: `host`?, `sink`? (glob), `path`? (glob), `guest` -- forces guest for matching sites, overrides detection.
 - `[langs] missing_guest` ∈ `error` (default) \| `warn` \| `ignore`: site whose guest is compiled out.
