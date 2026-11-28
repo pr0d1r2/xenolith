@@ -19,6 +19,8 @@ mod tests;
 /// Why a load does not resolve: each a `dangling-load` (`src/graph:V7`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Dangling {
+    /// A substitution placeholder is filled in at runtime.
+    Unknown,
     /// Nothing at this repo path.
     Missing(String),
     /// Absolute, or climbs above the root.
@@ -32,6 +34,7 @@ pub enum Dangling {
 impl fmt::Display for Dangling {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Dangling::Unknown => f.write_str("the path is only known at runtime"),
             Dangling::Missing(path) => write!(f, "{path} does not exist"),
             Dangling::Outside => f.write_str("it points outside the repository root"),
             Dangling::Symlink(path) => write!(
@@ -50,6 +53,9 @@ impl fmt::Display for Dangling {
 ///
 /// [`Dangling`], naming why the load does not resolve.
 pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling> {
+    if has_placeholder(load) {
+        return Err(Dangling::Unknown);
+    }
     let from_host = Path::new(host)
         .parent()
         .into_iter()
@@ -69,6 +75,26 @@ pub fn resolve(root: &Path, host: &str, load: &Path) -> Result<String, Dangling>
         Err(Dangling::Outside) => result,
         retry => retry,
     }
+}
+
+fn has_placeholder(path: &Path) -> bool {
+    path.components().any(|component| {
+        let mut open = false;
+        let mut named = false;
+        for byte in component.as_os_str().to_string_lossy().bytes() {
+            match (open, byte) {
+                (false, b'@') => {
+                    open = true;
+                    named = false;
+                }
+                (true, b'@') if named => return true,
+                (true, b'@') => open = true,
+                (true, _) => named = true,
+                (false, _) => {}
+            }
+        }
+        false
+    })
 }
 
 fn resolve_from(root: &Path, mut parts: Vec<String>, load: &Path) -> Result<String, Dangling> {

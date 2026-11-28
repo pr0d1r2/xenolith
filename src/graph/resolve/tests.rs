@@ -66,6 +66,46 @@ fn a_missing_file_is_dangling_and_named() {
 }
 
 #[test]
+fn a_substitution_placeholder_is_unknown_at_runtime() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("@stateDir@/token.env")),
+        Err(Dangling::Unknown)
+    );
+}
+
+#[test]
+fn a_placeholder_after_an_empty_at_pair_is_unknown_at_runtime() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &[]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("@@stateDir@/token.env")),
+        Err(Dangling::Unknown)
+    );
+}
+
+#[test]
+fn at_signs_in_different_path_components_are_static() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["a@v1/b@v2.sh"]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("a@v1/b@v2.sh")),
+        Ok("a@v1/b@v2.sh".to_owned())
+    );
+}
+
+#[test]
+fn an_empty_placeholder_pair_in_a_filename_is_static() {
+    let sandbox = Sandbox::new();
+    let root = tree(&sandbox, &["assets@@2.sh"]);
+    assert_eq!(
+        resolve(&root, "h.nix", Path::new("assets@@2.sh")),
+        Ok("assets@@2.sh".to_owned())
+    );
+}
+
+#[test]
 fn a_load_outside_the_root_is_dangling() {
     let sandbox = Sandbox::new();
     let root = tree(&sandbox, &[]);
