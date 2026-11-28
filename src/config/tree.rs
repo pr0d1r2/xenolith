@@ -262,6 +262,9 @@ fn rebased(config: &Config, dir: &str) -> Config {
     for allow in &mut out.allow {
         allow.path = rebase(dir, &allow.path);
     }
+    for keep in &mut out.keep {
+        keep.glob = rebase(dir, &keep.glob);
+    }
     let lists = [
         &mut out.exclude.all,
         &mut out.exclude.check,
@@ -286,6 +289,7 @@ fn merge(parent: &Config, child: &Config) -> Config {
         out.set.insert(key.clone());
     }
     out.allow.extend(child.allow.iter().cloned());
+    out.keep.extend(child.keep.iter().cloned());
     out.extract
         .rules
         .extend(child.extract.rules.iter().cloned());

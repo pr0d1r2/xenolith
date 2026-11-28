@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract]` & `[[extract.rule]]` → `src/extract`, `[extract.shell]` → `languages/shells/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), lint map, langs toggle, thresholds.
+`xenolith.toml` format, discovery, merge, validation & defaults table; engine-specific sections live in their engine node (`[lint.*]` → `src/lint`, `[extract]` & `[[extract.rule]]` → `src/extract`, `[extract.shell]` → `languages/shells/shell`); here: extract layout & rules, `[[allow]]` (reason, hash|span, staleness), `[[keep]]` extract globs, lint map, langs toggle, thresholds.
 
 ## §N NAV
 
@@ -32,6 +32,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - `[threshold.load] max_params` (default 6): holes passed as params in a one-liner load (`languages/api/src/holes:V40`).
 - `[parse] host_errors` ∈ `error` (default) \| `warn` \| `ignore`: claimed host file ⊥ parsed (`ERROR` nodes, BOM, ⊥ UTF-8) ∴ ⊥ checked; default ⊥ silent pass.
 - `[[exclude]]`: `glob`, `reason` (required) -- tracked files ∀ verb skips; default = scan ∀ tracked file.
+- `[[keep]]`: `glob`, `reason` (required) -- matching extracts remain extracted and do not receive `inlineable-extract`.
 - per-verb exclusion lists `[check] exclude`, `[extract] exclude`, `[lint] exclude`, `[graph] exclude` = `[{ glob, reason }]`, applied on top of `[[exclude]]`.
 - `[[detect]]`: `host`?, `sink`? (glob), `path`? (glob), `guest` -- forces guest for matching sites, overrides detection.
 - `[langs] missing_guest` ∈ `error` (default) \| `warn` \| `ignore`: site whose guest is compiled out.
