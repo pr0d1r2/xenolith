@@ -288,6 +288,16 @@ fn an_allow_entry_is_keyed_by_path_sink_and_hash() {
 }
 
 #[test]
+fn a_keep_entry_is_a_reasoned_extract_glob() {
+    let config = ok("version = 1\n[[keep]]\nglob = \".rekall/rules/*.sh\"\nreason = \"owned\"\n");
+    let Some(keep) = config.keep.first() else {
+        panic!("keep entry missing");
+    };
+    assert_eq!(keep.glob, ".rekall/rules/*.sh");
+    assert_eq!(keep.reason, "owned");
+}
+
+#[test]
 fn an_allow_entry_without_a_reason_is_refused() {
     let text = ALLOW.replace(
         "reason = \"upstream module expects an inline script; tracked in #12\"\n",

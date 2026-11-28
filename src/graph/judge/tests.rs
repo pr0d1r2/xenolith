@@ -126,6 +126,42 @@ fn a_trivial_body_warns_inlineable_and_a_shared_one_does_not() {
 }
 
 #[test]
+fn a_keep_glob_suppresses_inlineable_for_an_owned_extract() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nexec make\n"),
+        ],
+    );
+    let config = config::parse(
+        "version = 1\n[[keep]]\nglob = \"a/*.sh\"\nreason = \"rekall owns its rule runners\"\n",
+    )
+    .unwrap_or_else(|e| panic!("{e}"));
+    let found = judged(&sandbox, &root, &config, &[]);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
+fn a_nested_keep_glob_applies_to_an_extract_in_that_subtree() {
+    let sandbox = Sandbox::new();
+    let root = repo(
+        &sandbox,
+        &[
+            ("a.toy", "build< sh ./a/build.sh\n"),
+            ("a/build.sh", "#!/usr/bin/env sh\nexec make\n"),
+            (
+                "a/xenolith.toml",
+                "version = 1\n[[keep]]\nglob = \"*.sh\"\nreason = \"owned runners\"\n",
+            ),
+        ],
+    );
+    let found = judged(&sandbox, &root, &Config::default(), &[]);
+    assert!(found.is_empty(), "{found:?}");
+}
+
+#[test]
 fn a_threshold_that_relaxes_the_body_makes_it_inlineable() {
     let sandbox = Sandbox::new();
     let root = repo(

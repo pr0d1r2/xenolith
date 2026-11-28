@@ -111,7 +111,14 @@ pub(crate) fn judge<'a>(
             });
         }
         let once = count.get(l.extract.as_str()) == Some(&1);
-        if once && read.trivial(tree.config_for(&l.name)) {
+        if once
+            && !tree
+                .config_for(&l.extract)
+                .keep
+                .iter()
+                .any(|keep| keep.matches(&l.extract))
+            && read.trivial(tree.config_for(&l.name))
+        {
             out.warnings.push(Warning {
                 code: INLINEABLE.to_owned(),
                 file: Some(PathBuf::from(&l.extract)),

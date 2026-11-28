@@ -346,6 +346,8 @@ pub struct Config {
     pub extract: Extract,
     /// `[[allow]]`, in file order.
     pub allow: Vec<Allow>,
+    /// `[[keep]]`: extracts intentionally kept as files by another tool.
+    pub keep: Vec<Exclude>,
     /// `[[exclude]]` and the per-verb lists (`src/config:V79`).
     pub exclude: Excludes,
     /// `[lint]` and the linter map.
@@ -376,6 +378,7 @@ impl Default for Config {
                 rules: Vec::new(),
             },
             allow: Vec::new(),
+            keep: Vec::new(),
             exclude: Excludes::default(),
             lint: Lint {
                 hosts: d::LINT_HOSTS,
@@ -724,6 +727,7 @@ pub fn parse(text: &str) -> Result<Config, ConfigError> {
         match key.as_str() {
             "extract" => parse_extract(&mut config, table(key, value)?)?,
             "allow" => config.allow = parse_allow(value)?,
+            "keep" => config.keep = exclude::parse_list(key, value)?,
             "lint" => parse_lint(&mut config, table(key, value)?)?,
             "langs" => parse_langs(&mut config, table(key, value)?)?,
             "parse" => parse_parse(&mut config, table(key, value)?)?,

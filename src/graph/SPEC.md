@@ -27,7 +27,7 @@ sib|src/registry|language registry: `hosts()`, `guests()`, feature gates, featur
 - orphan (V7) judged only on whole-tree run ∧ ∀ claimed host's loads known: named paths = partial view (∼ `src/config:V9` staleness); `loads` `Unsupported` → warning `loads-unsupported` ∀ host lang, ⊥ parse → `[parse] host_errors`; either → orphan ⊥ judged.
 - load resolves from host file dir (`languages/api/src/lens:V66` default); a `./` load missing there is retried from the repository root because shell execution commonly uses the caller's cwd; `runtime_base` & rule `base` ⊥ applied (`LoadRef` ∌ sink ∴ rule ⊥ matchable); outside root \| through symlink (V72) \| ⊥ regular file → `dangling-load`.
 - fields: edge `sink` = sink of the 1 site the load reads back to (`src/extract:V270`; ⊥ read back → extract bytes put back as is), ⊥ such site → `""`; `params` `[]` until `LoadRef` carries them; `dangling-load` @ load span, guest = load's; `orphan-extract` @ `1:1`, host = guest = reader; `sink` `""`, `site` `argv-string` (`src:V1` unsited stand-in, as `src/check:V152` engine).
-- misplaced \| inlineable (V98, V100): judged per edge by `src/extract:V270` read-back; expected = placed path \| its `src/extract:V47` suffix form; read-back ⊥ → ⊥ warned; body judged as `src/check:V152` (trivial, `[threshold]`); `inlineable-extract` only if run sees 1 load of it; warning @ extract, names its load & `xnl extract --relocate` \| `xnl inline`.
+- misplaced \| inlineable (V98, V100): judged per edge by `src/extract:V270` read-back; expected = placed path \| its `src/extract:V47` suffix form; read-back ⊥ → ⊥ warned; body judged as `src/check:V152` (trivial, `[threshold]`); `inlineable-extract` only if run sees 1 load of it and no `[[keep]]` glob matches it; warning @ extract, names its load & `xnl extract --relocate` \| `xnl inline`.
 
 ## §V INVARIANTS
 
@@ -36,6 +36,7 @@ V50: extract roots = static prefix (before first `{`) of ∀ rule `path` + layou
 V72: orphan scan & load resolution ⊥ follow symlinks; load resolving through symlink → `dangling-load`.
 V98: extract whose path ≠ path current placement config would give (layout change, renamed sink) → warning `misplaced-extract` naming expected path.
 V100: extract whose body is trivial for its guest (incl. threshold) → warning `inlineable-extract`.
+V101: `[[keep]]` with a non-empty reason suppresses `inlineable-extract` for matching extracts without excluding them from graph resolution or orphan checks.
 
 ## §T TASKS
 
